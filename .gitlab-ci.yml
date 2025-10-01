@@ -1,0 +1,26 @@
+stages:
+  - build
+  - test
+
+variables:
+  OBJECT_DIR: "obj"
+  BIN_DIR: "bin"
+
+cache:
+  paths:
+    - .nuget/packages/
+    - ${OBJECT_DIR}/
+    - ${BIN_DIR}/
+
+before_script:
+  - 'dotnet restore'
+
+build:
+  stage: build
+  script:
+    - 'dotnet build BankaBenim.sln --no-restore'
+
+test:
+  stage: test
+  script:
+    - 'dotnet test src/BankApp.Tests/BankApp.Tests.csproj --no-build --verbosity normal'

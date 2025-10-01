@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>disable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BankApp.Core\BankApp.Core.csproj" />
+    <ProjectReference Include="..\BankApp.Infrastructure\BankApp.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- DevExpress References - Assuming Local Feed or Nuget if available. 
+         Since we can't easily guess DevExpress versions, we'll try standard names.
+         If this fails, user has to fix via DevExpress Project Converter. 
+         But providing the structure helps. -->
+    <PackageReference Include="DevExpress.Win.Design" Version="23.1.6" /> 
+  </ItemGroup>
+
+</Project>
