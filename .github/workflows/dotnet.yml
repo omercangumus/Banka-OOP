@@ -18,8 +18,8 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      run: dotnet restore BankaBenim.sln
+      run: dotnet restore src/BankApp.Tests/BankApp.Tests.csproj
     - name: Build
-      run: dotnet build BankaBenim.sln --no-restore
+      run: dotnet build src/BankApp.Tests/BankApp.Tests.csproj --no-restore
     - name: Test
       run: dotnet test src/BankApp.Tests/BankApp.Tests.csproj --no-build --verbosity normal

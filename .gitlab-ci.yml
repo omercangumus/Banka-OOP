@@ -13,12 +13,12 @@ cache:
     - ${BIN_DIR}/
 
 before_script:
-  - 'dotnet restore'
+  - 'dotnet restore src/BankApp.Tests/BankApp.Tests.csproj'
 
 build:
   stage: build
   script:
-    - 'dotnet build BankaBenim.sln --no-restore'
+    - 'dotnet build src/BankApp.Tests/BankApp.Tests.csproj --no-restore'
 
 test:
   stage: test
