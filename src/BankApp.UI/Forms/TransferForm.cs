@@ -7,17 +7,23 @@ using BankApp.Core.Entities;
 
 namespace BankApp.UI.Forms
 {
+    /// <summary>
+    /// Para transferi formu - EFT/Havale işlemleri
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public partial class TransferForm : XtraForm
     {
         private readonly AccountRepository _accountRepo;
         private readonly TransactionRepository _transactionRepo;
         private readonly TransactionService _transactionService;
 
+        /// <summary>
+        /// Form yapıcı metodu
+        /// </summary>
         public TransferForm()
         {
             InitializeComponent();
             
-            // Manual DI setup
             var context = new DapperContext();
             _accountRepo = new AccountRepository(context);
             _transactionRepo = new TransactionRepository(context);
@@ -27,10 +33,12 @@ namespace BankApp.UI.Forms
             LoadAccounts();
         }
 
+        /// <summary>
+        /// Hesapları yükler
+        /// </summary>
         private async void LoadAccounts()
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
-            if (cmbSourceAccount == null || _accountRepo == null)
+            if (lueKaynakHesap == null || _accountRepo == null)
             {
                 XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -38,22 +46,18 @@ namespace BankApp.UI.Forms
 
             try
             {
-                // In a real app, we would get the logged-in User ID from a session
-                // For this demo, let's assume valid Customer linked to default User (e.g., CustomerId=1)
-                // Note: The Seed Data might have created Customer with ID 1.
-                var accounts = await _accountRepo.GetAllAsync(); // Simplified: Load ALL accounts for demo
+                var accounts = await _accountRepo.GetAllAsync();
                 
                 if (accounts != null)
                 {
-                    cmbSourceAccount.Properties.DataSource = accounts;
-                    cmbSourceAccount.Properties.DisplayMember = "AccountNumber";
-                    cmbSourceAccount.Properties.ValueMember = "Id";
+                    lueKaynakHesap.Properties.DataSource = accounts;
+                    lueKaynakHesap.Properties.DisplayMember = "AccountNumber";
+                    lueKaynakHesap.Properties.ValueMember = "Id";
                     
-                    // Add columns to LookUpEdit for better UX
-                    cmbSourceAccount.Properties.Columns.Clear();
-                    cmbSourceAccount.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("AccountNumber", "Hesap No"));
-                    cmbSourceAccount.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Balance", "Bakiye"));
-                    cmbSourceAccount.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("CurrencyCode", "Döviz"));
+                    lueKaynakHesap.Properties.Columns.Clear();
+                    lueKaynakHesap.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("AccountNumber", "Hesap No"));
+                    lueKaynakHesap.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Balance", "Bakiye"));
+                    lueKaynakHesap.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("CurrencyCode", "Döviz"));
                 }
             }
             catch (Exception ex)
@@ -62,25 +66,29 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private async void btnTransfer_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Gönder butonu tıklama olayı
+        /// </summary>
+        /// <param name="sender">Olay kaynağı</param>
+        /// <param name="e">Olay argümanları</param>
+        private async void btnGonder_Click(object sender, EventArgs e)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
-            if (cmbSourceAccount == null || txtTargetIban == null || txtAmount == null || txtDescription == null || _transactionService == null)
+            if (lueKaynakHesap == null || txtHedefIban == null || calcTutar == null || memoAciklama == null || _transactionService == null)
             {
                 XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (cmbSourceAccount.EditValue == null)
+            if (lueKaynakHesap.EditValue == null)
             {
                 XtraMessageBox.Show("Lütfen kaynak hesap seçiniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            int fromAccountId = (int)cmbSourceAccount.EditValue;
-            string targetIban = txtTargetIban.Text?.Trim() ?? "";
-            decimal amount = txtAmount.Value;
-            string desc = txtDescription.Text?.Trim() ?? "";
+            int fromAccountId = (int)lueKaynakHesap.EditValue;
+            string targetIban = txtHedefIban.Text?.Trim() ?? "";
+            decimal amount = calcTutar.Value;
+            string desc = memoAciklama.Text?.Trim() ?? "";
 
             if (string.IsNullOrWhiteSpace(targetIban))
             {

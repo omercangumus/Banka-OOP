@@ -6,6 +6,8 @@
     <Nullable>disable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Suppress DevExpress evaluation and NuGet version warnings -->
+    <NoWarn>$(NoWarn);DX1000;NU1603</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,11 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- DevExpress References - Assuming Local Feed or Nuget if available. 
-         Since we can't easily guess DevExpress versions, we'll try standard names.
-         If this fails, user has to fix via DevExpress Project Converter. 
-         But providing the structure helps. -->
-    <PackageReference Include="DevExpress.Win.Design" Version="23.1.6" /> 
+    <!-- DevExpress References -->
+    <PackageReference Include="DevExpress.Win.Design" Version="*" /> 
   </ItemGroup>
 
   <ItemGroup>

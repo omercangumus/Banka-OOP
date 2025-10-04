@@ -6,18 +6,28 @@ using BankApp.Infrastructure.Data;
 
 namespace BankApp.UI.Forms
 {
+    /// <summary>
+    /// Giriş formu - Kullanıcı girişi ve kayıt işlemleri
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public partial class LoginForm : XtraForm
     {
         private UserRepository _userRepository;
         private AuthService _authService;
         private bool _isInitialized = false;
 
+        /// <summary>
+        /// Form yapıcı metodu
+        /// </summary>
         public LoginForm()
         {
             InitializeComponent();
             InitializeServices();
         }
 
+        /// <summary>
+        /// Servisleri başlatır
+        /// </summary>
         private void InitializeServices()
         {
             try
@@ -36,7 +46,12 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private async void btnLogin_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Giriş butonu tıklama olayı
+        /// </summary>
+        /// <param name="sender">Olay kaynağı</param>
+        /// <param name="e">Olay argümanları</param>
+        private async void btnGiris_Click(object sender, EventArgs e)
         {
             if (!_isInitialized || _authService == null)
             {
@@ -44,15 +59,14 @@ namespace BankApp.UI.Forms
                 return;
             }
 
-            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
-            if (txtUsername == null || txtPassword == null)
+            if (txtKullaniciAdi == null || txtSifre == null)
             {
                 XtraMessageBox.Show("Form bileşenleri yüklenemedi. Lütfen uygulamayı yeniden başlatın.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            string username = txtUsername.Text?.Trim() ?? "";
-            string password = txtPassword.Text ?? "";
+            string username = txtKullaniciAdi.Text?.Trim() ?? "";
+            string password = txtSifre.Text ?? "";
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
@@ -65,6 +79,14 @@ namespace BankApp.UI.Forms
                 bool success = await _authService.LoginAsync(username, password);
                 if (success)
                 {
+                    var user = await _userRepository.GetByUsernameAsync(username);
+                    if (user != null)
+                    {
+                        AppEvents.CurrentSession.Set(user.Id, user.Username, user.Role);
+                        AppEvents.NotifyUserLoggedIn(user.Id, user.Username, user.Role);
+                    }
+                    
+                    this.DialogResult = DialogResult.OK;
                     MainForm mainForm = new MainForm();
                     this.Hide();
                     mainForm.ShowDialog();
@@ -81,17 +103,26 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private void lnkForgotPassword_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Şifremi unuttum linki tıklama olayı
+        /// </summary>
+        /// <param name="sender">Olay kaynağı</param>
+        /// <param name="e">Olay argümanları</param>
+        private void llblSifremiUnuttum_Click(object sender, EventArgs e)
         {
             ForgotPasswordForm forgotForm = new ForgotPasswordForm();
             forgotForm.ShowDialog();
         }
 
-        private void btnRegister_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Kayıt ol butonu tıklama olayı
+        /// </summary>
+        /// <param name="sender">Olay kaynağı</param>
+        /// <param name="e">Olay argümanları</param>
+        private void btnKayitOl_Click(object sender, EventArgs e)
         {
             RegisterForm registerForm = new RegisterForm();
             registerForm.ShowDialog();
         }
     }
 }
-

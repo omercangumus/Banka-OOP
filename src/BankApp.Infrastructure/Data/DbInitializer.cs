@@ -196,19 +196,24 @@ namespace BankApp.Infrastructure.Data
                             // Password hashes (SHA256):
                             // admin123 = 240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9
                             // test123  = ecd71870d1963316a97e3ac3408c9835ad8cf0f3c1bc703527c30265534f75ae
-                            // demo123  = 85d240b21b6e0f7fce55d73c02e88ae9ffe0df8d71f0eec46b3d53cb7e53e0eb (SORUN DÜZELTİLDİ: Önceki hash yanlıştı)
+                            // demo123  = 85d240b21b6e0f7fce55d73c02e88ae9ffe0df8d71f0eec46b3d53cb7e53e0eb
                             // 123456   = 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92
+                            // 1234     = 03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4
                             
                             insertCmd.CommandText = @"
-                                -- Admin User (username: admin, password: admin123)
+                                -- Admin User (username: admin, password: admin123) - TÜM YETKİLER
                                 INSERT INTO ""Users"" (""Username"", ""PasswordHash"", ""Email"", ""Role"", ""FullName"", ""IsActive"", ""IsVerified"", ""CreatedAt"")
                                 VALUES ('admin', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'novabank.com@gmail.com', 'Admin', 'Sistem Yöneticisi', TRUE, TRUE, CURRENT_TIMESTAMP);
+                                
+                                -- Musteri User (username: musteri, password: 1234) - NORMAL KULLANICI
+                                INSERT INTO ""Users"" (""Username"", ""PasswordHash"", ""Email"", ""Role"", ""FullName"", ""IsActive"", ""IsVerified"", ""CreatedAt"")
+                                VALUES ('musteri', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', 'musteri@novabank.com', 'Customer', 'Demo Müşteri', TRUE, TRUE, CURRENT_TIMESTAMP);
                                 
                                 -- Test User (username: test, password: test123)
                                 INSERT INTO ""Users"" (""Username"", ""PasswordHash"", ""Email"", ""Role"", ""FullName"", ""IsActive"", ""IsVerified"", ""CreatedAt"")
                                 VALUES ('test', 'ecd71870d1963316a97e3ac3408c9835ad8cf0f3c1bc703527c30265534f75ae', 'test@novabank.com', 'Customer', 'Test Kullanıcı', TRUE, TRUE, CURRENT_TIMESTAMP);
                                 
-                                -- Demo User (username: demo, password: demo123) - SORUN DÜZELTİLDİ: Hash güncellendi
+                                -- Demo User (username: demo, password: demo123)
                                 INSERT INTO ""Users"" (""Username"", ""PasswordHash"", ""Email"", ""Role"", ""FullName"", ""IsActive"", ""IsVerified"", ""CreatedAt"")
                                 VALUES ('demo', '85d240b21b6e0f7fce55d73c02e88ae9ffe0df8d71f0eec46b3d53cb7e53e0eb', 'demo@novabank.com', 'Customer', 'Demo Kullanıcı', TRUE, TRUE, CURRENT_TIMESTAMP);
                                 

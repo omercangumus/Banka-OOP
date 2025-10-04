@@ -6,17 +6,24 @@ using BankApp.Infrastructure.Data;
 
 namespace BankApp.UI.Forms
 {
+    /// <summary>
+    /// Müşteri formu - Müşteri CRUD işlemleri
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public partial class CustomerForm : XtraForm
     {
         private readonly CustomerRepository _repository;
         private Customer _customer;
         private bool _isEditMode;
 
+        /// <summary>
+        /// Form yapıcı metodu
+        /// </summary>
+        /// <param name="customer">Düzenlenecek müşteri (null ise yeni kayıt)</param>
         public CustomerForm(Customer customer = null)
         {
             InitializeComponent();
             
-            // Manual DI
             var context = new DapperContext();
             _repository = new CustomerRepository(context);
 
@@ -33,29 +40,35 @@ namespace BankApp.UI.Forms
             }
         }
 
+        /// <summary>
+        /// Müşteri verilerini form kontrollerine yükler
+        /// </summary>
         private void LoadCustomerData()
         {
-            txtIdentity.Text = _customer.IdentityNumber;
-            txtFirstName.Text = _customer.FirstName;
-            txtLastName.Text = _customer.LastName;
-            txtPhone.Text = _customer.PhoneNumber;
-            txtEmail.Text = _customer.Email;
-            txtAddress.Text = _customer.Address;
-            txtIdentity.Enabled = false; // Cannot change ID in edit
+            txtTcKimlikNo.Text = _customer.IdentityNumber;
+            txtAd.Text = _customer.FirstName;
+            txtSoyad.Text = _customer.LastName;
+            txtTelefon.Text = _customer.PhoneNumber;
+            txtEposta.Text = _customer.Email;
+            memoAdres.Text = _customer.Address;
+            txtTcKimlikNo.Enabled = false; // Düzenleme modunda TC değiştirilemez
         }
 
-        private async void btnSave_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Kaydet butonu tıklama olayı
+        /// </summary>
+        /// <param name="sender">Olay kaynağı</param>
+        /// <param name="e">Olay argümanları</param>
+        private async void btnKaydet_Click(object sender, EventArgs e)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
-            if (txtIdentity == null || txtFirstName == null || _repository == null)
+            if (txtTcKimlikNo == null || txtAd == null || _repository == null)
             {
                 XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            // Simple Validation
-            string identity = txtIdentity.Text?.Trim() ?? "";
-            string firstName = txtFirstName.Text?.Trim() ?? "";
+            string identity = txtTcKimlikNo.Text?.Trim() ?? "";
+            string firstName = txtAd.Text?.Trim() ?? "";
             
             if (string.IsNullOrWhiteSpace(identity) || string.IsNullOrWhiteSpace(firstName))
             {
@@ -71,14 +84,13 @@ namespace BankApp.UI.Forms
 
             _customer.IdentityNumber = identity;
             _customer.FirstName = firstName;
-            _customer.LastName = txtLastName?.Text?.Trim();
-            _customer.PhoneNumber = txtPhone?.Text?.Trim();
-            _customer.Email = txtEmail?.Text?.Trim();
-            _customer.Address = txtAddress?.Text?.Trim();
+            _customer.LastName = txtSoyad?.Text?.Trim();
+            _customer.PhoneNumber = txtTelefon?.Text?.Trim();
+            _customer.Email = txtEposta?.Text?.Trim();
+            _customer.Address = memoAdres?.Text?.Trim();
 
             try
             {
-                // Audit Repo
                 var auditRepo = new AuditRepository(new DapperContext());
 
                 if (_isEditMode)
@@ -89,9 +101,6 @@ namespace BankApp.UI.Forms
                 }
                 else
                 {
-                    // Assuming UserId 1 (Admin) creates this customer or linked to current user
-                    // In real app, we might create a new User for this Customer or link to existing.
-                    // For this simple CRUD, let's hardcode UserId = 1 (System)
                     _customer.UserId = 1; 
                     await _repository.AddAsync(_customer);
                     await auditRepo.AddLogAsync(new AuditLog { UserId = 1, Action = "AddCustomer", Details = $"Created: {_customer.IdentityNumber}", IpAddress = "127.0.0.1" });
