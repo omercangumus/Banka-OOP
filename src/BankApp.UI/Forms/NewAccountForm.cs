@@ -24,12 +24,25 @@ namespace BankApp.UI.Forms
 
         private async void btnCreate_Click(object sender, EventArgs e)
         {
-            string currency = cmbCurrency.Text;
+            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
+            if (cmbCurrency == null || txtInitialDeposit == null || _repository == null)
+            {
+                XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string currency = cmbCurrency.Text?.Trim() ?? "TRY";
             decimal balance = txtInitialDeposit.Value;
+
+            if (string.IsNullOrWhiteSpace(currency))
+            {
+                XtraMessageBox.Show("Lütfen döviz cinsi seçiniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             if(balance < 0) 
             {
-               XtraMessageBox.Show("Bakiye negatif olamaz.");
+               XtraMessageBox.Show("Bakiye negatif olamaz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                return;
             }
 

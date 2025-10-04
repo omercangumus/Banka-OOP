@@ -16,6 +16,7 @@ Write-Host "Tests Passed! Pushing to remote..." -ForegroundColor Green
 $remotes = git remote
 if ($remotes -contains "origin") {
     git push origin main
-} else {
+}
+else {
     Write-Warning "Remote 'origin' not found. Please add it using: git remote add origin <gitlab_url>"
 }

@@ -3,7 +3,7 @@ using DevExpress.XtraEditors;
 
 namespace BankApp.UI.Forms
 {
-    partial class TransferForm
+    public partial class TransferForm
     {
         private IContainer components = null;
         private LabelControl lblSourceAccount;
@@ -42,62 +42,80 @@ namespace BankApp.UI.Forms
             ((ISupportInitialize)(this.txtDescription.Properties)).BeginInit();
             this.SuspendLayout();
 
-            // Source Account
-            this.lblSourceAccount.Location = new System.Drawing.Point(30, 30);
+            // Source Account - PROFESYONEL BOYUTLAR
+            this.lblSourceAccount.Location = new System.Drawing.Point(50, 40);
             this.lblSourceAccount.Name = "lblSourceAccount";
-            this.lblSourceAccount.Text = "Kaynak Hesap (Test Customer: ID 2)";
+            this.lblSourceAccount.Text = "Kaynak Hesap";
+            this.lblSourceAccount.Appearance.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             
-            this.cmbSourceAccount.Location = new System.Drawing.Point(30, 50);
+            this.cmbSourceAccount.Location = new System.Drawing.Point(50, 70);
             this.cmbSourceAccount.Name = "cmbSourceAccount";
             this.cmbSourceAccount.Properties.NullText = "Hesap Seçiniz...";
-            this.cmbSourceAccount.Properties.ValueMember = "Id"; // Important for binding
-            this.cmbSourceAccount.Properties.DisplayMember = "AccountNumber"; // Show Account No
-            this.cmbSourceAccount.Size = new System.Drawing.Size(300, 30);
+            this.cmbSourceAccount.Properties.ValueMember = "Id";
+            this.cmbSourceAccount.Properties.DisplayMember = "AccountNumber";
+            this.cmbSourceAccount.Size = new System.Drawing.Size(580, 48);
+            this.cmbSourceAccount.Properties.Appearance.Font = new System.Drawing.Font("Segoe UI", 13F);
 
-            // Target IBAN
-            this.lblTargetIban.Location = new System.Drawing.Point(30, 100);
+            // Target IBAN - PROFESYONEL BOYUTLAR
+            this.lblTargetIban.Location = new System.Drawing.Point(50, 140);
             this.lblTargetIban.Name = "lblTargetIban";
             this.lblTargetIban.Text = "Hedef IBAN";
+            this.lblTargetIban.Appearance.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
 
-            this.txtTargetIban.Location = new System.Drawing.Point(30, 120);
+            this.txtTargetIban.Location = new System.Drawing.Point(50, 170);
             this.txtTargetIban.Name = "txtTargetIban";
-            this.txtTargetIban.Size = new System.Drawing.Size(300, 30);
+            this.txtTargetIban.Size = new System.Drawing.Size(580, 48);
+            this.txtTargetIban.Properties.Appearance.Font = new System.Drawing.Font("Segoe UI", 13F);
 
-            // Amount
-            this.lblAmount.Location = new System.Drawing.Point(30, 170);
+            // Amount - PROFESYONEL BOYUTLAR
+            this.lblAmount.Location = new System.Drawing.Point(50, 240);
             this.lblAmount.Name = "lblAmount";
-            this.lblAmount.Text = "Tutar";
+            this.lblAmount.Text = "Tutar (TL)";
+            this.lblAmount.Appearance.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
 
-            this.txtAmount.Location = new System.Drawing.Point(30, 190);
+            this.txtAmount.Location = new System.Drawing.Point(50, 270);
             this.txtAmount.Name = "txtAmount";
-            this.txtAmount.Size = new System.Drawing.Size(150, 30);
+            this.txtAmount.Size = new System.Drawing.Size(280, 48);
+            this.txtAmount.Properties.Appearance.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
 
-            // Description
-            this.lblDescription.Location = new System.Drawing.Point(30, 240);
+            // Description - PROFESYONEL BOYUTLAR
+            this.lblDescription.Location = new System.Drawing.Point(50, 340);
             this.lblDescription.Name = "lblDescription";
             this.lblDescription.Text = "Açıklama";
+            this.lblDescription.Appearance.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
 
-            this.txtDescription.Location = new System.Drawing.Point(30, 260);
+            this.txtDescription.Location = new System.Drawing.Point(50, 370);
             this.txtDescription.Name = "txtDescription";
-            this.txtDescription.Size = new System.Drawing.Size(300, 60);
+            this.txtDescription.Size = new System.Drawing.Size(580, 80);
+            this.txtDescription.Properties.Appearance.Font = new System.Drawing.Font("Segoe UI", 13F);
 
-            // Buttons
-            this.btnTransfer.Location = new System.Drawing.Point(30, 340);
+            // Buttons - PROFESYONEL BOYUTLAR
+            this.btnTransfer.Location = new System.Drawing.Point(50, 480);
             this.btnTransfer.Name = "btnTransfer";
-            this.btnTransfer.Size = new System.Drawing.Size(140, 40);
-            this.btnTransfer.Text = "Transfer Yap";
+            this.btnTransfer.Size = new Size(270, 55);
+            this.btnTransfer.Text = "TRANSFER YAP";
+            this.btnTransfer.Appearance.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
+            this.btnTransfer.Appearance.BackColor = System.Drawing.Color.FromArgb(212, 175, 55);
+            this.btnTransfer.Appearance.ForeColor = System.Drawing.Color.FromArgb(15, 23, 42);
+            this.btnTransfer.Appearance.Options.UseBackColor = true;
+            this.btnTransfer.Appearance.Options.UseForeColor = true;
             this.btnTransfer.Click += new System.EventHandler(this.btnTransfer_Click);
 
-            this.btnCancel.Location = new System.Drawing.Point(190, 340);
+            this.btnCancel.Location = new System.Drawing.Point(360, 480);
             this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(140, 40);
-            this.btnCancel.Text = "İptal";
+            this.btnCancel.Size = new Size(270, 55);
+            this.btnCancel.Text = "İPTAL";
+            this.btnCancel.Appearance.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
+            this.btnCancel.Appearance.BackColor = System.Drawing.Color.FromArgb(100, 100, 100);
+            this.btnCancel.Appearance.ForeColor = System.Drawing.Color.White;
+            this.btnCancel.Appearance.Options.UseBackColor = true;
+            this.btnCancel.Appearance.Options.UseForeColor = true;
             this.btnCancel.Click += (s, e) => this.Close();
 
-            // TransferForm
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            // TransferForm - PROFESYONEL BOYUTLAR
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(380, 420);
+            this.ClientSize = new System.Drawing.Size(680, 620);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnTransfer);
             this.Controls.Add(this.txtDescription);
@@ -111,6 +129,8 @@ namespace BankApp.UI.Forms
             this.Name = "TransferForm";
             this.Text = "Para Transferi";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
 
             ((ISupportInitialize)(this.cmbSourceAccount.Properties)).EndInit();
             ((ISupportInitialize)(this.txtTargetIban.Properties)).EndInit();

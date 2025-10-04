@@ -18,14 +18,20 @@ namespace BankApp.UI.Forms
 
         private async void LoadLogs()
         {
+            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
+            if (gridLogs == null || _repository == null)
+            {
+                return;
+            }
+
             try
             {
                 var logs = await _repository.GetAllLogsAsync();
-                gridLogs.DataSource = logs;
+                gridLogs.DataSource = logs ?? new System.Collections.Generic.List<BankApp.Core.Entities.AuditLog>();
             }
             catch (Exception ex)
             {
-                XtraMessageBox.Show("Loglar yüklenemedi: " + ex.Message);
+                XtraMessageBox.Show($"Loglar yüklenemedi: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

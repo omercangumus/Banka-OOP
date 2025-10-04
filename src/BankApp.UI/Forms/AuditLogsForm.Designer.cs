@@ -5,7 +5,7 @@ using DevExpress.XtraGrid.Views.Grid;
 
 namespace BankApp.UI.Forms
 {
-    partial class AuditLogsForm
+    public partial class AuditLogsForm
     {
         private IContainer components = null;
         private GridControl gridLogs;

@@ -5,7 +5,7 @@ using DevExpress.XtraGrid.Views.Grid;
 
 namespace BankApp.UI.Forms
 {
-    partial class CustomerAccountsForm
+    public partial class CustomerAccountsForm
     {
         private IContainer components = null;
         private GroupControl groupControl1;

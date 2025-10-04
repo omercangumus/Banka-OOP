@@ -1,6 +1,8 @@
+#nullable enable
 using BankApp.Core.Entities;
 using BankApp.Core.Interfaces;
 using Dapper;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -17,17 +19,21 @@ namespace BankApp.Infrastructure.Data
 
         public async Task<IEnumerable<Transaction>> GetAllAsync()
         {
+            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
+                connection.Open();
                 var query = "SELECT * FROM \"Transactions\" ORDER BY \"TransactionDate\" DESC";
                 return await connection.QueryAsync<Transaction>(query);
             }
         }
 
-        public async Task<Transaction> GetByIdAsync(int id)
+        public async Task<Transaction?> GetByIdAsync(int id)
         {
-             using (var connection = _context.CreateConnection())
+            // SORUN DÜZELTİLDİ: Connection açma eklendi
+            using (var connection = _context.CreateConnection())
             {
+                connection.Open();
                 var query = "SELECT * FROM \"Transactions\" WHERE \"Id\" = @Id";
                 return await connection.QuerySingleOrDefaultAsync<Transaction>(query, new { Id = id });
             }
@@ -35,9 +41,18 @@ namespace BankApp.Infrastructure.Data
 
         public async Task<int> AddAsync(Transaction entity)
         {
-             using (var connection = _context.CreateConnection())
+            // SORUN DÜZELTİLDİ: Null kontrolü ve connection açma eklendi
+            if (entity == null)
             {
-                var query = "INSERT INTO \"Transactions\" (\"AccountId\", \"TransactionType\", \"Amount\", \"Description\", \"TransactionDate\") VALUES (@AccountId, @TransactionType, @Amount, @Description, @TransactionDate) RETURNING \"Id\"";
+                throw new ArgumentNullException(nameof(entity));
+            }
+
+            using (var connection = _context.CreateConnection())
+            {
+                connection.Open();
+                var query = "INSERT INTO \"Transactions\" (\"AccountId\", \"TransactionType\", \"Amount\", \"Description\", \"TransactionDate\", \"CreatedAt\") VALUES (@AccountId, @TransactionType, @Amount, @Description, @TransactionDate, @CreatedAt) RETURNING \"Id\"";
+                if (entity.TransactionDate == default) entity.TransactionDate = System.DateTime.UtcNow;
+                if (entity.CreatedAt == default) entity.CreatedAt = System.DateTime.UtcNow;
                 return await connection.ExecuteScalarAsync<int>(query, entity);
             }
         }

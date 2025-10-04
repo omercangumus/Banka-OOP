@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace BankApp.Core.Entities
@@ -5,8 +6,9 @@ namespace BankApp.Core.Entities
     public class AuditLog : BaseEntity
     {
         public int? UserId { get; set; } // Nullable, as system might do actions
-        public string Action { get; set; }
-        public string Details { get; set; }
-        public string IpAddress { get; set; }
+        public string Action { get; set; } = string.Empty;
+        public string? Details { get; set; }
+        public string? IpAddress { get; set; }
     }
 }
+

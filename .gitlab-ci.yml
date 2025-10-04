@@ -1,6 +1,6 @@
 stages:
-  - build
   - test
+  - build
 
 variables:
   OBJECT_DIR: "obj"
@@ -13,14 +13,16 @@ cache:
     - ${BIN_DIR}/
 
 before_script:
-  - 'dotnet restore src/BankApp.Tests/BankApp.Tests.csproj'
+  - 'dotnet restore BankaBenim.sln'
 
-build:
-  stage: build
-  script:
-    - 'dotnet build src/BankApp.Tests/BankApp.Tests.csproj --no-restore'
-
-test:
+test_job:
   stage: test
   script:
-    - 'dotnet test src/BankApp.Tests/BankApp.Tests.csproj --no-build --verbosity normal'
+    - 'dotnet test src/BankApp.Tests/BankApp.Tests.csproj --verbosity normal'
+
+build_job:
+  stage: build
+  script:
+    - 'dotnet build src/BankApp.UI/BankApp.UI.csproj -c Release --no-restore'
+  needs:
+    - test_job

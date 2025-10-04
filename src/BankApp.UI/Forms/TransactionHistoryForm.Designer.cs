@@ -5,7 +5,7 @@ using DevExpress.XtraGrid.Views.Grid;
 
 namespace BankApp.UI.Forms
 {
-    partial class TransactionHistoryForm
+    public partial class TransactionHistoryForm
     {
         private IContainer components = null;
         private GridControl gridTransactions;

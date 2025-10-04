@@ -21,4 +21,11 @@
     <PackageReference Include="DevExpress.Win.Design" Version="23.1.6" /> 
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
+

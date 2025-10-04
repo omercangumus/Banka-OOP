@@ -1,3 +1,4 @@
+#nullable enable
 using BankApp.Core.Entities;
 
 namespace BankApp.Core.Interfaces

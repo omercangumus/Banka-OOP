@@ -24,14 +24,21 @@ namespace BankApp.UI.Forms
 
         private async void LoadAccounts()
         {
+            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
+            if (gridAccounts == null || _accountRepo == null)
+            {
+                XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             try
             {
                 var accounts = await _accountRepo.GetByCustomerIdAsync(_customerId);
-                gridAccounts.DataSource = accounts;
+                gridAccounts.DataSource = accounts ?? new List<Account>();
             }
             catch (Exception ex)
             {
-                XtraMessageBox.Show("Hesaplar yüklenemedi: " + ex.Message);
+                XtraMessageBox.Show($"Hesaplar yüklenemedi: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -46,15 +53,28 @@ namespace BankApp.UI.Forms
 
         private void btnTransactions_Click(object sender, EventArgs e)
         {
+            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
+            if (gridViewAccounts == null)
+            {
+                XtraMessageBox.Show("Hesap listesi yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             var row = gridViewAccounts.GetFocusedRow();
-            if (row == null) return;
+            if (row == null)
+            {
+                XtraMessageBox.Show("Lütfen bir hesap seçiniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             
             if (row is Account account)
             {
-                // In a full implementation, we would query Transactions by AccountId
-                // For now, let's assume we implement TransactionHistoryForm next
                 TransactionHistoryForm frm = new TransactionHistoryForm(account.Id);
                 frm.ShowDialog();
+            }
+            else
+            {
+                XtraMessageBox.Show("Geçersiz hesap verisi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

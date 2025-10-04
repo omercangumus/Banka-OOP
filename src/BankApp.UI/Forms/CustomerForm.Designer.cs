@@ -4,7 +4,7 @@ using DevExpress.XtraLayout;
 
 namespace BankApp.UI.Forms
 {
-    partial class CustomerForm
+    public partial class CustomerForm
     {
         private IContainer components = null;
         private LayoutControl layoutControl1;
@@ -156,14 +156,16 @@ namespace BankApp.UI.Forms
             this.emptySpaceItem1.Size = new System.Drawing.Size(0, 50);
             this.emptySpaceItem1.TextSize = new System.Drawing.Size(0, 0);
 
-            // CustomerForm
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            // CustomerForm - PROFESYONEL BOYUTLAR
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(400, 350);
+            this.ClientSize = new System.Drawing.Size(750, 650);
             this.Controls.Add(this.layoutControl1);
             this.Name = "CustomerForm";
             this.Text = "Müşteri Kartı";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
 
             ((ISupportInitialize)(this.layoutControl1)).EndInit();
             this.layoutControl1.ResumeLayout(false);

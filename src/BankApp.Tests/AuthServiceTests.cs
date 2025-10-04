@@ -51,7 +51,7 @@ namespace BankApp.Tests
             var password = "password123";
 
             _userRepositoryMock.Setup(x => x.GetByUsernameAsync(username))
-                .ReturnsAsync((User)null);
+                .ReturnsAsync((User?)null);
 
             // Act
             var result = await _authService.LoginAsync(username, password);

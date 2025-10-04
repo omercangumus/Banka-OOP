@@ -8,25 +8,51 @@ namespace BankApp.UI.Forms
 {
     public partial class LoginForm : XtraForm
     {
-        private readonly UserRepository _userRepository;
-        private readonly AuthService _authService;
+        private UserRepository _userRepository;
+        private AuthService _authService;
+        private bool _isInitialized = false;
 
         public LoginForm()
         {
             InitializeComponent();
-            
-            // Dependency Injection (Manual for now)
-            var context = new DapperContext();
-            _userRepository = new UserRepository(context);
-            var emailService = new SmtpEmailService(); // Configs are internal placeholders
-            var auditRepo = new AuditRepository(context);
-            _authService = new AuthService(_userRepository, emailService, auditRepo);
+            InitializeServices();
+        }
+
+        private void InitializeServices()
+        {
+            try
+            {
+                var context = new DapperContext();
+                _userRepository = new UserRepository(context);
+                var emailService = new SmtpEmailService();
+                var auditRepo = new AuditRepository(context);
+                _authService = new AuthService(_userRepository, emailService, auditRepo);
+                _isInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                XtraMessageBox.Show($"Servis başlatma hatası: {ex.Message}", "Kritik Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _isInitialized = false;
+            }
         }
 
         private async void btnLogin_Click(object sender, EventArgs e)
         {
-            string username = txtUsername.Text;
-            string password = txtPassword.Text;
+            if (!_isInitialized || _authService == null)
+            {
+                XtraMessageBox.Show("Sistem başlatılamadı. Lütfen uygulamayı yeniden başlatın.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
+            if (txtUsername == null || txtPassword == null)
+            {
+                XtraMessageBox.Show("Form bileşenleri yüklenemedi. Lütfen uygulamayı yeniden başlatın.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string username = txtUsername.Text?.Trim() ?? "";
+            string password = txtPassword.Text ?? "";
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
@@ -46,20 +72,26 @@ namespace BankApp.UI.Forms
                 }
                 else
                 {
-                    XtraMessageBox.Show("Hatalı şifre.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    XtraMessageBox.Show("Kullanıcı adı veya şifre hatalı.", "Giriş Başarısız", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
             {
-                XtraMessageBox.Show($"Bir hata oluştu: {ex.Message}", "Sistem Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                XtraMessageBox.Show($"Giriş hatası: {ex.Message}\n\nDetay: {ex.InnerException?.Message ?? "Yok"}", "Sistem Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void lnkForgotPassword_Click(object sender, EventArgs e)
         {
-            // Open Forgot Password Form
             ForgotPasswordForm forgotForm = new ForgotPasswordForm();
             forgotForm.ShowDialog();
         }
+
+        private void btnRegister_Click(object sender, EventArgs e)
+        {
+            RegisterForm registerForm = new RegisterForm();
+            registerForm.ShowDialog();
+        }
     }
 }
+

@@ -46,25 +46,35 @@ namespace BankApp.UI.Forms
 
         private async void btnSave_Click(object sender, EventArgs e)
         {
+            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
+            if (txtIdentity == null || txtFirstName == null || _repository == null)
+            {
+                XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             // Simple Validation
-            if (string.IsNullOrWhiteSpace(txtIdentity.Text) || string.IsNullOrWhiteSpace(txtFirstName.Text))
+            string identity = txtIdentity.Text?.Trim() ?? "";
+            string firstName = txtFirstName.Text?.Trim() ?? "";
+            
+            if (string.IsNullOrWhiteSpace(identity) || string.IsNullOrWhiteSpace(firstName))
             {
-                XtraMessageBox.Show("TC No ve Ad alanları zorunludur.");
+                XtraMessageBox.Show("TC No ve Ad alanları zorunludur.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (txtIdentity.Text.Length != 11)
+            if (identity.Length != 11)
             {
-                XtraMessageBox.Show("TC Kimlik No 11 haneli olmalıdır.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                XtraMessageBox.Show("TC Kimlik No 11 haneli olmalıdır.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            _customer.IdentityNumber = txtIdentity.Text;
-            _customer.FirstName = txtFirstName.Text;
-            _customer.LastName = txtLastName.Text;
-            _customer.PhoneNumber = txtPhone.Text;
-            _customer.Email = txtEmail.Text;
-            _customer.Address = txtAddress.Text;
+            _customer.IdentityNumber = identity;
+            _customer.FirstName = firstName;
+            _customer.LastName = txtLastName?.Text?.Trim();
+            _customer.PhoneNumber = txtPhone?.Text?.Trim();
+            _customer.Email = txtEmail?.Text?.Trim();
+            _customer.Address = txtAddress?.Text?.Trim();
 
             try
             {
