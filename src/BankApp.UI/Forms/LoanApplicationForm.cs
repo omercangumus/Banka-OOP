@@ -201,7 +201,8 @@ namespace BankApp.UI.Forms
             int term = (int)spinTerm.Value;
             string notes = txtNotes.Text;
 
-            var result = await _loanService.ApplyForLoanAsync(
+            // LoanService artık string döndürüyor: null = başarılı, string = hata mesajı
+            string result = await _loanService.ApplyForLoanAsync(
                 AppEvents.CurrentSession.UserId,
                 1, // Demo customer ID
                 amount,
@@ -209,14 +210,14 @@ namespace BankApp.UI.Forms
                 notes
             );
 
-            if (result.Success)
+            if (result == null)
             {
-                XtraMessageBox.Show(result.Message, "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                XtraMessageBox.Show("Kredi başvurunuz alındı!", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.Close();
             }
             else
             {
-                XtraMessageBox.Show(result.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                XtraMessageBox.Show(result, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
