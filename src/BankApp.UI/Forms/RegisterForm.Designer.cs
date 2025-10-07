@@ -5,17 +5,21 @@ using DevExpress.XtraEditors;
 
 namespace BankApp.UI.Forms
 {
+    /// <summary>
+    /// Kayıt formu tasarımcı kodu
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public partial class RegisterForm
     {
         private IContainer components = null;
         private Panel pnlGradient;
-        private LabelControl lblTitle;
-        private TextEdit txtUsername;
-        private TextEdit txtPassword;
-        private TextEdit txtEmail;
-        private TextEdit txtFullName;
-        private SimpleButton btnRegister;
-        private HyperlinkLabelControl lnkLogin;
+        private LabelControl lblBaslik;
+        private TextEdit txtKullaniciAdi;
+        private TextEdit txtSifre;
+        private TextEdit txtEposta;
+        private TextEdit txtAdSoyad;
+        private SimpleButton btnKayitOl;
+        private HyperlinkLabelControl llblGirisYap;
 
         protected override void Dispose(bool disposing)
         {
@@ -29,24 +33,23 @@ namespace BankApp.UI.Forms
         private void InitializeComponent()
         {
             this.pnlGradient = new Panel();
-            this.lblTitle = new LabelControl();
-            this.txtUsername = new TextEdit();
-            this.txtPassword = new TextEdit();
-            this.txtEmail = new TextEdit();
-            this.txtFullName = new TextEdit();
-            this.btnRegister = new SimpleButton();
-            this.lnkLogin = new HyperlinkLabelControl();
+            this.lblBaslik = new LabelControl();
+            this.txtKullaniciAdi = new TextEdit();
+            this.txtSifre = new TextEdit();
+            this.txtEposta = new TextEdit();
+            this.txtAdSoyad = new TextEdit();
+            this.btnKayitOl = new SimpleButton();
+            this.llblGirisYap = new HyperlinkLabelControl();
 
-            ((ISupportInitialize)(this.txtUsername.Properties)).BeginInit();
-            ((ISupportInitialize)(this.txtPassword.Properties)).BeginInit();
-            ((ISupportInitialize)(this.txtEmail.Properties)).BeginInit();
-            ((ISupportInitialize)(this.txtFullName.Properties)).BeginInit();
+            ((ISupportInitialize)(this.txtKullaniciAdi.Properties)).BeginInit();
+            ((ISupportInitialize)(this.txtSifre.Properties)).BeginInit();
+            ((ISupportInitialize)(this.txtEposta.Properties)).BeginInit();
+            ((ISupportInitialize)(this.txtAdSoyad.Properties)).BeginInit();
             this.SuspendLayout();
 
-            // pnlGradient - TASARIM İYİLEŞTİRİLDİ
-            this.pnlGradient.BackColor = Color.FromArgb(15, 23, 42); // Modern dark blue
+            // pnlGradient
+            this.pnlGradient.BackColor = Color.FromArgb(15, 23, 42);
             this.pnlGradient.Dock = DockStyle.Fill;
-            // Gradient efekti için Paint event
             this.pnlGradient.Paint += (s, e) => {
                 using (System.Drawing.Drawing2D.LinearGradientBrush gradientBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
                     new Point(0, 0), new Point(0, this.pnlGradient.Height),
@@ -56,117 +59,117 @@ namespace BankApp.UI.Forms
                     e.Graphics.FillRectangle(gradientBrush, this.pnlGradient.ClientRectangle);
                 }
             };
-            this.pnlGradient.Controls.Add(this.lnkLogin);
-            this.pnlGradient.Controls.Add(this.btnRegister);
-            this.pnlGradient.Controls.Add(this.txtPassword);
-            this.pnlGradient.Controls.Add(this.txtEmail);
-            this.pnlGradient.Controls.Add(this.txtFullName);
-            this.pnlGradient.Controls.Add(this.txtUsername);
-            this.pnlGradient.Controls.Add(this.lblTitle);
+            this.pnlGradient.Controls.Add(this.llblGirisYap);
+            this.pnlGradient.Controls.Add(this.btnKayitOl);
+            this.pnlGradient.Controls.Add(this.txtSifre);
+            this.pnlGradient.Controls.Add(this.txtEposta);
+            this.pnlGradient.Controls.Add(this.txtAdSoyad);
+            this.pnlGradient.Controls.Add(this.txtKullaniciAdi);
+            this.pnlGradient.Controls.Add(this.lblBaslik);
 
-            // lblTitle - PROFESYONEL BOYUTLAR
-            this.lblTitle.Location = new Point(150, 50);
-            this.lblTitle.Name = "lblTitle";
-            this.lblTitle.Text = "YENİ HESAP OLUŞTUR";
-            this.lblTitle.Appearance.Font = new Font("Segoe UI", 28F, FontStyle.Bold);
-            this.lblTitle.Appearance.ForeColor = Color.FromArgb(212, 175, 55);
-            this.lblTitle.Size = new Size(520, 45);
-            this.lblTitle.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
+            // lblBaslik (Fırat Standardı: Tahoma font)
+            this.lblBaslik.Location = new Point(150, 50);
+            this.lblBaslik.Name = "lblBaslik";
+            this.lblBaslik.Text = "YENİ HESAP OLUŞTUR";
+            this.lblBaslik.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
+            this.lblBaslik.Appearance.ForeColor = Color.FromArgb(212, 175, 55);
+            this.lblBaslik.Size = new Size(520, 45);
+            this.lblBaslik.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
 
-            // txtUsername - PROFESYONEL BOYUTLAR
-            this.txtUsername.Location = new Point(200, 130);
-            this.txtUsername.Name = "txtUsername";
-            this.txtUsername.Properties.NullValuePrompt = "Kullanıcı Adı";
-            this.txtUsername.Properties.NullValuePromptShowForEmptyValue = true;
-            this.txtUsername.Size = new Size(420, 56);
-            this.txtUsername.Properties.Appearance.Font = new Font("Segoe UI", 14F);
-            this.txtUsername.Properties.Appearance.BackColor = Color.White;
-            this.txtUsername.Properties.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
-            this.txtUsername.Properties.Appearance.Options.UseBackColor = true;
-            this.txtUsername.Properties.Appearance.Options.UseForeColor = true;
-            this.txtUsername.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
-            this.txtUsername.Properties.Appearance.BorderColor = Color.FromArgb(212, 175, 55);
-            this.txtUsername.Properties.Appearance.Options.UseBorderColor = true;
-            this.txtUsername.Properties.AutoHeight = false;
+            // txtKullaniciAdi (Fırat Standardı: txt prefix, Tahoma font)
+            this.txtKullaniciAdi.Location = new Point(200, 130);
+            this.txtKullaniciAdi.Name = "txtKullaniciAdi";
+            this.txtKullaniciAdi.Properties.NullValuePrompt = "Kullanıcı Adı";
+            this.txtKullaniciAdi.Properties.NullValuePromptShowForEmptyValue = true;
+            this.txtKullaniciAdi.Size = new Size(420, 56);
+            this.txtKullaniciAdi.Properties.Appearance.Font = new Font("Tahoma", 12F);
+            this.txtKullaniciAdi.Properties.Appearance.BackColor = Color.White;
+            this.txtKullaniciAdi.Properties.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
+            this.txtKullaniciAdi.Properties.Appearance.Options.UseBackColor = true;
+            this.txtKullaniciAdi.Properties.Appearance.Options.UseForeColor = true;
+            this.txtKullaniciAdi.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
+            this.txtKullaniciAdi.Properties.Appearance.BorderColor = Color.FromArgb(212, 175, 55);
+            this.txtKullaniciAdi.Properties.Appearance.Options.UseBorderColor = true;
+            this.txtKullaniciAdi.Properties.AutoHeight = false;
 
-            // txtFullName - PROFESYONEL BOYUTLAR
-            this.txtFullName.Location = new Point(200, 205);
-            this.txtFullName.Name = "txtFullName";
-            this.txtFullName.Properties.NullValuePrompt = "Ad Soyad";
-            this.txtFullName.Properties.NullValuePromptShowForEmptyValue = true;
-            this.txtFullName.Size = new Size(420, 56);
-            this.txtFullName.Properties.Appearance.Font = new Font("Segoe UI", 14F);
-            this.txtFullName.Properties.Appearance.BackColor = Color.White;
-            this.txtFullName.Properties.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
-            this.txtFullName.Properties.Appearance.Options.UseBackColor = true;
-            this.txtFullName.Properties.Appearance.Options.UseForeColor = true;
-            this.txtFullName.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
-            this.txtFullName.Properties.Appearance.BorderColor = Color.FromArgb(212, 175, 55);
-            this.txtFullName.Properties.Appearance.Options.UseBorderColor = true;
-            this.txtFullName.Properties.AutoHeight = false;
+            // txtAdSoyad (Fırat Standardı: txt prefix, Tahoma font)
+            this.txtAdSoyad.Location = new Point(200, 205);
+            this.txtAdSoyad.Name = "txtAdSoyad";
+            this.txtAdSoyad.Properties.NullValuePrompt = "Ad Soyad";
+            this.txtAdSoyad.Properties.NullValuePromptShowForEmptyValue = true;
+            this.txtAdSoyad.Size = new Size(420, 56);
+            this.txtAdSoyad.Properties.Appearance.Font = new Font("Tahoma", 12F);
+            this.txtAdSoyad.Properties.Appearance.BackColor = Color.White;
+            this.txtAdSoyad.Properties.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
+            this.txtAdSoyad.Properties.Appearance.Options.UseBackColor = true;
+            this.txtAdSoyad.Properties.Appearance.Options.UseForeColor = true;
+            this.txtAdSoyad.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
+            this.txtAdSoyad.Properties.Appearance.BorderColor = Color.FromArgb(212, 175, 55);
+            this.txtAdSoyad.Properties.Appearance.Options.UseBorderColor = true;
+            this.txtAdSoyad.Properties.AutoHeight = false;
 
-            // txtEmail - PROFESYONEL BOYUTLAR
-            this.txtEmail.Location = new Point(200, 280);
-            this.txtEmail.Name = "txtEmail";
-            this.txtEmail.Properties.NullValuePrompt = "E-Posta Adresi";
-            this.txtEmail.Properties.NullValuePromptShowForEmptyValue = true;
-            this.txtEmail.Size = new Size(420, 56);
-            this.txtEmail.Properties.Appearance.Font = new Font("Segoe UI", 14F);
-            this.txtEmail.Properties.Appearance.BackColor = Color.White;
-            this.txtEmail.Properties.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
-            this.txtEmail.Properties.Appearance.Options.UseBackColor = true;
-            this.txtEmail.Properties.Appearance.Options.UseForeColor = true;
-            this.txtEmail.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
-            this.txtEmail.Properties.Appearance.BorderColor = Color.FromArgb(212, 175, 55);
-            this.txtEmail.Properties.Appearance.Options.UseBorderColor = true;
-            this.txtEmail.Properties.AutoHeight = false;
+            // txtEposta (Fırat Standardı: txt prefix, Tahoma font)
+            this.txtEposta.Location = new Point(200, 280);
+            this.txtEposta.Name = "txtEposta";
+            this.txtEposta.Properties.NullValuePrompt = "E-Posta Adresi";
+            this.txtEposta.Properties.NullValuePromptShowForEmptyValue = true;
+            this.txtEposta.Size = new Size(420, 56);
+            this.txtEposta.Properties.Appearance.Font = new Font("Tahoma", 12F);
+            this.txtEposta.Properties.Appearance.BackColor = Color.White;
+            this.txtEposta.Properties.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
+            this.txtEposta.Properties.Appearance.Options.UseBackColor = true;
+            this.txtEposta.Properties.Appearance.Options.UseForeColor = true;
+            this.txtEposta.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
+            this.txtEposta.Properties.Appearance.BorderColor = Color.FromArgb(212, 175, 55);
+            this.txtEposta.Properties.Appearance.Options.UseBorderColor = true;
+            this.txtEposta.Properties.AutoHeight = false;
 
-            // txtPassword - PROFESYONEL BOYUTLAR
-            this.txtPassword.Location = new Point(200, 355);
-            this.txtPassword.Name = "txtPassword";
-            this.txtPassword.Properties.NullValuePrompt = "Şifre";
-            this.txtPassword.Properties.NullValuePromptShowForEmptyValue = true;
-            this.txtPassword.Properties.UseSystemPasswordChar = true;
-            this.txtPassword.Size = new Size(420, 56);
-            this.txtPassword.Properties.Appearance.Font = new Font("Segoe UI", 14F);
-            this.txtPassword.Properties.Appearance.BackColor = Color.White;
-            this.txtPassword.Properties.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
-            this.txtPassword.Properties.Appearance.Options.UseBackColor = true;
-            this.txtPassword.Properties.Appearance.Options.UseForeColor = true;
-            this.txtPassword.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
-            this.txtPassword.Properties.Appearance.BorderColor = Color.FromArgb(212, 175, 55);
-            this.txtPassword.Properties.Appearance.Options.UseBorderColor = true;
-            this.txtPassword.Properties.AutoHeight = false;
+            // txtSifre (Fırat Standardı: txt prefix, Tahoma font)
+            this.txtSifre.Location = new Point(200, 355);
+            this.txtSifre.Name = "txtSifre";
+            this.txtSifre.Properties.NullValuePrompt = "Şifre";
+            this.txtSifre.Properties.NullValuePromptShowForEmptyValue = true;
+            this.txtSifre.Properties.UseSystemPasswordChar = true;
+            this.txtSifre.Size = new Size(420, 56);
+            this.txtSifre.Properties.Appearance.Font = new Font("Tahoma", 12F);
+            this.txtSifre.Properties.Appearance.BackColor = Color.White;
+            this.txtSifre.Properties.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
+            this.txtSifre.Properties.Appearance.Options.UseBackColor = true;
+            this.txtSifre.Properties.Appearance.Options.UseForeColor = true;
+            this.txtSifre.Properties.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
+            this.txtSifre.Properties.Appearance.BorderColor = Color.FromArgb(212, 175, 55);
+            this.txtSifre.Properties.Appearance.Options.UseBorderColor = true;
+            this.txtSifre.Properties.AutoHeight = false;
 
-            // btnRegister - PROFESYONEL BOYUTLAR
-            this.btnRegister.Location = new Point(200, 435);
-            this.btnRegister.Name = "btnRegister";
-            this.btnRegister.Size = new Size(420, 60);
-            this.btnRegister.Text = "KAYIT OL";
-            this.btnRegister.Appearance.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
-            this.btnRegister.Appearance.BackColor = Color.FromArgb(212, 175, 55); // Gold
-            this.btnRegister.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
-            this.btnRegister.Appearance.Options.UseBackColor = true;
-            this.btnRegister.Appearance.Options.UseForeColor = true;
-            this.btnRegister.Appearance.Options.UseFont = true;
-            this.btnRegister.AppearanceHovered.BackColor = Color.FromArgb(235, 195, 75);
-            this.btnRegister.AppearanceHovered.Options.UseBackColor = true;
-            this.btnRegister.AppearancePressed.BackColor = Color.FromArgb(189, 155, 45);
-            this.btnRegister.AppearancePressed.Options.UseBackColor = true;
-            this.btnRegister.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
-            this.btnRegister.Click += new System.EventHandler(this.btnRegister_Click);
+            // btnKayitOl (Fırat Standardı: btn prefix, Tahoma font)
+            this.btnKayitOl.Location = new Point(200, 435);
+            this.btnKayitOl.Name = "btnKayitOl";
+            this.btnKayitOl.Size = new Size(420, 60);
+            this.btnKayitOl.Text = "KAYIT OL";
+            this.btnKayitOl.Appearance.Font = new Font("Tahoma", 14F, FontStyle.Bold);
+            this.btnKayitOl.Appearance.BackColor = Color.FromArgb(212, 175, 55);
+            this.btnKayitOl.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
+            this.btnKayitOl.Appearance.Options.UseBackColor = true;
+            this.btnKayitOl.Appearance.Options.UseForeColor = true;
+            this.btnKayitOl.Appearance.Options.UseFont = true;
+            this.btnKayitOl.AppearanceHovered.BackColor = Color.FromArgb(235, 195, 75);
+            this.btnKayitOl.AppearanceHovered.Options.UseBackColor = true;
+            this.btnKayitOl.AppearancePressed.BackColor = Color.FromArgb(189, 155, 45);
+            this.btnKayitOl.AppearancePressed.Options.UseBackColor = true;
+            this.btnKayitOl.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
+            this.btnKayitOl.Click += new System.EventHandler(this.btnKayitOl_Click);
 
-            // lnkLogin - PROFESYONEL BOYUTLAR
-            this.lnkLogin.Location = new Point(235, 515);
-            this.lnkLogin.Name = "lnkLogin";
-            this.lnkLogin.Text = "<href>Zaten hesabım var? Giriş Yap</href>";
-            this.lnkLogin.Appearance.ForeColor = Color.FromArgb(212, 175, 55);
-            this.lnkLogin.Appearance.Font = new Font("Segoe UI", 12F);
-            this.lnkLogin.Size = new Size(350, 25);
-            this.lnkLogin.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
-            this.lnkLogin.Click += new System.EventHandler(this.lnkLogin_Click);
+            // llblGirisYap (Fırat Standardı: llbl prefix, Tahoma font)
+            this.llblGirisYap.Location = new Point(235, 515);
+            this.llblGirisYap.Name = "llblGirisYap";
+            this.llblGirisYap.Text = "<href>Zaten hesabım var? Giriş Yap</href>";
+            this.llblGirisYap.Appearance.ForeColor = Color.FromArgb(212, 175, 55);
+            this.llblGirisYap.Appearance.Font = new Font("Tahoma", 10F);
+            this.llblGirisYap.Size = new Size(350, 25);
+            this.llblGirisYap.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
+            this.llblGirisYap.Click += new System.EventHandler(this.llblGirisYap_Click);
             
-            // RegisterForm - PROFESYONEL BOYUTLAR
+            // RegisterForm
             this.AutoScaleDimensions = new SizeF(7F, 15F);
             this.AutoScaleMode = AutoScaleMode.Font;
             this.ClientSize = new Size(820, 600);
@@ -177,12 +180,11 @@ namespace BankApp.UI.Forms
             this.Text = "NovaBank - Yeni Hesap";
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            ((ISupportInitialize)(this.txtUsername.Properties)).EndInit();
-            ((ISupportInitialize)(this.txtPassword.Properties)).EndInit();
-            ((ISupportInitialize)(this.txtEmail.Properties)).EndInit();
-            ((ISupportInitialize)(this.txtFullName.Properties)).EndInit();
+            ((ISupportInitialize)(this.txtKullaniciAdi.Properties)).EndInit();
+            ((ISupportInitialize)(this.txtSifre.Properties)).EndInit();
+            ((ISupportInitialize)(this.txtEposta.Properties)).EndInit();
+            ((ISupportInitialize)(this.txtAdSoyad.Properties)).EndInit();
             this.ResumeLayout(false);
         }
     }
 }
-
