@@ -7,6 +7,10 @@ using BankApp.Core.Entities;
 
 namespace BankApp.UI.Forms
 {
+    /// <summary>
+    /// Şifre sıfırlama formu - E-posta ile şifre yenileme
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public partial class ForgotPasswordForm : XtraForm
     {
         private readonly AuthService _authService;
@@ -15,11 +19,13 @@ namespace BankApp.UI.Forms
         private string _generatedCode;
         private User _targetUser;
 
+        /// <summary>
+        /// Form yapıcı metodu
+        /// </summary>
         public ForgotPasswordForm()
         {
             InitializeComponent();
             
-            // Manual DI
             var context = new DapperContext();
             _userRepository = new UserRepository(context);
             var emailService = new SmtpEmailService();
@@ -27,16 +33,20 @@ namespace BankApp.UI.Forms
             _authService = new AuthService(_userRepository, emailService, auditRepo);
         }
 
-        private async void btnSendCode_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Kod gönder butonu tıklama olayı
+        /// </summary>
+        /// <param name="sender">Olay kaynağı</param>
+        /// <param name="e">Olay argümanları</param>
+        private async void btnKodGonder_Click(object sender, EventArgs e)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
-            if (txtEmail == null)
+            if (txtEposta == null)
             {
                 XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            string email = txtEmail.Text?.Trim() ?? "";
+            string email = txtEposta.Text?.Trim() ?? "";
             if (string.IsNullOrWhiteSpace(email))
             {
                 XtraMessageBox.Show("Lütfen e-posta adresinizi giriniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -48,39 +58,42 @@ namespace BankApp.UI.Forms
                 _targetUser = await _userRepository.GetByEmailAsync(email);
                 if (_targetUser == null)
                 {
-                    XtraMessageBox.Show("Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı.");
+                    XtraMessageBox.Show("Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı.", "Kullanıcı Bulunamadı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
                 _generatedCode = _authService.GenerateOTP();
                 
-                // In a real app, waiting for email sending might take time
                 await _authService.SendForgotPasswordEmailAsync(email, _generatedCode);
                 
-                XtraMessageBox.Show("Doğrulama kodu e-posta adresinize gönderildi.");
-                txtCode.Enabled = true;
-                btnVerify.Enabled = true;
+                XtraMessageBox.Show("Doğrulama kodu e-posta adresinize gönderildi.", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                txtKod.Enabled = true;
+                btnDogrula.Enabled = true;
             }
             catch (Exception ex)
             {
-                 XtraMessageBox.Show("Mail gönderim hatası: " + ex.Message);
+                 XtraMessageBox.Show("Mail gönderim hatası: " + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void btnVerify_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Doğrula butonu tıklama olayı
+        /// </summary>
+        /// <param name="sender">Olay kaynağı</param>
+        /// <param name="e">Olay argümanları</param>
+        private void btnDogrula_Click(object sender, EventArgs e)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
-            if (txtCode == null || _generatedCode == null)
+            if (txtKod == null || _generatedCode == null)
             {
                 XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (txtCode.Text?.Trim() == _generatedCode)
+            if (txtKod.Text?.Trim() == _generatedCode)
             {
                 XtraMessageBox.Show("Kod doğrulandı! Yeni şifrenizi giriniz.", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                if (txtNewPassword != null) txtNewPassword.Enabled = true;
-                if (btnChangePassword != null) btnChangePassword.Enabled = true;
+                if (txtYeniSifre != null) txtYeniSifre.Enabled = true;
+                if (btnSifreDegistir != null) btnSifreDegistir.Enabled = true;
             }
             else
             {
@@ -88,16 +101,20 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private async void btnChangePassword_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Şifre değiştir butonu tıklama olayı
+        /// </summary>
+        /// <param name="sender">Olay kaynağı</param>
+        /// <param name="e">Olay argümanları</param>
+        private async void btnSifreDegistir_Click(object sender, EventArgs e)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
-            if (txtNewPassword == null || _targetUser == null || _authService == null)
+            if (txtYeniSifre == null || _targetUser == null || _authService == null)
             {
                 XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            string newPass = txtNewPassword.Text?.Trim() ?? "";
+            string newPass = txtYeniSifre.Text?.Trim() ?? "";
             if (string.IsNullOrWhiteSpace(newPass))
             {
                 XtraMessageBox.Show("Lütfen yeni şifrenizi giriniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
