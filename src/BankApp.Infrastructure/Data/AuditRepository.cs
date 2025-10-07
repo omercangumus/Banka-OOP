@@ -7,30 +7,39 @@ using System.Threading.Tasks;
 
 namespace BankApp.Infrastructure.Data
 {
+    /// <summary>
+    /// Denetim logu repository sınıfı - Veritabanı işlemleri
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public class AuditRepository : IAuditRepository
     {
         private readonly DapperContext _context;
 
+        /// <summary>
+        /// AuditRepository yapıcı metodu
+        /// </summary>
+        /// <param name="context">Veritabanı bağlantı context'i</param>
         public AuditRepository(DapperContext context)
         {
             _context = context;
         }
 
+        /// <summary>
+        /// Yeni denetim logu ekler
+        /// </summary>
+        /// <param name="log">Denetim log nesnesi</param>
         public async Task AddLogAsync(AuditLog log)
         {
-            // Ensure CreatedAt has a value
             if (log.CreatedAt == default)
             {
                 log.CreatedAt = DateTime.UtcNow;
             }
             
-            // Ensure Action is not null
             if (string.IsNullOrEmpty(log.Action))
             {
                 log.Action = "Unknown";
             }
             
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -46,9 +55,12 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Tüm denetim loglarını getirir
+        /// </summary>
+        /// <returns>Denetim log listesi (Son 1000)</returns>
         public async Task<IEnumerable<AuditLog>> GetAllLogsAsync()
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -58,4 +70,3 @@ namespace BankApp.Infrastructure.Data
         }
     }
 }
-
