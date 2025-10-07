@@ -39,9 +39,10 @@ namespace BankApp.Tests
             _accountRepositoryMock.Setup(x => x.GetByIBANAsync(toIban)).ReturnsAsync(toAccount);
 
             // Act
-            await _transactionService.TransferMoneyAsync(fromAccountId, toIban, amount, "Test Transfer");
+            var result = await _transactionService.TransferMoneyAsync(fromAccountId, toIban, amount, "Test Transfer");
 
             // Assert
+            result.Should().BeNullOrEmpty(); // Success means null or empty string
             fromAccount.Balance.Should().Be(100m);
             toAccount.Balance.Should().Be(150m);
             _accountRepositoryMock.Verify(x => x.UpdateAsync(fromAccount), Times.Once);
@@ -51,7 +52,7 @@ namespace BankApp.Tests
         }
 
         [Fact]
-        public async Task TransferMoneyAsync_ShouldThrowException_WhenBalanceIsInsufficient()
+        public async Task TransferMoneyAsync_ShouldReturnError_WhenBalanceIsInsufficient()
         {
              // Arrange
             var fromAccountId = 1;
@@ -65,10 +66,11 @@ namespace BankApp.Tests
             _accountRepositoryMock.Setup(x => x.GetByIBANAsync(toIban)).ReturnsAsync(toAccount);
 
             // Act
-            Func<Task> act = async () => await _transactionService.TransferMoneyAsync(fromAccountId, toIban, amount, "Test");
+            var result = await _transactionService.TransferMoneyAsync(fromAccountId, toIban, amount, "Test");
 
             // Assert
-            await act.Should().ThrowAsync<Exception>().WithMessage("Yetersiz bakiye.");
+            result.Should().NotBeNullOrEmpty();
+            result.Should().Contain("Yetersiz bakiye");
         }
     }
 }

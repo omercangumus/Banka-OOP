@@ -8,11 +8,13 @@ using DevExpress.LookAndFeel;
 using BankApp.Core.Entities;
 using BankApp.Infrastructure.Services;
 using BankApp.Infrastructure.Data;
+using System.Threading.Tasks;
 
 namespace BankApp.UI.Forms
 {
     /// <summary>
     /// Hisse Alım Popup'ı - Modern tasarım
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
     /// </summary>
     public class StockBuyPopup : XtraForm
     {
@@ -20,15 +22,18 @@ namespace BankApp.UI.Forms
         private InvestmentService _investmentService;
         private int _customerId;
         
-        private LabelControl lblTitle;
-        private LabelControl lblStock;
-        private LabelControl lblPrice;
-        private LabelControl lblTotal;
-        private LookUpEdit cmbAccount;
-        private SpinEdit spinQuantity;
-        private SimpleButton btnBuy;
-        private SimpleButton btnCancel;
+        private LabelControl lblBaslik;
+        private LabelControl lblHisse;
+        private LabelControl lblFiyat;
+        private LabelControl lblToplam;
+        private LookUpEdit cmbHesap;
+        private SpinEdit spinAdet;
+        private SimpleButton btnSatinAl;
+        private SimpleButton btnIptal;
 
+        /// <summary>
+        /// Popup yapıcı metodu
+        /// </summary>
         public StockBuyPopup(Stock stock, InvestmentService investmentService, int customerId)
         {
             _stock = stock;
@@ -43,103 +48,103 @@ namespace BankApp.UI.Forms
         {
             UserLookAndFeel.Default.SetSkinStyle("Office 2019 Black");
             
-            this.lblTitle = new LabelControl();
-            this.lblStock = new LabelControl();
-            this.lblPrice = new LabelControl();
-            this.lblTotal = new LabelControl();
-            this.cmbAccount = new LookUpEdit();
-            this.spinQuantity = new SpinEdit();
-            this.btnBuy = new SimpleButton();
-            this.btnCancel = new SimpleButton();
+            this.lblBaslik = new LabelControl();
+            this.lblHisse = new LabelControl();
+            this.lblFiyat = new LabelControl();
+            this.lblToplam = new LabelControl();
+            this.cmbHesap = new LookUpEdit();
+            this.spinAdet = new SpinEdit();
+            this.btnSatinAl = new SimpleButton();
+            this.btnIptal = new SimpleButton();
 
-            ((System.ComponentModel.ISupportInitialize)(this.cmbAccount.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spinQuantity.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.cmbHesap.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spinAdet.Properties)).BeginInit();
             this.SuspendLayout();
 
             // Title
-            this.lblTitle.Text = "🛒 Hisse Al";
-            this.lblTitle.Location = new Point(25, 20);
-            this.lblTitle.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
-            this.lblTitle.Appearance.ForeColor = Color.White;
+            this.lblBaslik.Text = "🛒 Hisse Al";
+            this.lblBaslik.Location = new Point(25, 20);
+            this.lblBaslik.Appearance.Font = new Font("Tahoma", 18F, FontStyle.Bold);
+            this.lblBaslik.Appearance.ForeColor = Color.White;
 
             // Stock info
-            this.lblStock.Text = $"{_stock.Symbol} - {_stock.Name}";
-            this.lblStock.Location = new Point(25, 70);
-            this.lblStock.Appearance.Font = new Font("Segoe UI", 14F);
-            this.lblStock.Appearance.ForeColor = Color.FromArgb(33, 150, 243);
+            this.lblHisse.Text = $"{_stock.Symbol} - {_stock.Name}";
+            this.lblHisse.Location = new Point(25, 70);
+            this.lblHisse.Appearance.Font = new Font("Tahoma", 14F);
+            this.lblHisse.Appearance.ForeColor = Color.FromArgb(33, 150, 243);
 
-            this.lblPrice.Text = $"Güncel Fiyat: {_stock.CurrentPrice:N2} ₺";
-            this.lblPrice.Location = new Point(25, 100);
-            this.lblPrice.Appearance.Font = new Font("Segoe UI", 12F);
-            this.lblPrice.Appearance.ForeColor = Color.FromArgb(180, 180, 190);
+            this.lblFiyat.Text = $"Güncel Fiyat: {_stock.CurrentPrice:N2} ₺";
+            this.lblFiyat.Location = new Point(25, 100);
+            this.lblFiyat.Appearance.Font = new Font("Tahoma", 12F);
+            this.lblFiyat.Appearance.ForeColor = Color.FromArgb(180, 180, 190);
 
             // Account selection
             var lblAccount = new LabelControl();
             lblAccount.Text = "Kaynak Hesap:";
             lblAccount.Location = new Point(25, 140);
-            lblAccount.Appearance.Font = new Font("Segoe UI Semibold", 11F);
+            lblAccount.Appearance.Font = new Font("Tahoma", 11F);
             lblAccount.Appearance.ForeColor = Color.White;
             this.Controls.Add(lblAccount);
 
-            this.cmbAccount.Location = new Point(25, 165);
-            this.cmbAccount.Size = new Size(300, 35);
-            this.cmbAccount.Properties.Appearance.Font = new Font("Segoe UI", 11F);
-            this.cmbAccount.Properties.Appearance.BackColor = Color.FromArgb(45, 48, 58);
-            this.cmbAccount.Properties.Appearance.ForeColor = Color.White;
-            this.cmbAccount.Properties.NullText = "Hesap Seçiniz...";
+            this.cmbHesap.Location = new Point(25, 165);
+            this.cmbHesap.Size = new Size(300, 35);
+            this.cmbHesap.Properties.Appearance.Font = new Font("Tahoma", 11F);
+            this.cmbHesap.Properties.Appearance.BackColor = Color.FromArgb(45, 48, 58);
+            this.cmbHesap.Properties.Appearance.ForeColor = Color.White;
+            this.cmbHesap.Properties.NullText = "Hesap Seçiniz...";
 
             // Quantity
             var lblQuantityTitle = new LabelControl();
             lblQuantityTitle.Text = "Adet:";
             lblQuantityTitle.Location = new Point(25, 215);
-            lblQuantityTitle.Appearance.Font = new Font("Segoe UI Semibold", 11F);
+            lblQuantityTitle.Appearance.Font = new Font("Tahoma", 11F);
             lblQuantityTitle.Appearance.ForeColor = Color.White;
             this.Controls.Add(lblQuantityTitle);
 
-            this.spinQuantity.Location = new Point(25, 240);
-            this.spinQuantity.Size = new Size(150, 40);
-            this.spinQuantity.Properties.MinValue = 1;
-            this.spinQuantity.Properties.MaxValue = 10000;
-            this.spinQuantity.Properties.Increment = 1;
-            this.spinQuantity.Value = 1;
-            this.spinQuantity.Properties.Appearance.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
-            this.spinQuantity.Properties.Appearance.ForeColor = Color.White;
-            this.spinQuantity.Properties.Appearance.BackColor = Color.FromArgb(45, 48, 58);
-            this.spinQuantity.EditValueChanged += (s, e) => UpdateTotal();
+            this.spinAdet.Location = new Point(25, 240);
+            this.spinAdet.Size = new Size(150, 40);
+            this.spinAdet.Properties.MinValue = 1;
+            this.spinAdet.Properties.MaxValue = 10000;
+            this.spinAdet.Properties.Increment = 1;
+            this.spinAdet.Value = 1;
+            this.spinAdet.Properties.Appearance.Font = new Font("Tahoma", 14F, FontStyle.Bold);
+            this.spinAdet.Properties.Appearance.ForeColor = Color.White;
+            this.spinAdet.Properties.Appearance.BackColor = Color.FromArgb(45, 48, 58);
+            this.spinAdet.EditValueChanged += (s, e) => UpdateTotal();
 
             // Total
-            this.lblTotal.Text = "Toplam: 0.00 ₺";
-            this.lblTotal.Location = new Point(25, 300);
-            this.lblTotal.Appearance.Font = new Font("Segoe UI", 20F, FontStyle.Bold);
-            this.lblTotal.Appearance.ForeColor = Color.FromArgb(76, 175, 80);
+            this.lblToplam.Text = "Toplam: 0.00 ₺";
+            this.lblToplam.Location = new Point(25, 300);
+            this.lblToplam.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
+            this.lblToplam.Appearance.ForeColor = Color.FromArgb(76, 175, 80);
 
             // Buttons
-            this.btnBuy.Text = "✅ SATIN AL";
-            this.btnBuy.Location = new Point(25, 360);
-            this.btnBuy.Size = new Size(145, 50);
-            this.btnBuy.Appearance.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            this.btnBuy.Appearance.BackColor = Color.FromArgb(76, 175, 80);
-            this.btnBuy.Appearance.ForeColor = Color.White;
-            this.btnBuy.Appearance.Options.UseBackColor = true;
-            this.btnBuy.Appearance.Options.UseForeColor = true;
-            this.btnBuy.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.HotFlat;
-            this.btnBuy.Click += BtnBuy_Click;
+            this.btnSatinAl.Text = "✅ SATIN AL";
+            this.btnSatinAl.Location = new Point(25, 360);
+            this.btnSatinAl.Size = new Size(145, 50);
+            this.btnSatinAl.Appearance.Font = new Font("Tahoma", 12F, FontStyle.Bold);
+            this.btnSatinAl.Appearance.BackColor = Color.FromArgb(76, 175, 80);
+            this.btnSatinAl.Appearance.ForeColor = Color.White;
+            this.btnSatinAl.Appearance.Options.UseBackColor = true;
+            this.btnSatinAl.Appearance.Options.UseForeColor = true;
+            this.btnSatinAl.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.HotFlat;
+            this.btnSatinAl.Click += BtnSatinAl_Click;
 
-            this.btnCancel.Text = "İptal";
-            this.btnCancel.Location = new Point(180, 360);
-            this.btnCancel.Size = new Size(145, 50);
-            this.btnCancel.Appearance.Font = new Font("Segoe UI", 12F);
-            this.btnCancel.Appearance.BackColor = Color.FromArgb(60, 60, 70);
-            this.btnCancel.Appearance.ForeColor = Color.White;
-            this.btnCancel.Appearance.Options.UseBackColor = true;
-            this.btnCancel.Appearance.Options.UseForeColor = true;
-            this.btnCancel.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.HotFlat;
-            this.btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
+            this.btnIptal.Text = "İptal";
+            this.btnIptal.Location = new Point(180, 360);
+            this.btnIptal.Size = new Size(145, 50);
+            this.btnIptal.Appearance.Font = new Font("Tahoma", 12F);
+            this.btnIptal.Appearance.BackColor = Color.FromArgb(60, 60, 70);
+            this.btnIptal.Appearance.ForeColor = Color.White;
+            this.btnIptal.Appearance.Options.UseBackColor = true;
+            this.btnIptal.Appearance.Options.UseForeColor = true;
+            this.btnIptal.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.HotFlat;
+            this.btnIptal.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
 
             // Form
             this.Controls.AddRange(new Control[] { 
-                lblTitle, lblStock, lblPrice, lblTotal, 
-                cmbAccount, spinQuantity, btnBuy, btnCancel 
+                lblBaslik, lblHisse, lblFiyat, lblToplam, 
+                cmbHesap, spinAdet, btnSatinAl, btnIptal 
             });
             
             this.ClientSize = new Size(350, 430);
@@ -160,8 +165,8 @@ namespace BankApp.UI.Forms
                 this.Region = new Region(path);
             };
 
-            ((System.ComponentModel.ISupportInitialize)(this.cmbAccount.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spinQuantity.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.cmbHesap.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spinAdet.Properties)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
         }
@@ -172,44 +177,45 @@ namespace BankApp.UI.Forms
             var accountRepo = new AccountRepository(context);
             var accounts = await accountRepo.GetAllAsync();
             
-            cmbAccount.Properties.DataSource = accounts;
-            cmbAccount.Properties.DisplayMember = "AccountNumber";
-            cmbAccount.Properties.ValueMember = "Id";
+            cmbHesap.Properties.DataSource = accounts;
+            cmbHesap.Properties.DisplayMember = "AccountNumber";
+            cmbHesap.Properties.ValueMember = "Id";
             
-            cmbAccount.Properties.Columns.Clear();
-            cmbAccount.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("AccountNumber", "Hesap No"));
-            cmbAccount.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Balance", "Bakiye"));
+            cmbHesap.Properties.Columns.Clear();
+            cmbHesap.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("AccountNumber", "Hesap No"));
+            cmbHesap.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Balance", "Bakiye"));
         }
 
         private void UpdateTotal()
         {
-            decimal quantity = spinQuantity.Value;
+            decimal quantity = spinAdet.Value;
             decimal total = quantity * _stock.CurrentPrice;
-            lblTotal.Text = $"Toplam: {total:N2} ₺";
+            lblToplam.Text = $"Toplam: {total:N2} ₺";
         }
 
-        private async void BtnBuy_Click(object? sender, EventArgs e)
+        private async void BtnSatinAl_Click(object? sender, EventArgs e)
         {
-            if (cmbAccount.EditValue == null)
+            if (cmbHesap.EditValue == null)
             {
                 XtraMessageBox.Show("Lütfen bir hesap seçin!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            int accountId = (int)cmbAccount.EditValue;
-            decimal quantity = spinQuantity.Value;
+            int accountId = (int)cmbHesap.EditValue;
+            decimal quantity = spinAdet.Value;
 
-            var result = await _investmentService.BuyStockAsync(_customerId, accountId, _stock.Symbol, quantity);
+            // Updated to handle string return type
+            var resultMessage = await _investmentService.BuyStockAsync(_customerId, accountId, _stock.Symbol, quantity);
             
-            if (result.Success)
+            if (resultMessage == null) // Success
             {
-                XtraMessageBox.Show(result.Message, "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                XtraMessageBox.Show($"{quantity} adet {_stock.Symbol} başarıyla alındı!", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
             else
             {
-                XtraMessageBox.Show(result.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                XtraMessageBox.Show(resultMessage, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
@@ -223,9 +229,12 @@ namespace BankApp.UI.Forms
         private InvestmentService _investmentService;
         private int _customerId;
         
-        private SpinEdit spinQuantity;
-        private LabelControl lblTotal;
+        private SpinEdit spinAdet;
+        private LabelControl lblToplam2;
 
+        /// <summary>
+        /// Popup yapıcı metodu
+        /// </summary>
         public StockSellPopup(PortfolioItem item, InvestmentService investmentService, int customerId)
         {
             _portfolioItem = item;
@@ -238,59 +247,59 @@ namespace BankApp.UI.Forms
         {
             UserLookAndFeel.Default.SetSkinStyle("Office 2019 Black");
             
-            var lblTitle = new LabelControl();
-            lblTitle.Text = $"💰 {_portfolioItem.StockSymbol} Sat";
-            lblTitle.Location = new Point(25, 20);
-            lblTitle.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
-            lblTitle.Appearance.ForeColor = Color.White;
+            var lblBaslik = new LabelControl();
+            lblBaslik.Text = $"💰 {_portfolioItem.StockSymbol} Sat";
+            lblBaslik.Location = new Point(25, 20);
+            lblBaslik.Appearance.Font = new Font("Tahoma", 18F, FontStyle.Bold);
+            lblBaslik.Appearance.ForeColor = Color.White;
 
-            var lblInfo = new LabelControl();
-            lblInfo.Text = $"Mevcut: {_portfolioItem.Quantity:N0} adet | Fiyat: {_portfolioItem.CurrentPrice:N2} ₺";
-            lblInfo.Location = new Point(25, 70);
-            lblInfo.Appearance.Font = new Font("Segoe UI", 11F);
-            lblInfo.Appearance.ForeColor = Color.FromArgb(180, 180, 190);
+            var lblBilgi = new LabelControl();
+            lblBilgi.Text = $"Mevcut: {_portfolioItem.Quantity:N0} adet | Fiyat: {_portfolioItem.CurrentPrice:N2} ₺";
+            lblBilgi.Location = new Point(25, 70);
+            lblBilgi.Appearance.Font = new Font("Tahoma", 11F);
+            lblBilgi.Appearance.ForeColor = Color.FromArgb(180, 180, 190);
 
-            this.spinQuantity = new SpinEdit();
-            this.spinQuantity.Location = new Point(25, 120);
-            this.spinQuantity.Size = new Size(150, 40);
-            this.spinQuantity.Properties.MinValue = 1;
-            this.spinQuantity.Properties.MaxValue = _portfolioItem.Quantity;
-            this.spinQuantity.Value = 1;
-            this.spinQuantity.Properties.Appearance.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
-            this.spinQuantity.Properties.Appearance.ForeColor = Color.White;
-            this.spinQuantity.Properties.Appearance.BackColor = Color.FromArgb(45, 48, 58);
-            this.spinQuantity.EditValueChanged += (s, e) => UpdateTotal();
+            this.spinAdet = new SpinEdit();
+            this.spinAdet.Location = new Point(25, 120);
+            this.spinAdet.Size = new Size(150, 40);
+            this.spinAdet.Properties.MinValue = 1;
+            this.spinAdet.Properties.MaxValue = _portfolioItem.Quantity;
+            this.spinAdet.Value = 1;
+            this.spinAdet.Properties.Appearance.Font = new Font("Tahoma", 14F, FontStyle.Bold);
+            this.spinAdet.Properties.Appearance.ForeColor = Color.White;
+            this.spinAdet.Properties.Appearance.BackColor = Color.FromArgb(45, 48, 58);
+            this.spinAdet.EditValueChanged += (s, e) => UpdateTotal();
 
-            this.lblTotal = new LabelControl();
-            this.lblTotal.Text = "Alacağınız: 0.00 ₺";
-            this.lblTotal.Location = new Point(25, 180);
-            this.lblTotal.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
-            this.lblTotal.Appearance.ForeColor = Color.FromArgb(76, 175, 80);
+            this.lblToplam2 = new LabelControl();
+            this.lblToplam2.Text = "Alacağınız: 0.00 ₺";
+            this.lblToplam2.Location = new Point(25, 180);
+            this.lblToplam2.Appearance.Font = new Font("Tahoma", 18F, FontStyle.Bold);
+            this.lblToplam2.Appearance.ForeColor = Color.FromArgb(76, 175, 80);
 
-            var btnSell = new SimpleButton();
-            btnSell.Text = "💵 SAT";
-            btnSell.Location = new Point(25, 240);
-            btnSell.Size = new Size(130, 50);
-            btnSell.Appearance.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            btnSell.Appearance.BackColor = Color.FromArgb(244, 67, 54);
-            btnSell.Appearance.ForeColor = Color.White;
-            btnSell.Appearance.Options.UseBackColor = true;
-            btnSell.Appearance.Options.UseForeColor = true;
-            btnSell.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.HotFlat;
-            btnSell.Click += BtnSell_Click;
+            var btnSat = new SimpleButton();
+            btnSat.Text = "💵 SAT";
+            btnSat.Location = new Point(25, 240);
+            btnSat.Size = new Size(130, 50);
+            btnSat.Appearance.Font = new Font("Tahoma", 12F, FontStyle.Bold);
+            btnSat.Appearance.BackColor = Color.FromArgb(244, 67, 54);
+            btnSat.Appearance.ForeColor = Color.White;
+            btnSat.Appearance.Options.UseBackColor = true;
+            btnSat.Appearance.Options.UseForeColor = true;
+            btnSat.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.HotFlat;
+            btnSat.Click += BtnSat_Click;
 
-            var btnCancel = new SimpleButton();
-            btnCancel.Text = "İptal";
-            btnCancel.Location = new Point(165, 240);
-            btnCancel.Size = new Size(110, 50);
-            btnCancel.Appearance.BackColor = Color.FromArgb(60, 60, 70);
-            btnCancel.Appearance.ForeColor = Color.White;
-            btnCancel.Appearance.Options.UseBackColor = true;
-            btnCancel.Appearance.Options.UseForeColor = true;
-            btnCancel.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.HotFlat;
-            btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
+            var btnIptal = new SimpleButton();
+            btnIptal.Text = "İptal";
+            btnIptal.Location = new Point(165, 240);
+            btnIptal.Size = new Size(110, 50);
+            btnIptal.Appearance.BackColor = Color.FromArgb(60, 60, 70);
+            btnIptal.Appearance.ForeColor = Color.White;
+            btnIptal.Appearance.Options.UseBackColor = true;
+            btnIptal.Appearance.Options.UseForeColor = true;
+            btnIptal.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.HotFlat;
+            btnIptal.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
 
-            this.Controls.AddRange(new Control[] { lblTitle, lblInfo, spinQuantity, lblTotal, btnSell, btnCancel });
+            this.Controls.AddRange(new Control[] { lblBaslik, lblBilgi, spinAdet, lblToplam2, btnSat, btnIptal });
             
             this.ClientSize = new Size(300, 310);
             this.StartPosition = FormStartPosition.CenterParent;
@@ -313,24 +322,25 @@ namespace BankApp.UI.Forms
 
         private void UpdateTotal()
         {
-            decimal total = spinQuantity.Value * _portfolioItem.CurrentPrice;
-            lblTotal.Text = $"Alacağınız: {total:N2} ₺";
+            decimal total = spinAdet.Value * _portfolioItem.CurrentPrice;
+            lblToplam2.Text = $"Alacağınız: {total:N2} ₺";
         }
 
-        private async void BtnSell_Click(object? sender, EventArgs e)
+        private async void BtnSat_Click(object? sender, EventArgs e)
         {
-            decimal quantity = spinQuantity.Value;
-            var result = await _investmentService.SellStockAsync(_customerId, 1, _portfolioItem.StockSymbol, quantity);
+            decimal quantity = spinAdet.Value;
+            // Updated to handle string return type
+            var resultMessage = await _investmentService.SellStockAsync(_customerId, 1, _portfolioItem.StockSymbol, quantity);
             
-            if (result.Success)
+            if (resultMessage == null) // Success
             {
-                XtraMessageBox.Show(result.Message, "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                XtraMessageBox.Show($"{quantity} adet {_portfolioItem.StockSymbol} satıldı!", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
             else
             {
-                XtraMessageBox.Show(result.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                XtraMessageBox.Show(resultMessage, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

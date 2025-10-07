@@ -6,11 +6,19 @@ using BankApp.Infrastructure.Data;
 
 namespace BankApp.UI.Forms
 {
+    /// <summary>
+    /// Yeni hesap açma formu
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public partial class NewAccountForm : XtraForm
     {
         private readonly int _customerId;
         private readonly AccountRepository _repository;
 
+        /// <summary>
+        /// Form yapıcı metodu
+        /// </summary>
+        /// <param name="customerId">Hesap açılacak müşteri ID</param>
         public NewAccountForm(int customerId)
         {
             InitializeComponent();
@@ -19,20 +27,24 @@ namespace BankApp.UI.Forms
             var context = new DapperContext();
             _repository = new AccountRepository(context);
             
-            cmbCurrency.SelectedIndex = 0; // Default TRY
+            cmbParaBirimi.SelectedIndex = 0; // Varsayılan: TRY
         }
 
-        private async void btnCreate_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Hesap oluştur butonu tıklama olayı
+        /// </summary>
+        /// <param name="sender">Olay kaynağı</param>
+        /// <param name="e">Olay argümanları</param>
+        private async void btnOlustur_Click(object sender, EventArgs e)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
-            if (cmbCurrency == null || txtInitialDeposit == null || _repository == null)
+            if (cmbParaBirimi == null || calcIlkPara == null || _repository == null)
             {
                 XtraMessageBox.Show("Form bileşenleri yüklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            string currency = cmbCurrency.Text?.Trim() ?? "TRY";
-            decimal balance = txtInitialDeposit.Value;
+            string currency = cmbParaBirimi.Text?.Trim() ?? "TRY";
+            decimal balance = calcIlkPara.Value;
 
             if (string.IsNullOrWhiteSpace(currency))
             {
@@ -48,7 +60,7 @@ namespace BankApp.UI.Forms
 
             try
             {
-                // Generate Random Account No & IBAN
+                // Rastgele Hesap No ve IBAN oluştur
                 var rand = new Random();
                 string accNo = rand.Next(10000000, 99999999).ToString();
                 string iban = $"TR{rand.Next(10, 99)}00000{accNo}";
@@ -69,7 +81,7 @@ namespace BankApp.UI.Forms
             }
             catch (Exception ex)
             {
-                XtraMessageBox.Show("Hesap açma hatası: " + ex.Message);
+                XtraMessageBox.Show("Hesap açma hatası: " + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
