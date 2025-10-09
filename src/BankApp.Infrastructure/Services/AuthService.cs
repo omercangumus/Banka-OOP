@@ -36,7 +36,7 @@ namespace BankApp.Infrastructure.Services
         /// <param name="username">Kullanıcı adı</param>
         /// <param name="password">Şifre</param>
         /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
-        public async Task<string> LoginAsync(string username, string password)
+        public async Task<string?> LoginAsync(string username, string password)
         {
             try
             {
@@ -52,7 +52,7 @@ namespace BankApp.Infrastructure.Services
                 }
 
                 // Kullanıcıyı bul
-                User user;
+                User? user;
                 try
                 {
                     user = await _userRepository.GetByUsernameAsync(username);
@@ -124,7 +124,7 @@ namespace BankApp.Infrastructure.Services
         /// <param name="user">Kullanıcı bilgileri</param>
         /// <param name="password">Şifre</param>
         /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
-        public async Task<string> RegisterAsync(User user, string password)
+        public async Task<string?> RegisterAsync(User user, string password)
         {
             try
             {
@@ -195,7 +195,7 @@ namespace BankApp.Infrastructure.Services
         /// <param name="email">E-posta adresi</param>
         /// <param name="code">Doğrulama kodu</param>
         /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
-        public async Task<string> VerifyAccountAsync(string email, string code)
+        public async Task<string?> VerifyAccountAsync(string email, string code)
         {
             try
             {
@@ -244,7 +244,7 @@ namespace BankApp.Infrastructure.Services
         /// <param name="email">E-posta adresi</param>
         /// <param name="otpCode">OTP kodu</param>
         /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
-        public async Task<string> SendForgotPasswordEmailAsync(string email, string otpCode)
+        public async Task<string?> SendForgotPasswordEmailAsync(string email, string otpCode)
         {
             try
             {

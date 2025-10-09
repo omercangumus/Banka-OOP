@@ -17,11 +17,11 @@ namespace BankApp.UI.Forms
         private RibbonControl ribbonControl1;
         private RibbonPage pageDashboard;
         private RibbonPage pageCustomers;
-        private RibbonPage pageInvestments; // Yeni: Yatırım sayfası
+        private RibbonPage pageInvestments;
         private RibbonPageGroup groupStats;
         private RibbonPageGroup groupAI;
         private RibbonPageGroup groupCustomerActions;
-        private RibbonPageGroup groupInvestmentActions; // Yeni: Yatırım grubu
+        private RibbonPageGroup groupInvestmentActions;
         
         // Ribbon Items
         private DevExpress.XtraBars.BarButtonItem btnAiAssist;
@@ -374,7 +374,7 @@ namespace BankApp.UI.Forms
             this.pnlTotalAssets.Padding = new Padding(15);
             
             this.lblTotalAssetsTitle.Appearance.ForeColor = Color.White;
-            this.lblTotalAssetsTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
+            this.lblTotalAssetsTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold); // Fırat Standardı: Tahoma
             this.lblTotalAssetsTitle.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblTotalAssetsTitle.Size = new Size(250, 25);
             this.lblTotalAssetsTitle.Location = new Point(15, 15);
@@ -382,7 +382,7 @@ namespace BankApp.UI.Forms
             this.lblTotalAssetsTitle.Name = "lblTotalAssetsTitle";
             
             this.lblTotalAssetsValue.Appearance.ForeColor = Color.White;
-            this.lblTotalAssetsValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
+            this.lblTotalAssetsValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold); // Fırat Standardı: Tahoma
             this.lblTotalAssetsValue.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblTotalAssetsValue.Size = new Size(250, 45);
             this.lblTotalAssetsValue.Location = new Point(15, 45);
@@ -400,7 +400,7 @@ namespace BankApp.UI.Forms
             this.pnlDailyTransactions.Name = "pnlDailyTransactions";
             
             this.lblDailyTransactionsTitle.Appearance.ForeColor = Color.White;
-            this.lblDailyTransactionsTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
+            this.lblDailyTransactionsTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold); // Fırat Standardı: Tahoma
             this.lblDailyTransactionsTitle.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblDailyTransactionsTitle.Size = new Size(250, 25);
             this.lblDailyTransactionsTitle.Location = new Point(15, 15);
@@ -408,7 +408,7 @@ namespace BankApp.UI.Forms
             this.lblDailyTransactionsTitle.Name = "lblDailyTransactionsTitle";
             
             this.lblDailyTransactionsValue.Appearance.ForeColor = Color.White;
-            this.lblDailyTransactionsValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
+            this.lblDailyTransactionsValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold); // Fırat Standardı: Tahoma
             this.lblDailyTransactionsValue.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblDailyTransactionsValue.Size = new Size(250, 45);
             this.lblDailyTransactionsValue.Location = new Point(15, 45);
@@ -426,7 +426,7 @@ namespace BankApp.UI.Forms
             this.pnlActiveCustomers.Name = "pnlActiveCustomers";
             
             this.lblActiveCustomersTitle.Appearance.ForeColor = Color.White;
-            this.lblActiveCustomersTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
+            this.lblActiveCustomersTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold); // Fırat Standardı: Tahoma
             this.lblActiveCustomersTitle.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblActiveCustomersTitle.Size = new Size(250, 25);
             this.lblActiveCustomersTitle.Location = new Point(15, 15);
@@ -434,7 +434,7 @@ namespace BankApp.UI.Forms
             this.lblActiveCustomersTitle.Name = "lblActiveCustomersTitle";
             
             this.lblActiveCustomersValue.Appearance.ForeColor = Color.White;
-            this.lblActiveCustomersValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
+            this.lblActiveCustomersValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold); // Fırat Standardı: Tahoma
             this.lblActiveCustomersValue.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblActiveCustomersValue.Size = new Size(250, 45);
             this.lblActiveCustomersValue.Location = new Point(15, 45);
@@ -452,7 +452,7 @@ namespace BankApp.UI.Forms
             this.pnlExchangeRate.Name = "pnlExchangeRate";
             
             this.lblExchangeRateTitle.Appearance.ForeColor = Color.White;
-            this.lblExchangeRateTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
+            this.lblExchangeRateTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold); // Fırat Standardı: Tahoma
             this.lblExchangeRateTitle.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblExchangeRateTitle.Size = new Size(250, 25);
             this.lblExchangeRateTitle.Location = new Point(15, 15);
@@ -460,7 +460,7 @@ namespace BankApp.UI.Forms
             this.lblExchangeRateTitle.Name = "lblExchangeRateTitle";
             
             this.lblExchangeRateValue.Appearance.ForeColor = Color.White;
-            this.lblExchangeRateValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
+            this.lblExchangeRateValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold); // Fırat Standardı: Tahoma
             this.lblExchangeRateValue.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblExchangeRateValue.Size = new Size(250, 45);
             this.lblExchangeRateValue.Location = new Point(15, 45);
@@ -561,11 +561,13 @@ namespace BankApp.UI.Forms
             this.gridViewCustomers.OptionsBehavior.Editable = false;
             this.gridViewCustomers.OptionsView.EnableAppearanceOddRow = true;
             this.gridViewCustomers.OptionsView.EnableAppearanceEvenRow = true;
+            this.gridViewCustomers.Appearance.Row.Font = new Font("Tahoma", 8.25F);
+            this.gridViewCustomers.Appearance.HeaderPanel.Font = new Font("Tahoma", 8.25F, FontStyle.Bold);
 
             // ============================================
             // MAIN FORM
             // ============================================
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
+            this.AutoScaleDimensions = new SizeF(7F, 16F); // 8.25pt is approx 11px, Tahoma 8.25F usually scales around 13-16px height depending on DPI. Safe default.
             this.AutoScaleMode = AutoScaleMode.Font;
             this.ClientSize = new Size(1600, 900);
             this.Controls.Add(this.gridCustomers);
@@ -612,7 +614,7 @@ namespace BankApp.UI.Forms
                 }
                 
                 // Draw symbol
-                using (var font = new Font("Segoe UI", 12F, FontStyle.Bold))
+                using (var font = new Font("Tahoma", 12F, FontStyle.Bold)) // Fırat Standardı: Tahoma
                 using (var brush = new SolidBrush(Color.White))
                 {
                     var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
