@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System.Drawing;
 using BankApp.Core.Interfaces;
 using BankApp.Infrastructure.Services;
+using BankApp.UI.Controls;
 using Dapper;
 
 namespace BankApp.UI.Forms
@@ -16,12 +17,15 @@ namespace BankApp.UI.Forms
     public partial class MainForm : RibbonForm
     {
         private readonly IAIService _aiService;
+        private InvestmentDashboard investmentDashboard;
 
         public MainForm()
         {
             InitializeComponent();
             _aiService = new MockAIService();
             
+            InitializeInvestmentDashboard();
+
             this.ribbonControl1.SelectedPageChanged += RibbonControl1_SelectedPageChanged;
             this.Load += MainForm_Load;
             
@@ -95,17 +99,38 @@ namespace BankApp.UI.Forms
             }
         }
 
+        private void InitializeInvestmentDashboard()
+        {
+            investmentDashboard = new InvestmentDashboard();
+            investmentDashboard.Visible = false;
+            investmentDashboard.Dock = DockStyle.Fill;
+            this.Controls.Add(investmentDashboard);
+        }
+
         private void RibbonControl1_SelectedPageChanged(object sender, EventArgs e)
         {
             if (ribbonControl1 == null || pageDashboard == null) return;
 
             bool isDashboard = (ribbonControl1.SelectedPage == pageDashboard);
-            
+            bool isInvestments = (ribbonControl1.SelectedPage == pageInvestments);
+            bool isCustomers = (ribbonControl1.SelectedPage == pageCustomers);
+
             if (pnlDashboard != null) pnlDashboard.Visible = isDashboard;
+            
+            if (investmentDashboard != null)
+            {
+                investmentDashboard.Visible = isInvestments;
+                if (isInvestments)
+                {
+                    investmentDashboard.BringToFront();
+                    investmentDashboard.LoadDummyData();
+                }
+            }
+
             if (gridCustomers != null)
             {
-                gridCustomers.Visible = !isDashboard;
-                if(!isDashboard)
+                gridCustomers.Visible = isCustomers;
+                if(isCustomers)
                 {
                     gridCustomers.Dock = DockStyle.Fill;
                     gridCustomers.BringToFront();
