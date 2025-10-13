@@ -7,7 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Suppress DevExpress evaluation and NuGet version warnings -->
-    <NoWarn>$(NoWarn);DX1000;NU1603</NoWarn>
+    <NoWarn>$(NoWarn);DX1000;NU1603;CS8632;CS8618</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
