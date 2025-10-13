@@ -12,8 +12,8 @@ namespace BankApp.Infrastructure.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
-        private readonly string _baseUrl = "https://openrouter.ai/api/v1/chat/completions";
-        private readonly string _model = "mistralai/mistral-7b-instruct:free";
+        private readonly string _baseUrl = "https://api.groq.com/openai/v1/chat/completions";
+        private readonly string _model = "llama-3.3-70b-versatile";
         
         private List<ChatMessage> _conversationHistory = new List<ChatMessage>();
         
