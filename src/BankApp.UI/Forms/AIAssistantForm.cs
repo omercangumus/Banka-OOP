@@ -6,13 +6,18 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Threading.Tasks;
+using System.Text.Json;
 using BankApp.Infrastructure.Services;
+using BankApp.Infrastructure.Data;
+using BankApp.Core.Entities;
 
 namespace BankApp.UI.Forms
 {
     public partial class AIAssistantForm : XtraForm
     {
-        private readonly OpenRouterAIService _aiService;
+        private readonly GeminiAIService _aiService;
+        private readonly TransactionService _transactionService;
+        private readonly AccountService _accountService;
         
         // Modern Chat UI Controls
         private PanelControl pnlHeader;
@@ -26,9 +31,16 @@ namespace BankApp.UI.Forms
 
         public AIAssistantForm()
         {
-            // API Key - Groq
-            string apiKey = "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";
-            _aiService = new OpenRouterAIService(apiKey);
+            // API Key - Gemini
+            string apiKey = "AIzaSyDD6cGJ8_qJN6tQaQY6jVaBFAn8_aH7YSE"; // Gemini API Key
+            _aiService = new GeminiAIService(apiKey);
+            
+            // Initialize services for action execution
+            var context = new DapperContext();
+            var accountRepo = new AccountRepository(context);
+            var transactionRepo = new TransactionRepository(context);
+            _transactionService = new TransactionService(transactionRepo, accountRepo);
+            _accountService = new AccountService(accountRepo);
             
             InitializeComponent();
             SetupModernChatUI();
@@ -419,8 +431,16 @@ namespace BankApp.UI.Forms
                 // Get AI response
                 string response = await _aiService.GetResponseAsync(userMessage);
                 
-                // Add AI response bubble
-                AddChatBubble(response, false);
+                // Check if response is JSON command
+                if (response.TrimStart().StartsWith("{"))
+                {
+                    await ExecuteAIActionAsync(response);
+                }
+                else
+                {
+                    // Normal chat response
+                    AddChatBubble(response, false);
+                }
             }
             catch (Exception ex)
             {
@@ -432,6 +452,181 @@ namespace BankApp.UI.Forms
                 btnSend.Enabled = true;
                 txtUserInput.Focus();
             }
+        }
+        
+        /// <summary>
+        /// AI'dan gelen JSON komutunu parse edip ilgili işlemi gerçekleştirir
+        /// </summary>
+        private async Task ExecuteAIActionAsync(string jsonCommand)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(jsonCommand);
+                var root = doc.RootElement;
+                
+                if (!root.TryGetProperty("action", out var actionElement))
+                {
+                    AddChatBubble("❌ Geçersiz komut formatı.", false);
+                    return;
+                }
+                
+                string action = actionElement.GetString() ?? "";
+                
+                switch (action.ToUpper())
+                {
+                    case "TRANSFER":
+                        await ExecuteTransferAsync(root);
+                        break;
+                        
+                    case "OPEN_ACCOUNT":
+                        await ExecuteOpenAccountAsync(root);
+                        break;
+                        
+                    case "CREDIT_CARD":
+                        ExecuteCreditCardApplication();
+                        break;
+                        
+                    default:
+                        AddChatBubble($"❌ Bilinmeyen işlem: {action}", false);
+                        break;
+                }
+            }
+            catch (JsonException)
+            {
+                AddChatBubble("❌ JSON parse hatası.", false);
+            }
+            catch (Exception ex)
+            {
+                AddChatBubble($"❌ İşlem hatası: {ex.Message}", false);
+            }
+        }
+        
+        private async Task ExecuteTransferAsync(JsonElement command)
+        {
+            try
+            {
+                // Parametreleri al
+                if (!command.TryGetProperty("amount", out var amountElem) ||
+                    !command.TryGetProperty("iban", out var ibanElem))
+                {
+                    AddChatBubble("❌ Transfer için miktar ve IBAN gerekli.", false);
+                    return;
+                }
+                
+                decimal amount = amountElem.GetDecimal();
+                string iban = ibanElem.GetString() ?? "";
+                string description = command.TryGetProperty("description", out var descElem) 
+                    ? descElem.GetString() ?? "AI Transfer" 
+                    : "AI Transfer";
+                
+                // Kullanıcıdan onay al
+                var confirmResult = XtraMessageBox.Show(
+                    $"Aşağıdaki transferi gerçekleştirmek istiyor musunuz?\n\n" +
+                    $"Miktar: {amount:N2} TL\n" +
+                    $"IBAN: {iban}\n" +
+                    $"Açıklama: {description}",
+                    "Transfer Onayı",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question
+                );
+                
+                if (confirmResult == DialogResult.Yes)
+                {
+                    // CurrentSession'dan kullanıcı ID'si al
+                    int userId = AppEvents.CurrentSession.UserId;
+                    
+                    // Kullanıcının ilk hesabını al (basitleştirme için)
+                    var accounts = await _accountService.GetAccountsByUserIdAsync(userId);
+                    if (accounts.Count == 0)
+                    {
+                        AddChatBubble("❌ Hesap bulunamadı.", false);
+                        return;
+                    }
+                    
+                    var fromAccount = accounts[0];
+                    
+                    // Transfer yap
+                    await _transactionService.CreateTransactionAsync(
+                        fromAccount.Id,
+                        amount,
+                        "Withdraw",
+                        description,
+                        iban
+                    );
+                    
+                    AddChatBubble($"✅ {amount:N2} TL başarıyla {iban} IBAN'a transfer edildi!", false);
+                }
+                else
+                {
+                    AddChatBubble("ℹ️ Transfer iptal edildi.", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                AddChatBubble($"❌ Transfer hatası: {ex.Message}", false);
+            }
+        }
+        
+        private async Task ExecuteOpenAccountAsync(JsonElement command)
+        {
+            try
+            {
+                string accountType = command.TryGetProperty("accountType", out var typeElem)
+                    ? typeElem.GetString() ?? "Checking"
+                    : "Checking";
+                    
+                string currency = command.TryGetProperty("currency", out var currElem)
+                    ? currElem.GetString() ?? "TRY"
+                    : "TRY";
+                
+                // Kullanıcıdan onay al
+                var confirmResult = XtraMessageBox.Show(
+                    $"Aşağıdaki hesabı açmak istiyor musunuz?\n\n" +
+                    $"Hesap Tipi: {accountType}\n" +
+                    $"Para Birimi: {currency}",
+                    "Hesap Açma Onayı",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question
+                );
+                
+                if (confirmResult == DialogResult.Yes)
+                {
+                    int userId = AppEvents.CurrentSession.UserId;
+                    
+                    var account = new Account
+                    {
+                        UserId = userId,
+                        AccountType = accountType,
+                        Currency = currency,
+                        Balance = 0,
+                        CreatedDate = DateTime.Now
+                    };
+                    
+                    await _accountService.CreateAccountAsync(account);
+                    
+                    AddChatBubble($"✅ {currency} cinsinden {accountType} hesabı başarıyla açıldı!", false);
+                }
+                else
+                {
+                    AddChatBubble("ℹ️ Hesap açma iptal edildi.", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                AddChatBubble($"❌ Hesap açma hatası: {ex.Message}", false);
+            }
+        }
+        
+        private void ExecuteCreditCardApplication()
+        {
+            AddChatBubble("ℹ️ Kredi kartı başvurunuz alındı. Başvurunuz 2-3 iş günü içinde değerlendirilecektir.", false);
+            XtraMessageBox.Show(
+                "Kredi kartı başvurunuz başarıyla alındı!\n" +
+                "Başvurunuz en kısa sürede değerlendirilecek ve size bilgi verilecektir.",
+                "Başvuru Alındı",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
         }
 
         private void BtnClear_Click(object? sender, EventArgs e)
