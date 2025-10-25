@@ -17,7 +17,7 @@ namespace BankApp.UI.Forms
     {
         private readonly GeminiAIService _aiService;
         private readonly TransactionService _transactionService;
-        private readonly AccountService _accountService;
+        private readonly AccountRepository _accountRepository;
         
         // Modern Chat UI Controls
         private PanelControl pnlHeader;
@@ -37,10 +37,9 @@ namespace BankApp.UI.Forms
             
             // Initialize services for action execution
             var context = new DapperContext();
-            var accountRepo = new AccountRepository(context);
+            _accountRepository = new AccountRepository(context);
             var transactionRepo = new TransactionRepository(context);
-            _transactionService = new TransactionService(transactionRepo, accountRepo);
-            _accountService = new AccountService(accountRepo);
+            _transactionService = new TransactionService(transactionRepo, _accountRepository);
             
             InitializeComponent();
             SetupModernChatUI();
@@ -536,7 +535,7 @@ namespace BankApp.UI.Forms
                     int userId = AppEvents.CurrentSession.UserId;
                     
                     // Kullanıcının ilk hesabını al (basitleştirme için)
-                    var accounts = await _accountService.GetAccountsByUserIdAsync(userId);
+                    var accounts = await _accountRepository.GetAccountsByUserIdAsync(userId);
                     if (accounts.Count == 0)
                     {
                         AddChatBubble("❌ Hesap bulunamadı.", false);
@@ -602,7 +601,7 @@ namespace BankApp.UI.Forms
                         CreatedDate = DateTime.Now
                     };
                     
-                    await _accountService.CreateAccountAsync(account);
+                    await _accountRepository.CreateAccountAsync(account);
                     
                     AddChatBubble($"✅ {currency} cinsinden {accountType} hesabı başarıyla açıldı!", false);
                 }
