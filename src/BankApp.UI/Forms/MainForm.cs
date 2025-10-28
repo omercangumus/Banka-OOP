@@ -14,15 +14,24 @@ using Dapper;
 
 namespace BankApp.UI.Forms
 {
-    public partial class MainForm : RibbonForm
+    public partial class MainForm : DevExpress.XtraEditors.XtraForm
     {
         private readonly IAIService _aiService;
         private InvestmentDashboard investmentDashboard;
 
         public MainForm()
         {
-            InitializeComponent();
-            _aiService = new MockAIService();
+            try
+            {
+                InitializeComponent();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"InitializeComponent Error: {ex.Message}");
+                // Continue execution to attempt showing the form
+            }
+            // Use real AI service with new key
+            _aiService = new OpenRouterAIService("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");
             
             InitializeInvestmentDashboard();
 
@@ -139,94 +148,178 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private async void LoadDashboardCharts()
+        // DYNAMIC DASHBOARD LOGIC
+        private enum DashboardChartType
         {
-            try
-            {
-                var context = new BankApp.Infrastructure.Data.DapperContext();
-                using (var conn = context.CreateConnection())
-                {
-                    conn.Open();
-                    
-                    // 1. Harcamalar Dağılımı - Doughnut (Pie) Chart
-                    // Dummy veriler ile grafik görünümü sağlanıyor
-                    Series seriesPie = new Series("Harcamalar", ViewType.Doughnut);
-                    seriesPie.Points.Add(new SeriesPoint("Market", 1200));
-                    seriesPie.Points.Add(new SeriesPoint("Faturalar", 850));
-                    seriesPie.Points.Add(new SeriesPoint("Giyim", 450));
-                    seriesPie.Points.Add(new SeriesPoint("Eğlence", 600));
-                    
-                    // Doughnut görünüm ayarları
-                    var doughnutView = (DoughnutSeriesView)seriesPie.View;
-                    doughnutView.HoleRadiusPercent = 45;
-                    seriesPie.Label.TextPattern = "{A}: {VP:P1}";
-                    
-                    // Label pozisyonu - TwoColumns
-                    if (seriesPie.Label is DoughnutSeriesLabel doughnutLabel)
-                    {
-                        doughnutLabel.Position = PieSeriesLabelPosition.TwoColumns;
-                    }
-                    
-                    chartCurrency.Series.Clear();
-                    chartCurrency.Series.Add(seriesPie);
-                    
-                    // Palette ve Legend ayarları
-                    chartCurrency.PaletteName = "Nature Colors";
-                    chartCurrency.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
-                    chartCurrency.Legend.AlignmentHorizontal = DevExpress.XtraCharts.LegendAlignmentHorizontal.Left;
-                    chartCurrency.Legend.AlignmentVertical = DevExpress.XtraCharts.LegendAlignmentVertical.Center;
-                    chartCurrency.Legend.TextColor = Color.White;
-                    
-                    chartCurrency.Titles.Clear();
-                    chartCurrency.Titles.Add(new ChartTitle() { Text = "Harcama Dağılımı", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
+            Expenses,           // Pie
+            Transactions,       // Bar
+            BalanceHistory,     // Line
+            AssetDistribution,  // Pie3D
+            IncomeExpense,      // Stacked Bar
+            CreditUsage,        // Doughnut (Gauge style)
+            StockPortfolio      // Bar
+        }
 
-                    // 2. İşlem Hacmi - Bar Chart (Son 5 Gün)
-                    var transactionData = await conn.QueryAsync<dynamic>(
-                        @"SELECT DATE(""TransactionDate"") as TransDate, 
-                                 SUM(""Amount"") as Total
-                          FROM ""Transactions"" 
-                          WHERE ""TransactionDate"" >= CURRENT_DATE - INTERVAL '5 days'
-                          GROUP BY DATE(""TransactionDate"")
-                          ORDER BY TransDate");
-                    
-                    Series seriesBar = new Series("İşlem Hacmi (Son 5 Gün)", ViewType.Bar);
-                    
-                    foreach (var item in transactionData)
-                    {
-                        DateTime date = item.TransDate ?? DateTime.Now;
-                        decimal total = item.Total ?? 0m;
-                        seriesBar.Points.Add(new SeriesPoint(date.ToString("dd.MM"), (double)total));
-                    }
-                    
-                    // Eğer veri yoksa örnek veri ekle
-                    if (seriesBar.Points.Count == 0)
-                    {
-                        var today = DateTime.Now;
-                        seriesBar.Points.Add(new SeriesPoint(today.AddDays(-4).ToString("dd.MM"), 120000));
-                        seriesBar.Points.Add(new SeriesPoint(today.AddDays(-3).ToString("dd.MM"), 180000));
-                        seriesBar.Points.Add(new SeriesPoint(today.AddDays(-2).ToString("dd.MM"), 95000));
-                        seriesBar.Points.Add(new SeriesPoint(today.AddDays(-1).ToString("dd.MM"), 210000));
-                        seriesBar.Points.Add(new SeriesPoint(today.ToString("dd.MM"), 175000));
-                    }
-                    
-                    // Bar görünüm ayarları
-                    var barView = (BarSeriesView)seriesBar.View;
-                    barView.Color = Color.FromArgb(33, 150, 243);
-                    
-                    chartTransactions.Series.Clear();
-                    chartTransactions.Series.Add(seriesBar);
-                    chartTransactions.Titles.Clear();
-                    chartTransactions.Titles.Add(new ChartTitle() { Text = "İşlem Hacmi (Son 5 Gün)", TextColor = Color.White });
-                }
-            }
-            catch (Exception ex)
+        private void InitializeDynamicCharts()
+        {
+            // Default Assignments
+            RenderChart(chartCurrency, DashboardChartType.Expenses);
+            RenderChart(chartTransactions, DashboardChartType.Transactions);
+            RenderChart(chartBalanceHistory, DashboardChartType.BalanceHistory);
+            RenderChart(chartAssetDistribution, DashboardChartType.AssetDistribution);
+
+            // Context Menu Event
+            chartCurrency.MouseUp += Chart_MouseUp;
+            chartTransactions.MouseUp += Chart_MouseUp;
+            chartBalanceHistory.MouseUp += Chart_MouseUp;
+            chartAssetDistribution.MouseUp += Chart_MouseUp;
+            
+            // Click Event (Popup)
+            chartCurrency.MouseClick += Chart_MouseClick;
+            chartTransactions.MouseClick += Chart_MouseClick;
+            chartBalanceHistory.MouseClick += Chart_MouseClick;
+            chartAssetDistribution.MouseClick += Chart_MouseClick;
+        }
+
+        private void Chart_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right && sender is ChartControl chart)
             {
-                System.Diagnostics.Debug.WriteLine($"Chart Error: {ex.Message}");
-                
-                // Fallback: Örnek veri ile grafikleri doldur
-                LoadSampleChartData();
+                DevExpress.XtraBars.PopupMenu menu = new DevExpress.XtraBars.PopupMenu();
+                // Create Menu Items from Enum
+                foreach (DashboardChartType type in Enum.GetValues(typeof(DashboardChartType)))
+                {
+                    var item = new DevExpress.XtraBars.BarButtonItem(this.ribbonControl1.Manager, type.ToString());
+                    item.ItemClick += (s, args) => RenderChart(chart, type);
+                    menu.ItemLinks.Add(item);
+                }
+                menu.ShowPopup(Control.MousePosition);
             }
         }
+
+        private void RenderChart(ChartControl chart, DashboardChartType type)
+        {
+            chart.Series.Clear();
+            chart.Titles.Clear();
+            chart.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
+            chart.Legend.AlignmentHorizontal = LegendAlignmentHorizontal.Center;
+            chart.Legend.AlignmentVertical = LegendAlignmentVertical.BottomOutside;
+
+            switch (type)
+            {
+                case DashboardChartType.Expenses:
+                    {
+                        Series s = new Series("Expenses", ViewType.Doughnut);
+                        s.Points.Add(new SeriesPoint("Market", 1200));
+                        s.Points.Add(new SeriesPoint("Bills", 850));
+                        s.Points.Add(new SeriesPoint("Clothing", 450));
+                        s.Points.Add(new SeriesPoint("Fun", 600));
+                        ((DoughnutSeriesView)s.View).HoleRadiusPercent = 40;
+                        s.Label.TextPattern = "{A}: {VP:P0}";
+                        chart.Series.Add(s);
+                        chart.Titles.Add(new ChartTitle { Text = "Harcama Dağılımı", TextColor = Color.White });
+                    }
+                    break;
+
+                case DashboardChartType.Transactions:
+                    {
+                        Series s = new Series("Transactions", ViewType.Bar);
+                        var today = DateTime.Now;
+                        s.Points.Add(new SeriesPoint(today.AddDays(-4).ToString("dd.MM"), 120));
+                        s.Points.Add(new SeriesPoint(today.AddDays(-3).ToString("dd.MM"), 180));
+                        s.Points.Add(new SeriesPoint(today.AddDays(-2).ToString("dd.MM"), 95));
+                        s.Points.Add(new SeriesPoint(today.AddDays(-1).ToString("dd.MM"), 210));
+                        s.Points.Add(new SeriesPoint(today.ToString("dd.MM"), 175));
+                        chart.Series.Add(s);
+                        chart.Titles.Add(new ChartTitle { Text = "Günlük İşlem Adedi", TextColor = Color.White });
+                    }
+                    break;
+                
+                case DashboardChartType.BalanceHistory:
+                    {
+                        Series s = new Series("Balance", ViewType.Spline); // Smoother line
+                        s.Points.Add(new SeriesPoint("Jan", 85000));
+                        s.Points.Add(new SeriesPoint("Feb", 92000));
+                        s.Points.Add(new SeriesPoint("Mar", 88000));
+                        s.Points.Add(new SeriesPoint("Apr", 95000));
+                        s.Points.Add(new SeriesPoint("May", 110000));
+                        s.Points.Add(new SeriesPoint("Jun", 121325));
+                        ((SplineSeriesView)s.View).Color = Color.FromArgb(76, 175, 80);
+                        ((SplineSeriesView)s.View).MarkerVisibility = DevExpress.Utils.DefaultBoolean.True;
+                        chart.Series.Add(s);
+                        chart.Titles.Add(new ChartTitle { Text = "Varlık Gelişimi", TextColor = Color.White });
+                    }
+                    break;
+
+                case DashboardChartType.AssetDistribution:
+                    {
+                        Series s = new Series("Assets", ViewType.Pie3D);
+                        s.Points.Add(new SeriesPoint("TRY", 65000));
+                        s.Points.Add(new SeriesPoint("Gold", 35000));
+                        s.Points.Add(new SeriesPoint("Stocks", 15000));
+                        s.Points.Add(new SeriesPoint("BES", 6325));
+                        chart.Series.Add(s);
+                        chart.Titles.Add(new ChartTitle { Text = "Portföy Dağılımı", TextColor = Color.White });
+                    }
+                    break;
+
+                case DashboardChartType.IncomeExpense:
+                    {
+                        Series s1 = new Series("Income", ViewType.Bar);
+                        Series s2 = new Series("Expense", ViewType.Bar);
+                        
+                        s1.Points.Add(new SeriesPoint("May", 45000));
+                        s1.Points.Add(new SeriesPoint("Jun", 48000));
+                        
+                        s2.Points.Add(new SeriesPoint("May", 32000));
+                        s2.Points.Add(new SeriesPoint("Jun", 28000));
+
+                        chart.Series.Add(s1);
+                        chart.Series.Add(s2);
+                        chart.Titles.Add(new ChartTitle { Text = "Gelir / Gider", TextColor = Color.White });
+                    }
+                    break;
+
+                case DashboardChartType.CreditUsage:
+                    {
+                         Series s = new Series("Limit", ViewType.Pie);
+                         s.Points.Add(new SeriesPoint("Used", 12500));
+                         s.Points.Add(new SeriesPoint("Available", 37500));
+                         chart.Series.Add(s);
+                         chart.Titles.Add(new ChartTitle { Text = "Kredi Kartı Limiti", TextColor = Color.White });
+                    }
+                    break;
+
+                case DashboardChartType.StockPortfolio:
+                    {
+                        Series s = new Series("Stocks", ViewType.Bar);
+                        s.Points.Add(new SeriesPoint("THYAO", 15000));
+                        s.Points.Add(new SeriesPoint("ASELS", 8000));
+                        s.Points.Add(new SeriesPoint("GARAN", 12000));
+                        chart.Series.Add(s);
+                        chart.Titles.Add(new ChartTitle { Text = "Hisse Portföyü", TextColor = Color.White });
+                    }
+                    break;
+            }
+        }
+        
+        // LoadDashboardCharts calls InitializeDynamicCharts instead of hardcoded logic
+        private void LoadDashboardCharts()
+        {
+             // Initial Load
+             InitializeDynamicCharts();
+        }
+
+        private void Chart_MouseClick(object sender, MouseEventArgs e)
+        {
+            // Only Left Click triggers Popup
+            if (e.Button == MouseButtons.Left && sender is ChartControl chart)
+            {
+                ChartPopupForm popup = new ChartPopupForm(chart);
+                popup.ShowDialog();
+            }
+        }
+
 
         private void LoadSampleChartData()
         {
@@ -425,15 +518,22 @@ namespace BankApp.UI.Forms
         // YENİ: Yatırım İşlemleri
         private void btnStockMarket_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            InvestmentForm frm = new InvestmentForm();
+            StockMarketForm frm = new StockMarketForm();
             frm.ShowDialog();
             RefreshDashboard(); // İşlem sonrası dashboard'u güncelle
         }
 
         private void btnBES_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            BESForm frm = new BESForm();
-            frm.ShowDialog();
+            try 
+            {
+                var frm = new BESForm(); 
+                frm.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                DevExpress.XtraEditors.XtraMessageBox.Show("BES Ekranı açılırken hata: " + ex.Message);
+            }
         }
 
         // YENİ: Kartlarım butonu

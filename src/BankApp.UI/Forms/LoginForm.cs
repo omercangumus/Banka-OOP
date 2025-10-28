@@ -103,7 +103,7 @@ namespace BankApp.UI.Forms
             }
             catch (Exception ex)
             {
-                XtraMessageBox.Show($"Giriş hatası: {ex.Message}", "Sistem Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                XtraMessageBox.Show($"Giriş hatası DETAY:\n\n{ex.ToString()}", "Sistem Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

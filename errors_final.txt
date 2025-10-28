@@ -1,0 +1,30 @@
+.NET için MSBuild sürüm 17.8.43+f0cbb1397
+  Determining projects to restore...
+  Geri yükleme için tüm projeler güncel.
+  BankApp.Core -> C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Core\bin\Debug\net8.0\BankApp.Core.dll
+  BankApp.Infrastructure -> C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Infrastructure\bin\Debug\net8.0\BankApp.Infrastructure.dll
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(42,39): error CS7036: 'TransactionService.TransactionService(IAccountRepository, ITransactionRepository, IAuditRepository)'nin gerekli 'auditRepo' parametresine karşılık gelen herhangi bir argüman yok [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(538,61): error CS1061: 'AccountRepository' bir 'GetAccountsByUserIdAsync' tanımı içermiyor ve 'AccountRepository' türünde bir ilk bağımsız değişken kabul eden hiçbir erişilebilir 'GetAccountsByUserIdAsync' genişletme yöntemi bulunamadı (bir kullanma yönergeniz veya derleme başvurunuz eksik olabilir mi?) [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(539,25): error CS0019: '==' işleci 'yöntem grubu' ve 'int' türündeki işlenenlere uygulanamaz [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(548,47): error CS1061: 'TransactionService' bir 'CreateTransactionAsync' tanımı içermiyor ve 'TransactionService' türünde bir ilk bağımsız değişken kabul eden hiçbir erişilebilir 'CreateTransactionAsync' genişletme yöntemi bulunamadı (bir kullanma yönergeniz veya derleme başvurunuz eksik olabilir mi?) [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(597,25): error CS0117: 'Account' bir 'UserId' tanımı içermiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(598,25): error CS0117: 'Account' bir 'AccountType' tanımı içermiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(599,25): error CS0117: 'Account' bir 'Currency' tanımı içermiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(601,25): error CS0117: 'Account' bir 'CreatedDate' tanımı içermiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(604,46): error CS1061: 'AccountRepository' bir 'CreateAccountAsync' tanımı içermiyor ve 'AccountRepository' türünde bir ilk bağımsız değişken kabul eden hiçbir erişilebilir 'CreateAccountAsync' genişletme yöntemi bulunamadı (bir kullanma yönergeniz veya derleme başvurunuz eksik olabilir mi?) [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+
+Oluşturma BAŞARISIZ OLDU.
+
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(42,39): error CS7036: 'TransactionService.TransactionService(IAccountRepository, ITransactionRepository, IAuditRepository)'nin gerekli 'auditRepo' parametresine karşılık gelen herhangi bir argüman yok [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(538,61): error CS1061: 'AccountRepository' bir 'GetAccountsByUserIdAsync' tanımı içermiyor ve 'AccountRepository' türünde bir ilk bağımsız değişken kabul eden hiçbir erişilebilir 'GetAccountsByUserIdAsync' genişletme yöntemi bulunamadı (bir kullanma yönergeniz veya derleme başvurunuz eksik olabilir mi?) [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(539,25): error CS0019: '==' işleci 'yöntem grubu' ve 'int' türündeki işlenenlere uygulanamaz [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(548,47): error CS1061: 'TransactionService' bir 'CreateTransactionAsync' tanımı içermiyor ve 'TransactionService' türünde bir ilk bağımsız değişken kabul eden hiçbir erişilebilir 'CreateTransactionAsync' genişletme yöntemi bulunamadı (bir kullanma yönergeniz veya derleme başvurunuz eksik olabilir mi?) [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(597,25): error CS0117: 'Account' bir 'UserId' tanımı içermiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(598,25): error CS0117: 'Account' bir 'AccountType' tanımı içermiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(599,25): error CS0117: 'Account' bir 'Currency' tanımı içermiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(601,25): error CS0117: 'Account' bir 'CreatedDate' tanımı içermiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\AIAssistantForm.cs(604,46): error CS1061: 'AccountRepository' bir 'CreateAccountAsync' tanımı içermiyor ve 'AccountRepository' türünde bir ilk bağımsız değişken kabul eden hiçbir erişilebilir 'CreateAccountAsync' genişletme yöntemi bulunamadı (bir kullanma yönergeniz veya derleme başvurunuz eksik olabilir mi?) [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+    0 Uyarı
+    9 Hata
+
+Geçen Süre 00:00:03.41

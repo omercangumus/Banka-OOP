@@ -16,7 +16,7 @@ namespace BankApp.UI.Forms
 {
     public partial class AIAssistantForm : XtraForm
     {
-        private readonly GeminiAIService _aiService;
+        private readonly OpenRouterAIService _aiService;
         private readonly TransactionService _transactionService;
         private readonly AccountRepository _accountRepository;
         
@@ -32,9 +32,9 @@ namespace BankApp.UI.Forms
 
         public AIAssistantForm()
         {
-            // API Key - Gemini
-            string apiKey = "AIzaSyDD6cGJ8_qJN6tQaQY6jVaBFAn8_aH7YSE"; // Gemini API Key
-            _aiService = new GeminiAIService(apiKey);
+            // API Key - Groq (via OpenRouter/Groq direct)
+            string apiKey = "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"; 
+            _aiService = new OpenRouterAIService(apiKey);
             
             // Initialize services for action execution
             var context = new DapperContext();

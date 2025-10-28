@@ -69,6 +69,8 @@ namespace BankApp.UI.Forms
         // Charts
         private ChartControl chartCurrency;
         private ChartControl chartTransactions;
+        private ChartControl chartBalanceHistory;
+        private ChartControl chartAssetDistribution;
         
         // Customer Grid
         private GridControl gridCustomers;
@@ -84,8 +86,8 @@ namespace BankApp.UI.Forms
         {
             this.components = new Container();
             
-            // Apply Dark Theme
-            UserLookAndFeel.Default.SetSkinStyle("Office 2019 Black");
+            // Apply Dark Theme - Moved to Program.cs
+            // UserLookAndFeel.Default.SetSkinStyle("Office 2019 Black");
             
             // Initialize all components
             this.ribbonControl1 = new RibbonControl();
@@ -139,6 +141,8 @@ namespace BankApp.UI.Forms
             // Charts
             this.chartCurrency = new ChartControl();
             this.chartTransactions = new ChartControl();
+            this.chartBalanceHistory = new ChartControl();
+            this.chartAssetDistribution = new ChartControl();
             
             // Grid
             this.gridCustomers = new GridControl();
@@ -155,6 +159,8 @@ namespace BankApp.UI.Forms
             ((ISupportInitialize)(this.pnlExchangeRate)).BeginInit();
             ((ISupportInitialize)(this.chartCurrency)).BeginInit();
             ((ISupportInitialize)(this.chartTransactions)).BeginInit();
+            ((ISupportInitialize)(this.chartBalanceHistory)).BeginInit();
+            ((ISupportInitialize)(this.chartAssetDistribution)).BeginInit();
             ((ISupportInitialize)(this.gridCustomers)).BeginInit();
             ((ISupportInitialize)(this.gridViewCustomers)).BeginInit();
             this.pnlDashboard.SuspendLayout();
@@ -164,15 +170,8 @@ namespace BankApp.UI.Forms
             // ============================================
             // RIBBON CONTROL - MODERN OFFİCE 2019 STİL
             // ============================================
-            this.ribbonControl1.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonControlStyle.Office2019;
-            this.ribbonControl1.ShowApplicationButton = DevExpress.Utils.DefaultBoolean.False;
-            this.ribbonControl1.ShowToolbarCustomizeItem = false;
-            this.ribbonControl1.ToolbarLocation = DevExpress.XtraBars.Ribbon.RibbonQuickAccessToolbarLocation.Hidden;
-            this.ribbonControl1.ShowPageHeadersMode = DevExpress.XtraBars.Ribbon.ShowPageHeadersMode.Show;
-            this.ribbonControl1.ColorScheme = DevExpress.XtraBars.Ribbon.RibbonControlColorScheme.DarkBlue;
-            this.ribbonControl1.ExpandCollapseItem.Id = 0;
+            // this.ribbonControl1.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonControlStyle.Office2019;
             this.ribbonControl1.Items.AddRange(new DevExpress.XtraBars.BarItem[] {
-                this.ribbonControl1.ExpandCollapseItem,
                 this.btnAiAssist, this.btnRefresh, this.btnMoneyTransfer,
                 this.btnAddCustomer, this.btnEditCustomer, this.btnDeleteCustomer,
                 this.btnCustomerAccounts, this.btnExportExcel, this.btnExportPdf,
@@ -180,7 +179,7 @@ namespace BankApp.UI.Forms
                 this.btnTimeDeposit, this.btnLoanApplication, this.btnLoanApproval, this.btnLogout
             });
             this.ribbonControl1.Location = new Point(0, 0);
-            this.ribbonControl1.MaxItemId = 18;
+            // this.ribbonControl1.MaxItemId = 18;
             this.ribbonControl1.Name = "ribbonControl1";
             this.ribbonControl1.Pages.AddRange(new RibbonPage[] {
                 this.pageDashboard, this.pageCustomers, this.pageInvestments
@@ -265,7 +264,7 @@ namespace BankApp.UI.Forms
             this.btnStockMarket.ImageOptions.Image = CreateIconImage(Color.FromArgb(33, 150, 243), "↗");
             this.btnStockMarket.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnStockMarket_ItemClick);
 
-            this.btnBES.Caption = "🏛️ Vadeli Hesap";
+            this.btnBES.Caption = "BES Başvurusu";
             this.btnBES.Id = 12;
             this.btnBES.Name = "btnBES";
             this.btnBES.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
@@ -497,6 +496,17 @@ namespace BankApp.UI.Forms
             this.layoutDashboard.Controls.Add(this.pnlExchangeRate);
             this.layoutDashboard.Controls.Add(this.chartCurrency);
             this.layoutDashboard.Controls.Add(this.chartTransactions);
+            this.layoutDashboard.Controls.Add(this.chartBalanceHistory);
+            this.layoutDashboard.Controls.Add(this.chartAssetDistribution);
+            
+            // Chart Settings
+            this.chartBalanceHistory.BackColor = Color.FromArgb(30, 30, 30);
+            this.chartBalanceHistory.AppearanceNameSerializable = "Dark Chameleon";
+            this.chartBalanceHistory.Name = "chartBalanceHistory";
+            
+            this.chartAssetDistribution.BackColor = Color.FromArgb(30, 30, 30);
+            this.chartAssetDistribution.AppearanceNameSerializable = "Dark Chameleon";
+            this.chartAssetDistribution.Name = "chartAssetDistribution";
             
             // Layout Items
             var layoutCard1 = new LayoutControlItem(this.layoutDashboard, this.pnlTotalAssets);
@@ -522,12 +532,50 @@ namespace BankApp.UI.Forms
             var layoutChartPie = new LayoutControlItem(this.layoutDashboard, this.chartCurrency);
             layoutChartPie.TextVisible = false;
             layoutChartPie.SizeConstraintsType = SizeConstraintsType.Custom;
-            layoutChartPie.MinSize = new Size(400, 300);
+            layoutChartPie.MinSize = new Size(300, 250);
             
             var layoutChartBar = new LayoutControlItem(this.layoutDashboard, this.chartTransactions);
             layoutChartBar.TextVisible = false;
             layoutChartBar.SizeConstraintsType = SizeConstraintsType.Custom;
-            layoutChartBar.MinSize = new Size(400, 300);
+            layoutChartBar.MinSize = new Size(300, 250);
+
+            // Yeni Grafikler için Layout Items
+            var layoutChartLine = new LayoutControlItem(this.layoutDashboard, this.chartBalanceHistory);
+            layoutChartLine.TextVisible = false;
+            layoutChartLine.SizeConstraintsType = SizeConstraintsType.Custom;
+            layoutChartLine.MinSize = new Size(300, 250);
+
+            var layoutChartTree = new LayoutControlItem(this.layoutDashboard, this.chartAssetDistribution);
+            layoutChartTree.TextVisible = false;
+            layoutChartTree.SizeConstraintsType = SizeConstraintsType.Custom;
+            layoutChartTree.MinSize = new Size(300, 250);
+
+            // Layout Grouping (2x2 Grid for Charts)
+            // Row 1 Charts: Currency + Transactions
+            var groupChartsRow1 = this.layoutGroupRoot.AddGroup();
+            groupChartsRow1.GroupBordersVisible = false;
+            groupChartsRow1.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+            groupChartsRow1.OptionsTableLayoutGroup.ColumnCount = 2;
+            groupChartsRow1.OptionsTableLayoutGroup.RowCount = 1;
+            groupChartsRow1.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+            groupChartsRow1.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+            groupChartsRow1.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
+            
+            groupChartsRow1.AddItem(layoutChartPie, 0, 0);
+            groupChartsRow1.AddItem(layoutChartBar, 0, 1);
+
+            // Row 2 Charts: Balance History + Asset Distribution
+            var groupChartsRow2 = this.layoutGroupRoot.AddGroup();
+            groupChartsRow2.GroupBordersVisible = false;
+            groupChartsRow2.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+            groupChartsRow2.OptionsTableLayoutGroup.ColumnCount = 2;
+            groupChartsRow2.OptionsTableLayoutGroup.RowCount = 1;
+            groupChartsRow2.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+            groupChartsRow2.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+            groupChartsRow2.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
+
+            groupChartsRow2.AddItem(layoutChartLine, 0, 0);
+            groupChartsRow2.AddItem(layoutChartTree, 0, 1);
             
             this.layoutGroupRoot.Name = "layoutGroupRoot";
             this.layoutGroupRoot.EnableIndentsWithoutBorders = DevExpress.Utils.DefaultBoolean.True;
@@ -574,7 +622,7 @@ namespace BankApp.UI.Forms
             this.Controls.Add(this.pnlDashboard);
             this.Controls.Add(this.ribbonControl1);
             this.Name = "MainForm";
-            this.Ribbon = this.ribbonControl1;
+            // this.Ribbon = this.ribbonControl1;
             this.Text = "NovaBank - Finansal Yönetim Sistemi";
             this.WindowState = FormWindowState.Maximized;
             this.StartPosition = FormStartPosition.CenterScreen;

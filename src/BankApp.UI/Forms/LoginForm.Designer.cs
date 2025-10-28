@@ -53,15 +53,11 @@ namespace BankApp.UI.Forms
             // pnlArkaPlan - Ana kapsayıcı gradient efekti ile
             this.pnlArkaPlan.BackColor = Color.FromArgb(15, 23, 42);
             this.pnlArkaPlan.Dock = DockStyle.Fill;
-            this.pnlArkaPlan.Paint += (s, e) => {
-                using (System.Drawing.Drawing2D.LinearGradientBrush gradientBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
-                    new Point(0, 0), new Point(0, this.pnlArkaPlan.Height),
-                    Color.FromArgb(15, 23, 42),
-                    Color.FromArgb(30, 41, 59)))
-                {
-                    e.Graphics.FillRectangle(gradientBrush, this.pnlArkaPlan.ClientRectangle);
-                }
-            };
+            // pnlArkaPlan - Ana kapsayıcı 
+            this.pnlArkaPlan.BackColor = Color.FromArgb(15, 23, 42);
+            this.pnlArkaPlan.Dock = DockStyle.Fill;
+            // Gradient paint removed for stability
+            // this.pnlArkaPlan.Paint += ...
             this.pnlArkaPlan.Controls.Add(this.lblDurum);
             this.pnlArkaPlan.Controls.Add(this.llblSifremiUnuttum);
             this.pnlArkaPlan.Controls.Add(this.btnKayitOl);
