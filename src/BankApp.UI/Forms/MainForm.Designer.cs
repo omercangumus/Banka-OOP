@@ -555,27 +555,33 @@ namespace BankApp.UI.Forms
             var groupChartsRow1 = this.layoutGroupRoot.AddGroup();
             groupChartsRow1.GroupBordersVisible = false;
             groupChartsRow1.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
-            groupChartsRow1.OptionsTableLayoutGroup.ColumnCount = 2;
-            groupChartsRow1.OptionsTableLayoutGroup.RowCount = 1;
             groupChartsRow1.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
             groupChartsRow1.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
             groupChartsRow1.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
             
-            groupChartsRow1.AddItem(layoutChartPie, 0, 0);
-            groupChartsRow1.AddItem(layoutChartBar, 0, 1);
+            groupChartsRow1.AddItem(layoutChartPie);
+            layoutChartPie.OptionsTableLayoutItem.RowIndex = 0;
+            layoutChartPie.OptionsTableLayoutItem.ColumnIndex = 0;
+            
+            groupChartsRow1.AddItem(layoutChartBar);
+            layoutChartBar.OptionsTableLayoutItem.RowIndex = 0;
+            layoutChartBar.OptionsTableLayoutItem.ColumnIndex = 1;
 
             // Row 2 Charts: Balance History + Asset Distribution
             var groupChartsRow2 = this.layoutGroupRoot.AddGroup();
             groupChartsRow2.GroupBordersVisible = false;
             groupChartsRow2.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
-            groupChartsRow2.OptionsTableLayoutGroup.ColumnCount = 2;
-            groupChartsRow2.OptionsTableLayoutGroup.RowCount = 1;
             groupChartsRow2.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
             groupChartsRow2.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
             groupChartsRow2.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
 
-            groupChartsRow2.AddItem(layoutChartLine, 0, 0);
-            groupChartsRow2.AddItem(layoutChartTree, 0, 1);
+            groupChartsRow2.AddItem(layoutChartLine);
+            layoutChartLine.OptionsTableLayoutItem.RowIndex = 0;
+            layoutChartLine.OptionsTableLayoutItem.ColumnIndex = 0;
+
+            groupChartsRow2.AddItem(layoutChartTree);
+            layoutChartTree.OptionsTableLayoutItem.RowIndex = 0;
+            layoutChartTree.OptionsTableLayoutItem.ColumnIndex = 1;
             
             this.layoutGroupRoot.Name = "layoutGroupRoot";
             this.layoutGroupRoot.EnableIndentsWithoutBorders = DevExpress.Utils.DefaultBoolean.True;

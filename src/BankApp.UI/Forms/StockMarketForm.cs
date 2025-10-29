@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using DevExpress.XtraEditors;
 using DevExpress.XtraCharts;
@@ -12,18 +13,16 @@ namespace BankApp.UI.Forms
         public StockMarketForm()
         {
             InitializeComponent();
-            SetupChartVisuals(); // Grafik ayarlarını yap
-            InitializeContextMenu(); // Sağ tık menüsünü yükle
-            LoadMockStocks();    // Sol listeyi doldur
+            SetupChartVisuals(); 
+            InitializeContextMenu();
+            LoadMockStocks();   
         }
 
-        // 1. Grafik Genel Görünüm Ayarları (TradingView Stili)
         private void SetupChartVisuals()
         {
             chartStock.BackColor = Color.FromArgb(30, 30, 30);
             chartStock.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
             
-            // Crosshair (Detay Göstergesi)
             chartStock.CrosshairEnabled = DevExpress.Utils.DefaultBoolean.True;
             chartStock.CrosshairOptions.ShowArgumentLine = true;
             chartStock.CrosshairOptions.ShowValueLine = true;
@@ -31,36 +30,30 @@ namespace BankApp.UI.Forms
             chartStock.CrosshairOptions.ArgumentLineColor = Color.Gold;
             chartStock.CrosshairOptions.ValueLineColor = Color.Gold;
 
-            // Diagram Ayarları (Zoom/Scroll)
             if (chartStock.Diagram is XYDiagram diagram)
             {
                 diagram.DefaultPane.BackColor = Color.FromArgb(35, 35, 35);
                 diagram.DefaultPane.BorderVisible = false;
                 
-                // Grid çizgilerini şeffaflaştır
                 diagram.AxisX.GridLines.Visible = true;
                 diagram.AxisX.GridLines.Color = Color.FromArgb(50, 255, 255, 255);
                 diagram.AxisY.GridLines.Visible = true;
                 diagram.AxisY.GridLines.Color = Color.FromArgb(50, 255, 255, 255);
 
-                // Yazı renkleri
                 diagram.AxisX.Label.TextColor = Color.White;
                 diagram.AxisY.Label.TextColor = Color.White;
 
-                // ZOOM VE SCROLL AKTİF!
                 diagram.EnableAxisXScrolling = true;
                 diagram.EnableAxisXZooming = true;
                 diagram.EnableAxisYScrolling = true;
                 diagram.EnableAxisYZooming = true;
                 
-                // Mouse tekerleği ile zoom
                 diagram.ZoomingOptions.UseMouseWheel = true;
             }
         }
 
         private void LoadMockStocks()
         {
-            // Basit liste
             var stocks = new List<StockInfo>
             {
                 new StockInfo { Symbol = "THYAO", Name = "Türk Hava Yolları", Price = 285.50m },
@@ -71,7 +64,6 @@ namespace BankApp.UI.Forms
                 new StockInfo { Symbol = "BTCUSD", Name = "Bitcoin", Price = 95000m }
             };
             
-            // ListBox'a ekle (GridControl yerine ListBox kullanıyoruz - Designer uyumu için)
             lstStocks.Items.Clear();
             foreach(var stock in stocks)
             {
@@ -79,7 +71,6 @@ namespace BankApp.UI.Forms
             }
         }
 
-        // Listeden hisse seçilince çalışır
         private void lstStocks_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (lstStocks.SelectedItem is StockInfo stock)
@@ -89,69 +80,57 @@ namespace BankApp.UI.Forms
             }
         }
 
-        // 2. MUM GRAFİĞİ VE İNDİKATÖRLERİ OLUŞTURAN MOTOR
         private void GenerateCandleChart(string symbol, decimal startPrice)
         {
             chartStock.Series.Clear();
 
-            // Seri Oluştur (Mum Tipi)
             Series series = new Series(symbol, ViewType.CandleStick);
             series.ArgumentScaleType = ScaleType.DateTime;
 
-            // Rastgele Mum Verisi Üret (Son 100 Gün)
             Random rnd = new Random(symbol.GetHashCode());
-            double price = (double)startPrice * 0.8; // Biraz geriden başlasın
+            double price = (double)startPrice * 0.8; 
             DateTime date = DateTime.Now.AddDays(-100);
 
             for (int i = 0; i < 100; i++)
             {
-                double changePercent = (rnd.NextDouble() * 0.04) - 0.02; // %2 değişim
+                double changePercent = (rnd.NextDouble() * 0.04) - 0.02; 
                 double open = price;
                 double close = price * (1 + changePercent);
                 
                 double high = Math.Max(open, close) * (1 + (rnd.NextDouble() * 0.01));
                 double low = Math.Min(open, close) * (1 - (rnd.NextDouble() * 0.01));
 
-                // DevExpress: Date, Low, High, Open, Close
                 series.Points.Add(new SeriesPoint(date.AddDays(i), low, high, open, close));
                 
                 price = close; 
             }
             
-            // Mevcut fiyatı güncelle
             if(lblPrice != null) lblPrice.Text = $"{price:N2} TL";
 
-            // GÖRSEL AYARLAR (Yeşil/Kırmızı Mumlar)
             if(series.View is CandleStickSeriesView view)
             {
-                view.Color = Color.FromArgb(0, 255, 0); // Yükseliş (Yeşil)
-                view.ReductionOptions.Color = Color.FromArgb(255, 0, 0); // Düşüş (Kırmızı)
+                view.Color = Color.FromArgb(0, 255, 0); 
+                view.ReductionOptions.Color = Color.FromArgb(255, 0, 0); 
                 view.ReductionOptions.Visible = true;
                 view.LineThickness = 1;
                 view.LevelLineLength = 0.3;
 
-                // 3. İNDİKATÖRLERİ EKLE (PRO ÖZELLİK)
-                
-                // A) Bollinger Bantları
                 BollingerBands bb = new BollingerBands();
                 bb.ValueLevel = ValueLevel.Close;
-                bb.Color = Color.FromArgb(50, 255, 255, 255); // Hafif şeffaf beyaz
+                bb.Color = Color.FromArgb(50, 255, 255, 255); 
                 bb.LineStyle.Thickness = 1;
                 view.Indicators.Add(bb);
 
-                // B) SMA (Trend Çizgisi)
                 SimpleMovingAverage sma = new SimpleMovingAverage();
-                sma.PointsCount = 20; // 20 Günlük ortalama
-                sma.Color = Color.Orange; // Turuncu çizgi
+                sma.PointsCount = 20; 
+                sma.Color = Color.Orange; 
                 sma.LineStyle.Thickness = 2;
                 sma.LegendText = "SMA (20)";
                 view.Indicators.Add(sma);
             }
 
-            // Grafiğe ekle
             chartStock.Series.Add(series);
             
-            // Ekrana sığdır (Zoom reset)
             if (chartStock.Diagram is XYDiagram diag)
             {
                 diag.AxisX.WholeRange.SideMarginsValue = 1; 
@@ -159,10 +138,12 @@ namespace BankApp.UI.Forms
             }
         }
 
+        private ContextMenuStrip _contextMenu;
+
         private void InitializeContextMenu()
         {
             _contextMenu = new ContextMenuStrip();
-            _contextMenu.Renderer = new ToolStripProfessionalRenderer(new CustomColorTable()); // Dark Theme Menu
+            _contextMenu.Renderer = new ToolStripProfessionalRenderer(new CustomColorTable());
 
             var itemNote = _contextMenu.Items.Add("📌 Not Ekle");
             itemNote.ForeColor = Color.White;
@@ -188,14 +169,12 @@ namespace BankApp.UI.Forms
             itemClear.ForeColor = Color.White;
             itemClear.Click += (s, e) => ClearAnnotations();
 
-            // Chart MouseUp Event
             chartStock.MouseUp += (s, e) => {
                 if (e.Button == MouseButtons.Right)
                     _contextMenu.Show(chartStock, e.Location);
             };
         }
 
-        // Custom Color Table for Dark Menu
         public class CustomColorTable : ProfessionalColorTable
         {
             public override Color MenuItemSelected => Color.FromArgb(60, 60, 60);
@@ -239,14 +218,13 @@ namespace BankApp.UI.Forms
                 string valStr = ShowInputBox($"{(isSupport ? "Destek" : "Direnç")} Seviyesi:", "Seviye Belirle", defaultPrice.ToString());
                 if(decimal.TryParse(valStr, out decimal val))
                 {
-                    // Optional: Label
                     string label = ShowInputBox("Etiket (Opsiyonel):", "Başlık", isSupport ? "Güçlü Alım Bölgesi" : "Satış Baskısı");
 
                     ConstantLine line = new ConstantLine(string.IsNullOrWhiteSpace(label) ? $"{(isSupport ? "Destek" : "Direnç")} : {val:N2}" : $"{label} : {val:N2}");
                     line.AxisValue = val;
-                    line.Color = isSupport ? Color.FromArgb(0, 255, 127) : Color.FromArgb(255, 69, 0); // SpringGreen vs OrangeRed
+                    line.Color = isSupport ? Color.FromArgb(0, 255, 127) : Color.FromArgb(255, 69, 0); 
                     line.LineStyle.Thickness = 2;
-                    line.LineStyle.DashStyle = DashStyle.Dash;
+                    line.LineStyle.DashStyle = DevExpress.XtraCharts.DashStyle.Dash;
                     line.ShowInLegend = false;
                     line.Title.Alignment = ConstantLineTitleAlignment.Far;
                     line.Title.TextColor = line.Color;
@@ -261,10 +239,6 @@ namespace BankApp.UI.Forms
         {
             if (chartStock.Diagram is XYDiagram diagram && chartStock.Series.Count > 0)
             {
-                // Basit bir simülasyon: Ekrandaki mumlardan en yüksek ve en düşüğü bulalım.
-                // Gerçek veride Series.Points üzerinden bulunur.
-                // Burada simüle datayı bildiğimiz için tahmini bir Range üzerinden çizelim.
-                
                 decimal currentPrice = 0;
                 if (lstStocks.SelectedItem is StockInfo stock) currentPrice = stock.Price;
                 else return;
@@ -273,7 +247,6 @@ namespace BankApp.UI.Forms
                 decimal low = currentPrice * 0.9m;
                 decimal diff = high - low;
 
-                // Fib Levels: 0, 0.236, 0.382, 0.5, 0.618, 1
                 decimal[] fibs = { 0m, 0.236m, 0.382m, 0.5m, 0.618m, 1.0m };
 
                 foreach (var f in fibs)
@@ -281,11 +254,10 @@ namespace BankApp.UI.Forms
                     decimal levelPrice = low + (diff * f);
                     ConstantLine line = new ConstantLine($"Fib {f:P1}");
                     line.AxisValue = levelPrice;
-                    line.Color = Color.FromArgb(100, 255, 215, 0); // Transparent Gold
+                    line.Color = Color.FromArgb(100, 255, 215, 0); 
                     line.LineStyle.Thickness = 1;
-                    line.LineStyle.DashStyle = DashStyle.Solid;
+                    line.LineStyle.DashStyle = DevExpress.XtraCharts.DashStyle.Solid;
                     line.ShowInLegend = false;
-                    line.Title.ShowInLegend = false;
                     line.Title.Alignment = ConstantLineTitleAlignment.Near;
                     line.Title.TextColor = Color.Gold;
                     
@@ -305,7 +277,6 @@ namespace BankApp.UI.Forms
             }
         }
 
-        // Helper InputBox (Styled for Dark Theme)
         private string ShowInputBox(string prompt, string title, string defaultValue = "")
         {
             Form inputForm = new Form();
@@ -332,9 +303,8 @@ namespace BankApp.UI.Forms
             return inputForm.ShowDialog() == DialogResult.OK ? txt.Text : "";
         }
 
-        // Alım Satım Butonları
-        private void btnBuy_Click(object sender, EventArgs e) => XtraMessageBox.Show("Alım Emri İletildi! (Piyasa Emri)", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        private void btnSell_Click(object sender, EventArgs e) => XtraMessageBox.Show("Satış Emri İletildi! (Stop-Loss Devrede)", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        private void btnBuy_Click(object sender, EventArgs e) => XtraMessageBox.Show("Alım Emri İletildi!", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        private void btnSell_Click(object sender, EventArgs e) => XtraMessageBox.Show("Satış Emri İletildi!", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     public class StockInfo 
@@ -343,9 +313,6 @@ namespace BankApp.UI.Forms
         public string Name { get; set; } 
         public decimal Price { get; set; } 
         
-        public override string ToString()
-        {
-            return $"{Symbol} - {Name}";
-        }
+        public override string ToString() => $"{Symbol} - {Name}";
     }
 }
