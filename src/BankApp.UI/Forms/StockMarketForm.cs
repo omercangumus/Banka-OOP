@@ -3,19 +3,25 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using System.Threading.Tasks;
+using System.Linq;
 using DevExpress.XtraEditors;
 using DevExpress.XtraCharts;
+using BankApp.Infrastructure.Services;
 
 namespace BankApp.UI.Forms
 {
     public partial class StockMarketForm : XtraForm
     {
+        private readonly FinnhubService _finnhubService;
+        
         public StockMarketForm()
         {
             InitializeComponent();
+            _finnhubService = new FinnhubService();
             SetupChartVisuals(); 
             InitializeContextMenu();
-            LoadMockStocks();   
+            LoadRealStocks();   
         }
 
         private void SetupChartVisuals()
@@ -52,23 +58,64 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private void LoadMockStocks()
+        private async void LoadRealStocks()
         {
-            var stocks = new List<StockInfo>
-            {
-                new StockInfo { Symbol = "THYAO", Name = "Türk Hava Yolları", Price = 285.50m },
-                new StockInfo { Symbol = "GARAN", Name = "Garanti BBVA", Price = 105.20m },
-                new StockInfo { Symbol = "ASELS", Name = "Aselsan", Price = 62.10m },
-                new StockInfo { Symbol = "SASA", Name = "Sasa Polyester", Price = 42.80m },
-                new StockInfo { Symbol = "EREGL", Name = "Ereğli Demir Çelik", Price = 48.90m },
-                new StockInfo { Symbol = "BTCUSD", Name = "Bitcoin", Price = 95000m }
-            };
+            var popularSymbols = _finnhubService.GetPopularSymbols();
             
+            var stocks = new List<StockInfo>();
+            
+            // Show loading indicator
             lstStocks.Items.Clear();
-            foreach(var stock in stocks)
+            lstStocks.Items.Add(new StockInfo { Symbol = "...", Name = "Loading real-time data...", Price = 0 });
+            
+            try
             {
-                lstStocks.Items.Add(stock);
+                // Get first 6 symbols for performance
+                var symbolsToLoad = popularSymbols.Take(6).ToArray();
+                var quotes = await _finnhubService.GetMultipleQuotesAsync(symbolsToLoad);
+                
+                foreach (var item in quotes)
+                {
+                    stocks.Add(new StockInfo 
+                    { 
+                        Symbol = item.symbol, 
+                        Name = GetStockName(item.symbol), 
+                        Price = (decimal)item.quote.C,
+                        Change = (decimal)item.quote.D,
+                        ChangePercent = (decimal)item.quote.Dp
+                    });
+                }
+                
+                lstStocks.Items.Clear();
+                foreach(var stock in stocks)
+                {
+                    lstStocks.Items.Add(stock);
+                }
             }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"LoadRealStocks Error: {ex.Message}");
+                lstStocks.Items.Clear();
+                lstStocks.Items.Add(new StockInfo { Symbol = "ERROR", Name = "Failed to load data. Check connection.", Price = 0 });
+            }
+        }
+        
+        private string GetStockName(string symbol)
+        {
+            var names = new Dictionary<string, string>
+            {
+                { "AAPL", "Apple Inc." },
+                { "MSFT", "Microsoft" },
+                { "GOOGL", "Alphabet (Google)" },
+                { "AMZN", "Amazon" },
+                { "TSLA", "Tesla" },
+                { "META", "Meta (Facebook)" },
+                { "NVDA", "NVIDIA" },
+                { "AMD", "AMD" },
+                { "NFLX", "Netflix" },
+                { "DIS", "Disney" }
+            };
+            return names.ContainsKey(symbol) ? names[symbol] : symbol;
         }
 
         private void lstStocks_SelectedIndexChanged(object sender, EventArgs e)
@@ -80,32 +127,46 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private void GenerateCandleChart(string symbol, decimal startPrice)
+        private async void GenerateCandleChart(string symbol, decimal startPrice)
         {
             chartStock.Series.Clear();
 
             Series series = new Series(symbol, ViewType.CandleStick);
             series.ArgumentScaleType = ScaleType.DateTime;
 
-            Random rnd = new Random(symbol.GetHashCode());
-            double price = (double)startPrice * 0.8; 
-            DateTime date = DateTime.Now.AddDays(-100);
-
-            for (int i = 0; i < 100; i++)
+            try
             {
-                double changePercent = (rnd.NextDouble() * 0.04) - 0.02; 
-                double open = price;
-                double close = price * (1 + changePercent);
+                // Get real candle data from Finnhub
+                var candles = await _finnhubService.GetCandlesAsync(symbol, "D", 60);
                 
-                double high = Math.Max(open, close) * (1 + (rnd.NextDouble() * 0.01));
-                double low = Math.Min(open, close) * (1 - (rnd.NextDouble() * 0.01));
-
-                series.Points.Add(new SeriesPoint(date.AddDays(i), low, high, open, close));
-                
-                price = close; 
+                if (candles != null && candles.C != null && candles.C.Count > 0)
+                {
+                    for (int i = 0; i < candles.C.Count; i++)
+                    {
+                        var date = DateTimeOffset.FromUnixTimeSeconds(candles.T[i]).DateTime;
+                        var open = candles.O[i];
+                        var high = candles.H[i];
+                        var low = candles.L[i];
+                        var close = candles.C[i];
+                        
+                        series.Points.Add(new SeriesPoint(date, low, high, open, close));
+                    }
+                    
+                    // Update price label with latest price
+                    var latestPrice = candles.C[candles.C.Count - 1];
+                    if(lblPrice != null) lblPrice.Text = $"${latestPrice:N2}";
+                }
+                else
+                {
+                    // Fallback to simulated data if API fails
+                    GenerateFallbackChart(series, symbol, startPrice);
+                }
             }
-            
-            if(lblPrice != null) lblPrice.Text = $"{price:N2} TL";
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GenerateCandleChart Error: {ex.Message}");
+                GenerateFallbackChart(series, symbol, startPrice);
+            }
 
             if(series.View is CandleStickSeriesView view)
             {
@@ -162,6 +223,16 @@ namespace BankApp.UI.Forms
             var itemFib = _contextMenu.Items.Add("📐 Otomatik Fibonacci (Auto)");
             itemFib.ForeColor = Color.Gold;
             itemFib.Click += (s, e) => AddFibonacciLevels();
+
+            _contextMenu.Items.Add(new ToolStripSeparator());
+            
+            var itemBuyTrigger = _contextMenu.Items.Add("🟢 AL Trigger Point (Buy)");
+            itemBuyTrigger.ForeColor = Color.LightGreen;
+            itemBuyTrigger.Click += (s, e) => AddTriggerPoint(true);
+            
+            var itemSellTrigger = _contextMenu.Items.Add("🔴 SAT Trigger Point (Sell)");
+            itemSellTrigger.ForeColor = Color.LightCoral;
+            itemSellTrigger.Click += (s, e) => AddTriggerPoint(false);
 
             _contextMenu.Items.Add(new ToolStripSeparator());
 
@@ -302,17 +373,98 @@ namespace BankApp.UI.Forms
 
             return inputForm.ShowDialog() == DialogResult.OK ? txt.Text : "";
         }
+        
+        private void AddTriggerPoint(bool isBuy)
+        {
+            if (chartStock.Diagram is XYDiagram diagram)
+            {
+                decimal defaultPrice = 100;
+                if (lstStocks.SelectedItem is StockInfo stock) defaultPrice = stock.Price;
 
-        private void btnBuy_Click(object sender, EventArgs e) => XtraMessageBox.Show("Alım Emri İletildi!", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        private void btnSell_Click(object sender, EventArgs e) => XtraMessageBox.Show("Satış Emri İletildi!", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                string valStr = ShowInputBox($"{(isBuy ? "AL" : "SAT")} Trigger Fiyatı:", "Trigger Point", defaultPrice.ToString());
+                if(decimal.TryParse(valStr, out decimal val))
+                {
+                    string label = ShowInputBox("Açıklama (Opsiyonel):", "Trigger Notu", 
+                        isBuy ? "AL Sinyali - Güçlü Alım Fırsatı" : "SAT Sinyali - Kâr Al");
+
+                    // Add constant line for the trigger
+                    ConstantLine line = new ConstantLine(string.IsNullOrWhiteSpace(label) ? 
+                        $"{(isBuy ? "🟢 AL" : "🔴 SAT")} : {val:N2}" : 
+                        $"{(isBuy ? "🟢" : "🔴")} {label} : {val:N2}");
+                    line.AxisValue = val;
+                    line.Color = isBuy ? Color.FromArgb(0, 255, 127) : Color.FromArgb(255, 69, 0);
+                    line.LineStyle.Thickness = 3;
+                    line.LineStyle.DashStyle = DevExpress.XtraCharts.DashStyle.DashDot;
+                    line.ShowInLegend = false;
+                    line.Title.Alignment = ConstantLineTitleAlignment.Far;
+                    line.Title.TextColor = line.Color;
+                    line.Title.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+                    line.Title.ShowBelowLine = !isBuy; // Sell triggers show above, buy below
+
+                    diagram.AxisY.ConstantLines.Add(line);
+                    
+                    // Add annotation marker
+                    TextAnnotation annotation = new TextAnnotation("Trigger_" + Guid.NewGuid().ToString(), 
+                        isBuy ? "🎯 AL" : "🎯 SAT");
+                    annotation.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+                    annotation.TextColor = Color.White;
+                    annotation.BackColor = isBuy ? Color.FromArgb(200, 0, 200, 100) : Color.FromArgb(200, 200, 0, 0);
+                    annotation.Border.Color = line.Color;
+                    annotation.Border.Thickness = 2;
+                    annotation.ShapePosition = new RelativePosition(0.85, isBuy ? 0.7 : 0.3);
+                    annotation.RuntimeMoving = true;
+                    
+                    chartStock.AnnotationRepository.Add(annotation);
+                    
+                    XtraMessageBox.Show($"{(isBuy ? "AL" : "SAT")} Trigger Point {val:N2} TL seviyesinde eklendi!", 
+                        "Trigger Eklendi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void GenerateFallbackChart(Series series, string symbol, decimal startPrice)
+        {
+            Random rnd = new Random(symbol.GetHashCode());
+            double price = (double)startPrice * 0.8; 
+            DateTime date = DateTime.Now.AddDays(-60);
+
+            for (int i = 0; i < 60; i++)
+            {
+                double changePercent = (rnd.NextDouble() * 0.04) - 0.02; 
+                double open = price;
+                double close = price * (1 + changePercent);
+                
+                double high = Math.Max(open, close) * (1 + (rnd.NextDouble() * 0.01));
+                double low = Math.Min(open, close) * (1 - (rnd.NextDouble() * 0.01));
+
+                series.Points.Add(new SeriesPoint(date.AddDays(i), low, high, open, close));
+                
+                price = close; 
+            }
+            
+            if(lblPrice != null) lblPrice.Text = $"${price:N2}";
+        }
+
+        private void btnBuy_Click(object sender, EventArgs e) => XtraMessageBox.Show("Buy Order Placed!", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        private void btnSell_Click(object sender, EventArgs e) => XtraMessageBox.Show("Sell Order Placed!", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     public class StockInfo 
     { 
         public string Symbol { get; set; } 
         public string Name { get; set; } 
-        public decimal Price { get; set; } 
+        public decimal Price { get; set; }
+        public decimal Change { get; set; }
+        public decimal ChangePercent { get; set; }
         
-        public override string ToString() => $"{Symbol} - {Name}";
+        public override string ToString() 
+        {
+            if (Change != 0)
+            {
+                string arrow = Change >= 0 ? "▲" : "▼";
+                return $"{Symbol} - {Name} ${Price:N2} ({arrow}{Math.Abs(ChangePercent):N2}%)";
+            }
+            return $"{Symbol} - {Name}";
+        }
     }
 }
