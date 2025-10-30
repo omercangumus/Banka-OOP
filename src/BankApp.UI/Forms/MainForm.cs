@@ -31,8 +31,9 @@ namespace BankApp.UI.Forms
                 System.Diagnostics.Debug.WriteLine($"InitializeComponent Error: {ex.Message}");
                 // Continue execution to attempt showing the form
             }
-            // Use real AI service with new key
-            _aiService = new OpenRouterAIService("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");
+            // Use real AI service with environment variable
+            string apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? "your-api-key-here";
+            _aiService = new OpenRouterAIService(apiKey);
             
             InitializeInvestmentDashboard();
 
