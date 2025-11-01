@@ -1,7 +1,6 @@
-
 namespace BankApp.UI.Forms
 {
-    partial class TransferForm
+    partial class InvestmentDashboardForm
     {
         /// <summary>
         /// Required designer variable.

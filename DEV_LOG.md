@@ -97,3 +97,56 @@ Integrate Finnhub.io real-time market data API into existing C# WinForms applica
 **UI:** Professional Dark Mode (#0f172a)  
 
 **Ready for deployment!** 🚀
+
+---
+
+## Session 2: Module Refactoring (Trade Terminal & Investment Dashboard)
+**Date:** 2026-01-03 14:00
+
+### Objective
+Separate active trading from passive portfolio management to address UX issues. Create distinct `TradeTerminal` and `InvestmentDashboard` modules.
+
+### Key Changes
+1. **Architecture Separation**:
+   - Created `TradeTerminalForm` for active trading (migrated from StockMarketForm).
+   - Created `InvestmentDashboardForm` for passive management (new design).
+2. **Data Layer**:
+   - Created `MockPortfolioData` for realistic portfolio simulation.
+   - Created `PortfolioService` with caching and enrichment logic.
+3. **UI Improvements**:
+   - Implemented correct Compound Interest formula for BES Calculator.
+   - Added Asset Allocation Pie Chart.
+   - Added Net Worth Card.
+4. **Navigation**:
+   - Updated `MainForm` ribbon with distinct buttons for each module.
+
+### Error Log & Fixes
+
+### [2026-01-03 14:35] - Build Error - Enum Conflict
+**Error:** `AssetType` defined in multiple namespaces (`Infrastructure.Data` vs `Infrastructure.Services`)
+**Root Cause:** Created a new enum in Data layer without realizing one existed in Services.
+**Fix Applied:** Deleted duplicate enum in Data layer, extended existing enum in Services layer, updated using directives.
+**Prevention:** Check for existing types before creating new enums with common names.
+
+### [2026-01-03 14:40] - Build Error - Duplicate Class Definition
+**Error:** `StockInfo` class defined in both `StockMarketForm` and `TradeTerminalForm`.
+**Root Cause:** Copy-paste inheritance during migration.
+**Fix Applied:** Removed duplicate class definition from new form.
+**Prevention:** When splitting files, ensure shared nested classes are either moved to a common file or uniquely named.
+
+### [2026-01-03 14:45] - Build Error - Obsolete DevExpress API
+**Error:** `ChartLegendDirection` not found.
+**Root Cause:** Used an incorrect enum name for DevExpress charts.
+**Fix Applied:** Changed to `LegendDirection`.
+
+### Status
+**Build:** 🟢 SUCCESS (0 Errors)
+**Refactoring:** 🟢 COMPLETE
+### [2026-01-03 14:55] - Integration & Cleanup
+**Action:** Integrated `PortfolioService` into `MainForm` dashboard.
+**Result:** "Total Assets" card now shows `Bank Balance + Portfolio Value`.
+**Action:** Redirected BES button to `InvestmentDashboardForm`.
+**Action:** Deprecated `StockMarketForm` and `InvestmentDashboard` (UserControl) by removing active usages.
+**Status:** System is fully integrated and consistent.
+
+

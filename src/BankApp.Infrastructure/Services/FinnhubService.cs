@@ -343,7 +343,11 @@ namespace BankApp.Infrastructure.Services
         Stock,
         Crypto,
         Forex,
-        Commodity
+        Commodity,
+        Gold,      // Added for Gold holdings
+        Cash,      // Added for Cash holdings
+        Pension,   // Added for BES (pension) holdings
+        Index      // Added for Index holdings
     }
 
     public class CandlestickData
@@ -391,5 +395,28 @@ namespace BankApp.Infrastructure.Services
         public AssetType Type { get; set; }
         public string FinnhubSymbol { get; set; }
         public bool IsEnabled { get; set; }
+        /// <summary>
+        /// Get latest market news (Mocked for NovaBank)
+        /// </summary>
+        public async Task<List<NewsItem>> GetMarketNewsAsync()
+        {
+            await Task.Delay(100); // Simulate network
+            return new List<NewsItem>
+            {
+                new NewsItem { Headline = "Fed Faiz Kararı Açıklandı: Beklentiler Ne Yönde?", Source = "Bloomberg HT", Summary = "Fed'in faiz kararı piyasaları nasıl etkileyecek? Uzmanlar yorumladı.", Url = "#" },
+                new NewsItem { Headline = "BIST 100 Rekor Tazeledi: Teknoloji Hisseleri Uçuşta", Source = "Foreks", Summary = "Borsa İstanbul'da teknoloji endeksi günü %5 yükselişle tamamladı.", Url = "#" },
+                new NewsItem { Headline = "Bitcoin 100.000 Doları Zorluyor", Source = "CoinDesk", Summary = "Kripto para piyasalarında boğa sezonu devam ediyor.", Url = "#" },
+                new NewsItem { Headline = "Aselsan'dan Yeni İhracat Anlaşması", Source = "KAP", Summary = "Aselsan, 50 milyon dolarlık yeni bir savunma sanayi anlaşması imzaladığını duyurdu.", Url = "#" },
+                new NewsItem { Headline = "Altın Fiyatlarında Son Durum", Source = "Investing.com", Summary = "Ons altın kritik direnç seviyesini test ediyor.", Url = "#" }
+            };
+        }
+
+        public class NewsItem
+        {
+            public string Headline { get; set; }
+            public string Source { get; set; }
+            public string Summary { get; set; }
+            public string Url { get; set; }
+        }
     }
 }
