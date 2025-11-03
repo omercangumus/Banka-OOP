@@ -6,6 +6,7 @@ using System.Linq;
 using DevExpress.XtraEditors;
 using DevExpress.XtraCharts;
 using DevExpress.Utils;
+using DevExpress.LookAndFeel;
 using BankApp.Infrastructure.Services;
 
 namespace BankApp.UI.Controls
@@ -26,20 +27,27 @@ namespace BankApp.UI.Controls
         private Point[] originalLocations = new Point[4];
         private Size[] originalSizes = new Size[4];
         
+        // New Components for "Full" bottom section
+        private DevExpress.XtraGrid.GridControl gridMarketData;
+        private DevExpress.XtraGrid.Views.Grid.GridView gridViewMarketData;
+        private GroupControl grpCalendar;
+        private LabelControl lblCalendarData;
+
         private readonly FinnhubService _finnhubService;
 
         public InvestmentDashboard()
         {
             _finnhubService = new FinnhubService();
             InitializeUI();
-            LoadRealData();
+            _ = LoadRealData();
         }
 
         private void InitializeUI()
         {
             this.Dock = DockStyle.Fill;
-            // Professional Dark Theme
-            this.Appearance.BackColor = Color.FromArgb(15, 23, 42);  // #0f172a
+            // Professional Dark Theme Fix
+            UserLookAndFeel.Default.SetSkinStyle("Office 2019 Black");
+            this.Appearance.BackColor = Color.FromArgb(15, 23, 42); 
             this.Appearance.Options.UseBackColor = true;
 
             pnlMain = new PanelControl();
@@ -51,33 +59,33 @@ namespace BankApp.UI.Controls
 
             // Header
             lblTitle = new LabelControl();
-            lblTitle.Text = "STOCK MARKET & COMMODITIES";
+            lblTitle.Text = "YATIRIM & EMTİA PİYASALARI";
             lblTitle.Appearance.Font = new Font("Segoe UI Semibold", 16F);
-            lblTitle.Appearance.ForeColor = Color.FromArgb(226, 232, 240);  // #e2e8f0
+            lblTitle.Appearance.ForeColor = Color.FromArgb(226, 232, 240);
             lblTitle.Location = new System.Drawing.Point(20, 10);
             pnlMain.Controls.Add(lblTitle);
             
             btnProMode = new CheckButton();
-            btnProMode.Text = "PRO MODE";
-            btnProMode.Location = new System.Drawing.Point(900, 10);
-            btnProMode.Size = new Size(130, 40);
+            btnProMode.Text = "PROFESYONEL MOD";
+            btnProMode.Location = new System.Drawing.Point(880, 10);
+            btnProMode.Size = new Size(150, 40);
             btnProMode.CheckedChanged += BtnProMode_CheckedChanged;
             pnlMain.Controls.Add(btnProMode);
             
             btnRefresh = new SimpleButton();
-            btnRefresh.Text = "🔄 REFRESH";
+            btnRefresh.Text = "🔄 YENİLE";
             btnRefresh.Location = new System.Drawing.Point(1050, 10);
             btnRefresh.Size = new Size(150, 40);
-            btnRefresh.Appearance.BackColor = Color.FromArgb(16, 185, 129);  // #10b981
+            btnRefresh.Appearance.BackColor = Color.FromArgb(16, 185, 129);
             btnRefresh.Appearance.ForeColor = Color.White;
             btnRefresh.Appearance.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btnRefresh.Click += BtnRefresh_Click;
             pnlMain.Controls.Add(btnRefresh);
             
             lblSummary = new LabelControl();
-            lblSummary.Text = "Loading market data...";
+            lblSummary.Text = "Piyasa verileri yükleniyor...";
             lblSummary.Appearance.Font = new Font("Consolas", 11F, FontStyle.Bold);
-            lblSummary.Appearance.ForeColor = Color.FromArgb(16, 185, 129);  // #10b981
+            lblSummary.Appearance.ForeColor = Color.FromArgb(16, 185, 129);
             lblSummary.Location = new System.Drawing.Point(20, 50);
             pnlMain.Controls.Add(lblSummary);
 
@@ -94,7 +102,7 @@ namespace BankApp.UI.Controls
             chartOil = CreateChart("BRENT PETROL", new System.Drawing.Point(620, 290));
             pnlMain.Controls.Add(chartOil);
             
-            // Store original positions and sizes
+            // Store original positions
             originalLocations[0] = chartStocks.Location;
             originalLocations[1] = chartGold.Location;
             originalLocations[2] = chartEuro.Location;
@@ -105,13 +113,13 @@ namespace BankApp.UI.Controls
             originalSizes[2] = chartEuro.Size;
             originalSizes[3] = chartOil.Size;
             
-            // Add click events to charts
+            // Events
             chartStocks.Click += (s, e) => ExpandChart(chartStocks);
             chartGold.Click += (s, e) => ExpandChart(chartGold);
             chartEuro.Click += (s, e) => ExpandChart(chartEuro);
             chartOil.Click += (s, e) => ExpandChart(chartOil);
             
-            // Back button (initially hidden)
+            // Back button
             btnBack = new SimpleButton();
             btnBack.Text = "◀ GERİ DÖN";
             btnBack.Location = new System.Drawing.Point(1050, 50);
@@ -137,10 +145,74 @@ namespace BankApp.UI.Controls
             lblNewsText.Padding = new Padding(10);
             lblNewsText.Appearance.Font = new Font("Segoe UI", 9F);
             lblNewsText.Appearance.ForeColor = Color.LightGray;
-            lblNewsText.Text = "• FED faiz kararı bekleniyor.\n• BIST 100 rekor tazeledi.\n• Altın yükselişte.\n• Petrol fiyatları stabil.";
+            lblNewsText.Text = "• Piyasalar güne pozitif başladı.\n• BIST 100 endeksi rekor tazeledi.\n• Altın fiyatlarında yükseliş ivmesi korunuyor.\n• Merkez Bankası faiz kararını açıkladı.";
             
             grpNews.Controls.Add(lblNewsText);
             pnlMain.Controls.Add(grpNews);
+
+            // ============================================
+            // NEW: Fill the Bottom Space (Localized & Enhanced)
+            // ============================================
+            
+            // 1. Canlı Piyasa (Live Market Watch)
+            gridMarketData = new DevExpress.XtraGrid.GridControl();
+            gridMarketData.Location = new Point(20, 650);
+            gridMarketData.Size = new Size(750, 200);
+            gridMarketData.LookAndFeel.UseDefaultLookAndFeel = false;
+            gridMarketData.LookAndFeel.SkinName = "Office 2019 Black";
+            
+            gridViewMarketData = new DevExpress.XtraGrid.Views.Grid.GridView();
+            gridMarketData.MainView = gridViewMarketData;
+            gridViewMarketData.OptionsView.ShowGroupPanel = false;
+            gridViewMarketData.OptionsView.ShowIndicator = false;
+            gridViewMarketData.Appearance.HeaderPanel.BackColor = Color.FromArgb(30, 41, 59);
+            gridViewMarketData.Appearance.HeaderPanel.ForeColor = Color.White;
+            gridViewMarketData.Appearance.HeaderPanel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            gridViewMarketData.Appearance.Row.BackColor = Color.FromArgb(15, 23, 42);
+            gridViewMarketData.Appearance.Row.ForeColor = Color.White;
+            gridViewMarketData.Appearance.Row.Font = new Font("Segoe UI", 9F);
+            
+            // Populate Dummy Data for Grid
+            var dt = new System.Data.DataTable();
+            dt.Columns.Add("Sembol");
+            dt.Columns.Add("Varlık Adı");
+            dt.Columns.Add("Son Fiyat");
+            dt.Columns.Add("Değişim %");
+            
+            dt.Rows.Add("BTC-USD", "Bitcoin", "$45,230.50", "+2.5%");
+            dt.Rows.Add("ETH-USD", "Ethereum", "$2,340.10", "+1.2%");
+            dt.Rows.Add("XRP-USD", "Ripple", "$0.55", "-0.8%");
+            dt.Rows.Add("SOL-USD", "Solana", "$98.40", "+5.4%");
+            dt.Rows.Add("ADA-USD", "Cardano", "$0.52", "-1.1%");
+            dt.Rows.Add("DOGE-USD", "Dogecoin", "$0.08", "+0.5%");
+            dt.Rows.Add("AVAX-USD", "Avalanche", "$35.20", "+3.1%");
+            dt.Rows.Add("LINK-USD", "Chainlink", "$14.50", "-0.2%");
+            
+            gridMarketData.DataSource = dt;
+            pnlMain.Controls.Add(gridMarketData);
+            
+            // 2. Bekleyen Emirlerim (My Pending Orders)
+            grpCalendar = new GroupControl();
+            grpCalendar.Text = "📋 BEKLEYEN EMİRLERİM";
+            grpCalendar.Location = new Point(790, 650);
+            grpCalendar.Size = new Size(410, 200);
+            grpCalendar.AppearanceCaption.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            
+            lblCalendarData = new LabelControl();
+            lblCalendarData.Dock = DockStyle.Fill;
+            lblCalendarData.AutoSizeMode = LabelAutoSizeMode.None;
+            lblCalendarData.Padding = new Padding(10);
+            lblCalendarData.Appearance.Font = new Font("Consolas", 10F);
+            lblCalendarData.Appearance.ForeColor = Color.White; // Make it pop
+            lblCalendarData.Text = "• AL  : THYAO  @ 275.50 TL [100 LOT]\n" +
+                                   "• SAT : AKBNK  @ 42.10 TL  [500 LOT]\n" +
+                                   "• AL  : BTC    @ $42,000   [0.05 BTC]\n" +
+                                   "• SAT : GLD    @ 2,050 TL  [10 GR]\n" +
+                                   "------------------------------------\n" +
+                                   "Toplam Bekleyen Hacim: 145,250 TL";
+                                   
+            grpCalendar.Controls.Add(lblCalendarData);
+            pnlMain.Controls.Add(grpCalendar); // Add to panel
         }
         
         private async void BtnRefresh_Click(object sender, EventArgs e)

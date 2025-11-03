@@ -1,6 +1,7 @@
 using DevExpress.XtraBars.Ribbon;
 using DevExpress.XtraEditors;
 using DevExpress.XtraCharts;
+using DevExpress.XtraLayout;
 using DevExpress.LookAndFeel;
 using System;
 using System.Linq;
@@ -10,6 +11,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using BankApp.Core.Interfaces;
 using BankApp.Infrastructure.Services;
+using BankApp.Infrastructure.Data;
 using BankApp.UI.Controls;
 using Dapper;
 
@@ -18,7 +20,15 @@ namespace BankApp.UI.Forms
     public partial class MainForm : DevExpress.XtraEditors.XtraForm
     {
         private readonly IAIService _aiService;
-        private InvestmentDashboard investmentDashboard;
+
+
+        // Dashboard Widgets
+        private HeroNetWorthCard heroCard;
+        private InvestmentOpportunitiesWidget opportunitiesWidget;
+        private QuickActionsBar quickActions;
+        private RecentTransactionsWidget recentTransactions;
+        private AssetAllocationChart assetChart;
+        private AdminDashboardPanel adminPanel;
 
         public MainForm()
         {
@@ -46,10 +56,163 @@ namespace BankApp.UI.Forms
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            // Role-Based Dashboard
+            if (AppEvents.CurrentSession.IsAdmin)
+            {
+                ShowAdminDashboard();
+            }
+            else
+            {
+                ShowCustomerDashboard();
+            }
+            
+            UpdateMenuForRole();
+        }
+
+        private void ShowAdminDashboard()
+        {
+            // Hide all customer tabs and widgets
+            if (pnlDashboard != null) pnlDashboard.Visible = false;
+            if (pageInvestments != null) pageInvestments.Visible = false;
+            if (investmentDashboard != null) investmentDashboard.Visible = false;
+            
+            // Hide customer menu items
+            if (btnMoneyTransfer != null) btnMoneyTransfer.Visibility = DevExpress.XtraBars.BarItemVisibility.Never;
+            if (btnStockMarket != null) btnStockMarket.Visibility = DevExpress.XtraBars.BarItemVisibility.Never;
+            
+            // Show admin panel
+            adminPanel = new AdminDashboardPanel { Dock = DockStyle.Fill };
+            this.Controls.Add(adminPanel);
+            adminPanel.BringToFront();
+        }
+
+        private void ShowCustomerDashboard()
+        {
             LoadDashboardData();
             LoadDashboardCharts();
             LoadCustomers();
-            UpdateMenuForRole(); // Rol bazlı menü güncelle
+            SetupFintechProDashboard();
+        }
+
+        private void SetupFintechProDashboard()
+        {
+            try {
+                if (layoutDashboard == null) return;
+                
+                layoutDashboard.BeginUpdate();
+                
+                // **REMOVE ALL OLD CONTROLS FROM LAYOUT**
+                layoutDashboard.Controls.Clear();
+                layoutGroupRoot.Items.Clear();
+                
+                // Background
+                pnlDashboard.Appearance.BackColor = Color.FromArgb(18, 18, 18);
+                
+                // Create widgets
+                heroCard = new HeroNetWorthCard();
+                opportunitiesWidget = new InvestmentOpportunitiesWidget();
+                quickActions = new QuickActionsBar();
+                recentTransactions = new RecentTransactionsWidget();
+                assetChart = new AssetAllocationChart();
+                
+                // Add new controls to layout
+                layoutDashboard.Controls.Add(heroCard);
+                layoutDashboard.Controls.Add(opportunitiesWidget);
+                layoutDashboard.Controls.Add(quickActions);
+                layoutDashboard.Controls.Add(recentTransactions);
+                layoutDashboard.Controls.Add(assetChart);
+                
+                // Wire up quick actions
+                quickActions.SendMoneyClicked += (s, e) => btnMoneyTransfer_ItemClick(s, null);
+                quickActions.QRPayClicked += (s, e) => { }; // QR Removed
+                quickActions.ExchangeClicked += (s, e) => { }; // Exchange Removed
+                quickActions.SupportClicked += (s, e) => {
+                    DevExpress.XtraEditors.XtraMessageBox.Show(
+                        "🤖 NovaBank AI Asistan\n\nDestek: support@novabank.com",
+                        "Destek",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                };
+                
+                // Create 2x3 Grid Layout
+                // Row 1: Hero + Opportunities
+                var groupRow1 = layoutGroupRoot.AddGroup();
+                groupRow1.GroupBordersVisible = false;
+                groupRow1.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+                groupRow1.OptionsTableLayoutGroup.ColumnDefinitions.Clear();
+                groupRow1.OptionsTableLayoutGroup.RowDefinitions.Clear();
+                groupRow1.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+                groupRow1.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+                groupRow1.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Absolute, Height = 210 });
+                
+                AddControlToGroup(groupRow1, heroCard, 0, 0);
+                AddControlToGroup(groupRow1, opportunitiesWidget, 0, 1);
+                
+                // Row 2: Quick Actions (Full Width)
+                var itemQuickActions = layoutGroupRoot.AddItem();
+                itemQuickActions.Control = quickActions;
+                itemQuickActions.TextVisible = false;
+                itemQuickActions.SizeConstraintsType = DevExpress.XtraLayout.SizeConstraintsType.Custom;
+                itemQuickActions.MinSize = new Size(0, 130);
+                itemQuickActions.MaxSize = new Size(0, 130);
+                
+                // Row 3: Transactions + Asset Chart
+                var groupRow3 = layoutGroupRoot.AddGroup();
+                groupRow3.GroupBordersVisible = false;
+                groupRow3.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+                groupRow3.OptionsTableLayoutGroup.ColumnDefinitions.Clear();
+                groupRow3.OptionsTableLayoutGroup.RowDefinitions.Clear();
+                groupRow3.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+                groupRow3.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+                groupRow3.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
+                
+                AddControlToGroup(groupRow3, recentTransactions, 0, 0);
+                AddControlToGroup(groupRow3, assetChart, 0, 1);
+                
+                layoutDashboard.EndUpdate();
+                
+                // Update Hero Card with real data (BANK BALANCE)
+                UpdateHeroCard();
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"SetupFintechProDashboard Error: {ex.Message}");
+            }
+        }
+
+        private async void UpdateHeroCard()
+        {
+            try {
+                var portfolioService = new PortfolioService();
+                var netWorth = await portfolioService.GetNetWorthAsync();
+                
+                var context = new DapperContext();
+                using (var conn = context.CreateConnection())
+                {
+                    var bankBalance = await conn.ExecuteScalarAsync<decimal?>("SELECT COALESCE(SUM(\"Balance\"), 0) FROM \"Accounts\"") ?? 0;
+                    netWorth += bankBalance;
+                    
+                    // **CALCULATE TOTAL DEBT**
+                    var totalDebt = await conn.ExecuteScalarAsync<decimal?>(@"
+                        SELECT COALESCE(SUM(""Amount""), 0) 
+                        FROM ""Loans"" 
+                        WHERE ""UserId"" = @UserId AND ""Status"" = 'Approved'",
+                        new { UserId = AppEvents.CurrentSession.UserId }) ?? 0;
+                    
+                    // **GET USER'S IBAN**
+                    var userIban = await conn.ExecuteScalarAsync<string>(@"
+                        SELECT ""IBAN"" 
+                        FROM ""Accounts"" 
+                        WHERE ""UserId"" = @UserId 
+                        LIMIT 1",
+                        new { UserId = AppEvents.CurrentSession.UserId }) ?? "";
+                    
+                    // Mock trend for now (could be calculated from historical data)
+                    heroCard.SetNetWorth(netWorth, totalDebt, 2.4m, true, userIban);
+                }
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"UpdateHeroCard Error: {ex.Message}");
+            }
         }
 
         private async void LoadDashboardData()
@@ -99,6 +262,8 @@ namespace BankApp.UI.Forms
             }
         }
 
+        // Old campaign panel code removed - replaced by InvestmentOpportunitiesWidget
+
         private async void LoadCustomers()
         {
             try
@@ -121,11 +286,16 @@ namespace BankApp.UI.Forms
             }
         }
 
+        private InvestmentDashboard investmentDashboard;
+
         private void InitializeInvestmentDashboard()
         {
-            // Legacy control removed in favor of InvestmentDashboardForm
-            // investmentDashboard = new InvestmentDashboard();
-            // ...
+            investmentDashboard = new InvestmentDashboard();
+            investmentDashboard.Dock = DockStyle.Fill;
+            investmentDashboard.Visible = false; 
+            this.Controls.Add(investmentDashboard);
+            // Ensure it appears below the Ribbon but above background
+            investmentDashboard.BringToFront();
         }
 
         private void RibbonControl1_SelectedPageChanged(object sender, EventArgs e)
@@ -138,8 +308,11 @@ namespace BankApp.UI.Forms
 
             if (pnlDashboard != null) pnlDashboard.Visible = isDashboard;
             
-            // Legacy Dashboard logic removed - using Buttons instead
-            // if (investmentDashboard != null) ...
+            if (investmentDashboard != null)
+            {
+                investmentDashboard.Visible = isInvestments;
+                if (isInvestments) investmentDashboard.BringToFront();
+            }
 
             if (gridCustomers != null)
             {
@@ -179,11 +352,17 @@ namespace BankApp.UI.Forms
             chartBalanceHistory.MouseUp += Chart_MouseUp;
             chartAssetDistribution.MouseUp += Chart_MouseUp;
             
-            // Click Event (Popup)
-            chartCurrency.MouseClick += Chart_MouseClick;
-            chartTransactions.MouseClick += Chart_MouseClick;
-            chartBalanceHistory.MouseClick += Chart_MouseClick;
-            chartAssetDistribution.MouseClick += Chart_MouseClick;
+            chartAssetDistribution.MouseUp += Chart_MouseUp;
+            // Click popups disabled per user request
+        }
+
+        private void Chart_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (sender is ChartControl chart)
+            {
+                ChartDetailForm detail = new ChartDetailForm(chart);
+                detail.ShowDialog();
+            }
         }
 
         private void Chart_MouseUp(object sender, MouseEventArgs e)
@@ -309,67 +488,239 @@ namespace BankApp.UI.Forms
         }
         
         // LoadDashboardCharts calls InitializeDynamicCharts instead of hardcoded logic
-        private void LoadDashboardCharts()
+        private async void LoadDashboardCharts()
         {
-             // Initial Load
+             // Initialize controls
              InitializeDynamicCharts();
+             
+             // Populate with real data
+             await LoadRealDashboardChartsDataAsync();
         }
 
-        private void Chart_MouseClick(object sender, MouseEventArgs e)
+        // Duplicate Chart_MouseClick removed
+
+
+        private async Task LoadRealDashboardChartsDataAsync()
         {
-            // Only Left Click triggers Popup
-            if (e.Button == MouseButtons.Left && sender is ChartControl chart)
+            try {
+                var context = new BankApp.Infrastructure.Data.DapperContext();
+                using (var conn = context.CreateConnection())
+                {
+                    conn.Open();
+
+                    // 1. Harcama Dağılımı (Doughnut) - Real Category Data
+                    Series seriesPie = new Series("Harcamalar", ViewType.Doughnut);
+                    var categoryData = await conn.QueryAsync<(string Category, decimal Total)>(
+                        "SELECT \"Description\" as Category, SUM(\"Amount\") as Total FROM \"Transactions\" WHERE \"TransactionType\" IN ('Withdraw', 'TransferOut') GROUP BY \"Description\"");
+                    
+                    if (!categoryData.Any()) {
+                        seriesPie.Points.Add(new SeriesPoint("Diğer", 100));
+                    } else {
+                        foreach(var cat in categoryData.Take(5)) {
+                            // Extract first word as category if desc is long
+                            string catName = cat.Category.Split(' ')[0];
+                            seriesPie.Points.Add(new SeriesPoint(catName, cat.Total));
+                        }
+                    }
+
+                    DoughnutSeriesView doughnutView = (DoughnutSeriesView)seriesPie.View;
+                    doughnutView.HoleRadiusPercent = 55;
+                    seriesPie.Label.TextPattern = "{A}: {VP:P1}";
+                    
+                    chartCurrency.Series.Clear();
+                    chartCurrency.Series.Add(seriesPie);
+                    chartCurrency.Titles.Clear();
+                    chartCurrency.Titles.Add(new ChartTitle() { Text = "💸 Harcama Dağılımı", TextColor = Color.White, Font = new Font("Segoe UI", 14F, FontStyle.Bold) });
+                    chartCurrency.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
+                    chartCurrency.PaletteName = "Pastel Kit";
+                    
+                    // 2. İşlem Hacmi (Bar) - Real Volume for 5 days
+                    Series seriesBar = new Series("İşlem Hacmi", ViewType.Bar);
+                    var volumeData = await conn.QueryAsync<(string Day, decimal Total)>(
+                        "SELECT TO_CHAR(\"TransactionDate\", 'DD.MM') as Day, SUM(\"Amount\") as Total FROM \"Transactions\" GROUP BY Day ORDER BY Day DESC LIMIT 5");
+                    
+                    foreach(var vol in volumeData.Reverse()) {
+                        seriesBar.Points.Add(new SeriesPoint(vol.Day, vol.Total));
+                    }
+
+                    chartTransactions.Series.Clear();
+                    chartTransactions.Series.Add(seriesBar);
+                    chartTransactions.Titles.Clear();
+                    chartTransactions.Titles.Add(new ChartTitle() { Text = "📈 İşlem Hacmi (Son 5 Gün)", TextColor = Color.White, Font = new Font("Segoe UI", 14F, FontStyle.Bold) });
+                    chartTransactions.PaletteName = "Mixed";
+
+                    // 3. Asset Distribution - Real Portfolio Data
+                    var portfolioService = new PortfolioService();
+                    var allocation = await portfolioService.GetAssetAllocationAsync();
+                    Series seriesAssets = new Series("Varlıklar", ViewType.Pie3D);
+                    foreach(var alloc in allocation) {
+                        seriesAssets.Points.Add(new SeriesPoint(alloc.Key.ToString(), alloc.Value));
+                    }
+                    chartAssetDistribution.Series.Clear();
+                    chartAssetDistribution.Series.Add(seriesAssets);
+                    chartAssetDistribution.Titles.Clear();
+                    chartAssetDistribution.Titles.Add(new ChartTitle { Text = "🌟 Varlık Dağılımı", TextColor = Color.White, Font = new Font("Segoe UI", 14F, FontStyle.Bold) });
+                    chartAssetDistribution.PaletteName = "Chameleon";
+
+                    // Enable Animations for everything
+                    foreach(var c in new[] { chartCurrency, chartTransactions, chartAssetDistribution, chartBalanceHistory, chartFinancialHealth, chartSavingsGoals, chartCreditScore, chartBudgetPerformance })
+                    {
+                        if (c == null) continue;
+                        // Animation logic removed due to version incompatibility
+                        foreach(Series s in c.Series) {
+                            s.LabelsVisibility = DevExpress.Utils.DefaultBoolean.True;
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"LoadRealDashboardChartsData Error: {ex.Message}");
+            }
+
+            // Call aesthetic renderers (which currently use mock logic but could be enriched)
+            RenderFinancialHealthChart();
+            RenderSpendingFunnelChart();
+            RenderCreditScoreChart();
+            RenderBudgetPerformanceChart();
+        }
+
+        private void RenderFinancialHealthChart()
+        {
+            chartFinancialHealth.Series.Clear();
+            chartFinancialHealth.Titles.Clear();
+            chartFinancialHealth.BackColor = Color.FromArgb(30, 30, 30);
+            
+            Series series = new Series("Finansal Sağlık", ViewType.RadarArea);
+            series.Points.Add(new SeriesPoint("Gelir İstikrarı", 85));
+            series.Points.Add(new SeriesPoint("Borç/Gelir", 90));
+            series.Points.Add(new SeriesPoint("Tasarruf", 65));
+            series.Points.Add(new SeriesPoint("Yatırım Çeşitliliği", 70));
+            series.Points.Add(new SeriesPoint("Acil Durum Fonu", 50));
+
+            chartFinancialHealth.Series.Add(series);
+            
+            if (series.View is RadarAreaSeriesView view)
             {
-                ChartPopupForm popup = new ChartPopupForm(chart);
-                popup.ShowDialog();
+                view.Color = Color.FromArgb(100, 76, 175, 80); // Semi-transparent Green
+                view.Border.Color = Color.FromArgb(76, 175, 80);
+                view.Border.Visibility = DevExpress.Utils.DefaultBoolean.True;
+                view.MarkerVisibility = DevExpress.Utils.DefaultBoolean.True;
+            }
+
+            if (chartFinancialHealth.Diagram is RadarDiagram diagram)
+            {
+                diagram.AxisX.Label.TextColor = Color.White;
+                diagram.AxisY.Label.TextColor = Color.White;
+                diagram.AxisY.GridLines.Color = Color.FromArgb(60, 60, 60);
+                diagram.AxisX.GridLines.Color = Color.FromArgb(60, 60, 60);
+            }
+
+            chartFinancialHealth.Titles.Add(new ChartTitle { Text = "Finansal Sağlık Skoru", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
+            chartFinancialHealth.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
+        }
+
+        private void RenderSpendingFunnelChart()
+        {
+            chartSavingsGoals.Series.Clear();
+            chartSavingsGoals.Titles.Clear();
+            chartSavingsGoals.BackColor = Color.FromArgb(30, 30, 30);
+
+            Series series = new Series("Gider Dağılımı", ViewType.Funnel);
+            series.Points.Add(new SeriesPoint("Kira & Konut", 15000));
+            series.Points.Add(new SeriesPoint("Mutfak & Gıda", 8000));
+            series.Points.Add(new SeriesPoint("Ulaşım", 4000));
+            series.Points.Add(new SeriesPoint("Faturalar", 2500));
+            series.Points.Add(new SeriesPoint("Eğlence", 1500));
+
+            chartSavingsGoals.Series.Add(series);
+
+            if (series.View is FunnelSeriesView view)
+            {
+                view.ColorEach = true;
+                view.Titles.Add(new SeriesTitle { Text = "Aylık Gider Profili" });
+            }
+
+            // chartSavingsGoals.Titles.Add(new ChartTitle { Text = "Gider Analizi", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
+            chartSavingsGoals.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
+            chartSavingsGoals.Legend.BackColor = Color.Transparent;
+            chartSavingsGoals.Legend.TextColor = Color.White;
+        }
+
+        private void RenderCreditScoreChart()
+        {
+            chartCreditScore.Series.Clear();
+            chartCreditScore.Titles.Clear();
+            chartCreditScore.BackColor = Color.FromArgb(30, 30, 30);
+            
+            // Linear Gauge for Credit Score
+            // Note: ChartControl doesn't support Gauges directly (GaugeControl does).
+            // We'll simulate a 'progress' bar using a Stacked Bar Chart for now or simple Bar
+            
+            Series series = new Series("Kredi Puanı", ViewType.Bar);
+            series.Points.Add(new SeriesPoint("Puan", 1650)); // Max 1900
+            
+            chartCreditScore.Series.Add(series);
+            
+            if (series.View is BarSeriesView view)
+            {
+                view.Color = Color.FromArgb(255, 193, 7); // Amber/Gold
+                view.Border.Visibility = DevExpress.Utils.DefaultBoolean.False;
+            }
+            
+            if (chartCreditScore.Diagram is XYDiagram diagram)
+            {
+                diagram.Rotated = true; // Horizontal Bar
+                diagram.AxisY.WholeRange.MaxValue = 1900;
+                diagram.AxisY.WholeRange.MinValue = 0;
+                diagram.AxisY.GridLines.Color = Color.FromArgb(60, 60, 60);
+                diagram.AxisX.Visibility = DevExpress.Utils.DefaultBoolean.False;
+                diagram.AxisY.Label.TextColor = Color.White;
+                
+                // Add strip for 'Risk' zones
+                Strip stripRisk = new Strip("Risk", 0, 900);
+                stripRisk.Color = Color.FromArgb(100, 255, 0, 0);
+                diagram.AxisY.Strips.Add(stripRisk);
+                
+                Strip stripGood = new Strip("Good", 1500, 1900);
+                stripGood.Color = Color.FromArgb(100, 0, 255, 0);
+                diagram.AxisY.Strips.Add(stripGood);
+            }
+
+            chartCreditScore.Titles.Add(new ChartTitle { Text = "Findeks Kredi Notu (1650 - Çok İyi)", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
+            chartCreditScore.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
+        }
+
+        private void RenderBudgetPerformanceChart()
+        {
+            chartBudgetPerformance.Series.Clear();
+            chartBudgetPerformance.Titles.Clear();
+            chartBudgetPerformance.BackColor = Color.FromArgb(30, 30, 30);
+            
+            // Planned vs Actual
+            Series seriesPlanned = new Series("Planlanan", ViewType.Bar);
+            Series seriesActual = new Series("Gerçekleşen", ViewType.Bar);
+            
+            seriesPlanned.Points.Add(new SeriesPoint("Gıda", 5000));
+            seriesPlanned.Points.Add(new SeriesPoint("Ulaşım", 3000));
+            seriesPlanned.Points.Add(new SeriesPoint("Eğlence", 2000));
+            
+            seriesActual.Points.Add(new SeriesPoint("Gıda", 5500)); // Over budget
+            seriesActual.Points.Add(new SeriesPoint("Ulaşım", 2800)); // Under budget
+            seriesActual.Points.Add(new SeriesPoint("Eğlence", 1800)); // Under budget
+            
+            chartBudgetPerformance.Series.AddRange(new Series[] { seriesPlanned, seriesActual });
+            
+            chartBudgetPerformance.Titles.Add(new ChartTitle { Text = "Bütçe Performansı", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
+            chartBudgetPerformance.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
+            chartBudgetPerformance.Legend.TextColor = Color.White;
+            
+            if (chartBudgetPerformance.Diagram is XYDiagram diag)
+            {
+                diag.AxisX.Label.TextColor = Color.White;
+                diag.AxisY.Label.TextColor = Color.White;
+                diag.AxisY.GridLines.Color = Color.FromArgb(60, 60, 60);
             }
         }
 
-
-        private void LoadSampleChartData()
-        {
-            // Harcamalar - Doughnut Chart
-            Series seriesPie = new Series("Harcamalar", ViewType.Doughnut);
-            seriesPie.Points.Add(new SeriesPoint("Market", 1200));
-            seriesPie.Points.Add(new SeriesPoint("Faturalar", 850));
-            seriesPie.Points.Add(new SeriesPoint("Giyim", 450));
-            seriesPie.Points.Add(new SeriesPoint("Eğlence", 600));
-            
-            var doughnutView = (DoughnutSeriesView)seriesPie.View;
-            doughnutView.HoleRadiusPercent = 45;
-            seriesPie.Label.TextPattern = "{A}: {VP:P1}";
-            
-            // Label pozisyonu - TwoColumns
-            if (seriesPie.Label is DoughnutSeriesLabel doughnutLabel)
-            {
-                doughnutLabel.Position = PieSeriesLabelPosition.TwoColumns;
-            }
-            
-            chartCurrency.Series.Clear();
-            chartCurrency.Series.Add(seriesPie);
-            chartCurrency.PaletteName = "Nature Colors";
-            chartCurrency.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
-            chartCurrency.Legend.TextColor = Color.White;
-            chartCurrency.Titles.Clear();
-            chartCurrency.Titles.Add(new ChartTitle() { Text = "Harcama Dağılımı", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
-
-            // Bar Chart
-            Series seriesBar = new Series("İşlem Hacmi", ViewType.Bar);
-            var today = DateTime.Now;
-            seriesBar.Points.Add(new SeriesPoint(today.AddDays(-4).ToString("dd.MM"), 120000));
-            seriesBar.Points.Add(new SeriesPoint(today.AddDays(-3).ToString("dd.MM"), 180000));
-            seriesBar.Points.Add(new SeriesPoint(today.AddDays(-2).ToString("dd.MM"), 95000));
-            seriesBar.Points.Add(new SeriesPoint(today.AddDays(-1).ToString("dd.MM"), 210000));
-            seriesBar.Points.Add(new SeriesPoint(today.ToString("dd.MM"), 175000));
-            
-            var barView = (BarSeriesView)seriesBar.View;
-            barView.Color = Color.FromArgb(33, 150, 243);
-            
-            chartTransactions.Series.Clear();
-            chartTransactions.Series.Add(seriesBar);
-            chartTransactions.Titles.Clear();
-            chartTransactions.Titles.Add(new ChartTitle() { Text = "İşlem Hacmi (Son 5 Gün)", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
-        }
 
         private void btnAiAssist_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
@@ -556,6 +907,8 @@ namespace BankApp.UI.Forms
             RefreshDashboard();
         }
 
+
+
         // YENİ: Kredi Başvurusu (User)
         private void btnLoanApplication_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
@@ -655,6 +1008,73 @@ namespace BankApp.UI.Forms
                 }
                 RefreshDashboard();
             };
+        }
+
+        // COMPACT LAYOUT REDESIGN - HERO STYLE
+        private void RedesignDashboardLayout()
+        {
+            try {
+                if(layoutDashboard == null) return;
+                
+                layoutDashboard.BeginUpdate();
+                
+                // 1. Reset Root Groups
+                layoutGroupRoot.Items.Clear();
+                
+                // 2. Add Top Cards Row (4 Columns)
+                var groupCards = layoutGroupRoot.AddGroup();
+                groupCards.GroupBordersVisible = false;
+                groupCards.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+                groupCards.OptionsTableLayoutGroup.ColumnDefinitions.Clear();
+                groupCards.OptionsTableLayoutGroup.RowDefinitions.Clear();
+                
+                // 4 Equal Columns
+                for(int i=0; i<4; i++) 
+                    groupCards.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 25 });
+                
+                groupCards.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Absolute, Height = 90 });
+                
+                // Add Cards
+                AddControlToGroup(groupCards, pnlTotalAssets, 0, 0);
+                AddControlToGroup(groupCards, pnlDailyTransactions, 0, 1);
+                AddControlToGroup(groupCards, pnlActiveCustomers, 0, 2);
+                AddControlToGroup(groupCards, pnlExchangeRate, 0, 3);
+                
+                
+                // Old campaign panel code removed - now using InvestmentOpportunitiesWidget
+
+
+                // 4. Add 3 Key Charts in a Row (Large & Readable)
+                var groupCharts = layoutGroupRoot.AddGroup();
+                groupCharts.GroupBordersVisible = false;
+                groupCharts.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+                
+                // 3 Columns
+                for(int i=0; i<3; i++) 
+                    groupCharts.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 33 });
+                
+                // 1 Row (Fill remaining space)
+                groupCharts.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
+
+                // Row 1: The 3 Most Important Charts
+                AddControlToGroup(groupCharts, chartCurrency, 0, 0); // Harcama Dağılımı
+                AddControlToGroup(groupCharts, chartTransactions, 0, 1); // İşlem Hacmi
+                AddControlToGroup(groupCharts, chartAssetDistribution, 0, 2); // Varlık Dağılımı
+                
+                layoutDashboard.EndUpdate();
+            }
+            catch(Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Layout Redesign Error: {ex.Message}");
+            }
+        }
+
+        private void AddControlToGroup(LayoutControlGroup group, Control ctrl, int row, int col)
+        {
+             var item = group.AddItem();
+             item.Control = ctrl;
+             item.TextVisible = false;
+             item.OptionsTableLayoutItem.RowIndex = row;
+             item.OptionsTableLayoutItem.ColumnIndex = col;
         }
     }
 }

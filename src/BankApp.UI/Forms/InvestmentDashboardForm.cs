@@ -42,8 +42,9 @@ namespace BankApp.UI.Forms
         private PanelControl pnlTicker;
         private LabelControl lblTickerText;
         private ListBoxControl lstNews;
-        private PanelControl pnlQuickActions;
-        private ChartControl chartMiniHistory;
+        // private PanelControl pnlQuickActions; // Removed to make room for charts
+        private ChartControl chartStock; // Renamed from MiniHistory
+        private ChartControl chartCrypto; // New Crypto Chart
         
         // Portfolio Components
         private ChartControl chartAssetAllocation;
@@ -135,39 +136,28 @@ namespace BankApp.UI.Forms
             lblTickerText.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
             pnlTicker.Controls.Add(lblTickerText);
 
-            // B. Mini Chart (7 Day History) & News
-            chartMiniHistory = new ChartControl();
-            chartMiniHistory.Location = new Point(20, 90);
-            chartMiniHistory.Size = new Size(800, 350);
-            chartMiniHistory.BorderOptions.Visibility = DevExpress.Utils.DefaultBoolean.False;
+            // B. Stock Chart (Top Left)
+            chartStock = new ChartControl();
+            chartStock.Location = new Point(20, 90);
+            chartStock.Size = new Size(800, 300);
+            chartStock.BorderOptions.Visibility = DevExpress.Utils.DefaultBoolean.False;
             
-            // C. News Feed
+            // C. Crypto Chart (Bottom Left)
+            chartCrypto = new ChartControl();
+            chartCrypto.Location = new Point(20, 410);
+            chartCrypto.Size = new Size(800, 300);
+            chartCrypto.BorderOptions.Visibility = DevExpress.Utils.DefaultBoolean.False;
+
+            // D. News Feed (Right Side - Taller)
             lstNews = new ListBoxControl();
             lstNews.Location = new Point(840, 90);
-            lstNews.Size = new Size(520, 500);
+            lstNews.Size = new Size(520, 620);
             lstNews.Appearance.BackColor = Color.FromArgb(20, 20, 20);
             lstNews.Appearance.ForeColor = Color.White;
             lstNews.Appearance.Font = new Font("Segoe UI", 10F);
 
-            // D. Quick Actions Grid (4 Buttons)
-            pnlQuickActions = new PanelControl();
-            pnlQuickActions.Location = new Point(20, 460);
-            pnlQuickActions.Size = new Size(800, 130);
-            pnlQuickActions.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            pnlQuickActions.Appearance.BackColor = Color.Transparent;
-            
-            var btnGold = CreateActionButton("Altın Al", Color.FromArgb(234, 179, 8), new Point(0, 0));
-            var btnTransfer = CreateActionButton("Para Gönder", Color.FromArgb(168, 85, 247), new Point(210, 0));
-            var btnBills = CreateActionButton("Fatura Öde", Color.FromArgb(59, 130, 246), new Point(420, 0));
-            var btnQR = CreateActionButton("QR Ödeme", Color.FromArgb(239, 68, 68), new Point(630, 0));
-            
-            // Wire up Transfer button to open new form
-            btnTransfer.Click += (s, e) => { new TransferForm().ShowDialog(); };
-            btnGold.Click += (s, e) => XtraMessageBox.Show("Altın Alım ekranı yakında!", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-            pnlQuickActions.Controls.AddRange(new Control[] { btnGold, btnTransfer, btnBills, btnQR });
-
-            tabOverview.Controls.AddRange(new Control[] { pnlTicker, chartMiniHistory, lstNews, pnlQuickActions });
+            // Add Controls
+            tabOverview.Controls.AddRange(new Control[] { pnlTicker, chartStock, chartCrypto, lstNews });
         }
 
         private SimpleButton CreateActionButton(string text, Color color, Point loc)
@@ -215,12 +205,17 @@ namespace BankApp.UI.Forms
         {
             tabBES.Appearance.Header.BackColor = Color.FromArgb(30, 41, 59);
             
-            // Center the control
             BESCalculatorControl besControl = new BESCalculatorControl();
-            besControl.Location = new Point((this.Width - besControl.Width) / 2 - 50, 50);
+            // Dynamic centering
+            besControl.Location = new Point((tabBES.Width - besControl.Width) / 2, 50);
             besControl.Anchor = AnchorStyles.Top;
             
             tabBES.Controls.Add(besControl);
+            
+            // Handle resizing to keep it centered
+            this.Resize += (s, e) => {
+                besControl.Location = new Point((tabBES.Width - besControl.Width) / 2, 50);
+            };
         }
 
         /// <summary>
@@ -264,9 +259,10 @@ namespace BankApp.UI.Forms
                 var t1 = LoadAssetAllocationChartAsync();
                 var t2 = LoadHoldingsGridAsync();
                 var t3 = LoadNewsAsync();
-                var t4 = LoadMiniChartAsync();
+                var t4 = LoadStockChartAsync();
+                var t5 = LoadCryptoChartAsync();
 
-                await Task.WhenAll(t1, t2, t3, t4);
+                await Task.WhenAll(t1, t2, t3, t4, t5);
 
                 btnRefresh.Text = "✅ Güncellendi";
                 await Task.Delay(1000);
@@ -295,32 +291,115 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private async Task LoadMiniChartAsync()
+        private async Task LoadStockChartAsync()
         {
-            // Simple Line Chart for History (Mock)
-            chartMiniHistory.Series.Clear();
-            Series series = new Series("7 Day History", ViewType.Line);
-            
-            var r = new Random();
-            double balance = (double)await _portfolioService.GetNetWorthAsync() * 0.95; // Start lower
-            
-            for(int i=6; i>=0; i--)
+            try
             {
-                var date = DateTime.Now.AddDays(-i);
-                series.Points.Add(new SeriesPoint(date.ToString("dd MMM"), balance));
-                balance *= (1 + (r.NextDouble() * 0.04 - 0.01)); // Random daily change
+                var finnhub = new FinnhubService();
+                var candles = await finnhub.GetCandlesAsync("AAPL", "D", 60); // 60 Days
+                var data = CandlestickData.FromFinnhubCandles(candles);
+
+                if (chartStock.InvokeRequired)
+                {
+                    await Task.Run(() => ConfigureChart(chartStock, "AAPL Stock (Daily)", data, Color.FromArgb(59, 130, 246)));
+                }
+                else
+                {
+                    ConfigureChart(chartStock, "AAPL Stock (Daily)", data, Color.FromArgb(59, 130, 246));
+                }
             }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading stock chart: {ex.Message}");
+            }
+        }
+
+        private async Task LoadCryptoChartAsync()
+        {
+            try
+            {
+                var finnhub = new FinnhubService();
+                var candles = await finnhub.GetCandlesAsync("BINANCE:BTCUSDT", "D", 60); // Crypto requires specific exchange prefix usually, or simple symbol
+                if (candles == null || candles.S == "no_data")
+                    candles = await finnhub.GetCandlesAsync("COINBASE:BTC-USD", "D", 60); // Try another
+
+                // Fallback to stock-like behavior if crypto fails specific call (Finnhub often treats crypto as normal symbols like 'BTC-USD')
+                if (candles == null || candles.S == "no_data")
+                    candles = await finnhub.GetCandlesAsync("BTC-USD", "D", 60);
+
+                var data = CandlestickData.FromFinnhubCandles(candles);
+
+                if (chartCrypto.InvokeRequired)
+                {
+                    await Task.Run(() => ConfigureChart(chartCrypto, "Bitcoin (BTC-USD)", data, Color.FromArgb(249, 115, 22)));
+                }
+                else
+                {
+                    ConfigureChart(chartCrypto, "Bitcoin (BTC-USD)", data, Color.FromArgb(249, 115, 22));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading crypto chart: {ex.Message}");
+            }
+        }
+
+        private void ConfigureChart(ChartControl chart, string title, CandlestickData[] data, Color color)
+        {
+            chart.Series.Clear();
+            chart.Titles.Clear();
             
-            chartMiniHistory.Series.Add(series);
+            // Ensure UI update on main thread
+            if (chart.InvokeRequired)
+            {
+                chart.Invoke(new Action(() => ConfigureChart(chart, title, data, color)));
+                return;
+            }
+
+            Series series = new Series(title, ViewType.CandleStick);
             
-            if (chartMiniHistory.Diagram is XYDiagram diag)
+            foreach(var item in data)
+            {
+                // Candlestick point: Low, High, Open, Close
+                // DevExpress expects specific order logic often or just object binding.
+                // For FinancialSeries, points are strictly ordered: Low, High, Open, Close.
+                
+                // Using SeriesPoint with 4 values: Low, High, Open, Close
+                var point = new SeriesPoint(item.Time, item.Low, item.High, item.Open, item.Close);
+                series.Points.Add(point);
+            }
+
+            chart.Series.Add(series);
+            
+            // Aesthetic Styling
+            if (chart.Diagram is XYDiagram diag)
             {
                 diag.DefaultPane.BackColor = Color.FromArgb(30, 41, 59);
                 diag.AxisX.Label.TextColor = Color.White;
                 diag.AxisY.Label.TextColor = Color.White;
                 diag.AxisX.GridLines.Visible = false;
                 diag.AxisY.GridLines.Color = Color.FromArgb(60, 60, 60);
+                diag.AxisX.DateTimeScaleOptions.MeasureUnit = DateTimeMeasureUnit.Day;
+                diag.AxisX.DateTimeScaleOptions.GridAlignment = DateTimeGridAlignment.Week;
+                
+                // Set Candle Colors
+                CandleStickSeriesView view = (CandleStickSeriesView)series.View;
+                view.Color = color; // Up Color
+                view.ReductionOptions.Color = Color.Red; // Down Color
+                view.ReductionOptions.Visible = true;
+                view.LineThickness = 2;
+                view.LevelLineLength = 0.25;
             }
+
+            chart.Titles.Add(new ChartTitle() { 
+                Text = title, 
+                TextColor = Color.White, 
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                Alignment = StringAlignment.Near
+            });
+            
+            chart.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
+            chart.BackColor = Color.Transparent;
         }
 
         /// <summary>

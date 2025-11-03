@@ -8,6 +8,8 @@ using BankApp.Infrastructure.Services;
 using BankApp.Core.Entities;
 using System.Collections.Generic;
 using System.Linq;
+using Dapper;
+using System.Threading.Tasks;
 
 namespace BankApp.UI.Forms
 {
@@ -123,46 +125,69 @@ namespace BankApp.UI.Forms
             this.Controls.AddRange(new Control[] { lblStories, pnlStories, pnlInput, lblRecent, lstRecent, btnSend });
         }
 
-        private void SetupStories()
+        private async void SetupStories()
         {
-            var contacts = new[] {
-                new { Name = "Annem", IBAN = "TR12 0006 1000 0000 0012 3456 78", Color = Color.HotPink },
-                new { Name = "Ev Sahibi", IBAN = "TR99 0006 1000 0000 0099 8877 66", Color = Color.Orange },
-                new { Name = "Kanka", IBAN = "TR55 0006 1000 0000 0055 4433 22", Color = Color.MediumPurple },
-                new { Name = "Eşim", IBAN = "TR10 0006 1000 0000 0011 2233 44", Color = Color.Crimson },
-                new { Name = "Yönetici", IBAN = "TR34 0006 1000 0000 0066 7788 99", Color = Color.SlateGray }
-            };
+            try {
+                pnlStories.Controls.Clear();
+                var context = new DapperContext();
+                using (var conn = context.CreateConnection())
+                {
+                    // **FETCH USER'S QUICK CONTACTS**
+                    var contacts = await conn.QueryAsync<QuickContact>(@"
+                        SELECT * FROM ""QuickContacts"" 
+                        WHERE ""UserId"" = @UserId 
+                        ORDER BY ""CreatedAt"" DESC",
+                        new { UserId = AppEvents.CurrentSession.UserId });
+                    
+                    // Add "+" Button for New Contact
+                    var pnlAdd = new Panel { Size = new Size(90, 100), Margin = new Padding(5) };
+                    var btnAdd = new SimpleButton { Size = new Size(70, 70), Location = new Point(10, 0), Text = "+", ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder };
+                    btnAdd.Appearance.BackColor = Color.FromArgb(50, 50, 50);
+                    btnAdd.Appearance.Font = new Font("Segoe UI", 24F, FontStyle.Bold);
+                    btnAdd.Appearance.ForeColor = Color.White;
+                    System.Drawing.Drawing2D.GraphicsPath pathAdd = new System.Drawing.Drawing2D.GraphicsPath();
+                    pathAdd.AddEllipse(0, 0, 70, 70);
+                    btnAdd.Region = new Region(pathAdd);
+                    btnAdd.Click += (s, e) => {
+                        AddContactForm addForm = new AddContactForm();
+                        if (addForm.ShowDialog() == DialogResult.OK)
+                        {
+                            SetupStories(); // Refresh
+                        }
+                    };
+                    
+                    var lblAdd = new LabelControl { Text = "Ekle", AutoSize = false, Size = new Size(90, 20), Location = new Point(0, 75) };
+                    lblAdd.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
+                    pnlAdd.Controls.AddRange(new Control[] { btnAdd, lblAdd });
+                    pnlStories.Controls.Add(pnlAdd);
 
-            foreach (var c in contacts)
-            {
-                var pnl = new Panel { Size = new Size(90, 100), Margin = new Padding(5) };
-                
-                // Avatar Circle
-                var btn = new SimpleButton();
-                btn.Size = new Size(70, 70);
-                btn.Location = new Point(10, 0);
-                btn.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-                btn.Appearance.BackColor = c.Color;
-                btn.Text = c.Name.Substring(0, 1);
-                btn.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
-                btn.Appearance.ForeColor = Color.White;
-                // Make Circular
-                System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath();
-                path.AddEllipse(0, 0, 70, 70);
-                btn.Region = new Region(path);
+                    foreach (var c in contacts)
+                    {
+                        var pnl = new Panel { Size = new Size(90, 100), Margin = new Padding(5) };
+                        var btn = new SimpleButton { Size = new Size(70, 70), Location = new Point(10, 0), Text = c.Name.Substring(0, 1) };
+                        btn.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+                        try { btn.Appearance.BackColor = ColorTranslator.FromHtml(c.ColorHex); } catch { btn.Appearance.BackColor = Color.DodgerBlue; }
+                        btn.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
+                        btn.Appearance.ForeColor = Color.White;
+                        
+                        System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath();
+                        path.AddEllipse(0, 0, 70, 70);
+                        btn.Region = new Region(path);
 
-                btn.Click += (s, e) => {
-                    txtIBAN.Text = c.IBAN;
-                    txtDescription.Text = $"{c.Name} ödeme";
-                    XtraMessageBox.Show($"{c.Name} seçildi!", "Hızlı Seçim", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                };
+                        btn.Click += (s, e) => {
+                            txtIBAN.Text = c.IBAN;
+                            txtDescription.Text = $"{c.Name} ödeme";
+                        };
 
-                var lbl = new LabelControl { Text = c.Name, AutoSize = false, Size = new Size(90, 20), Location = new Point(0, 75) };
-                lbl.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
+                        var lbl = new LabelControl { Text = c.Name, AutoSize = false, Size = new Size(90, 20), Location = new Point(0, 75) };
+                        lbl.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
 
-                pnl.Controls.Add(btn);
-                pnl.Controls.Add(lbl);
-                pnlStories.Controls.Add(pnl);
+                        pnl.Controls.AddRange(new Control[] { btn, lbl });
+                        pnlStories.Controls.Add(pnl);
+                    }
+                }
+            } catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Stories Error: {ex.Message}");
             }
         }
 

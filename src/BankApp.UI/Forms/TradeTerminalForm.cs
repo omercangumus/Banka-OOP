@@ -22,7 +22,13 @@ namespace BankApp.UI.Forms
             SetupChartVisuals(); 
             InitializeMaximizeButton(); // Add button
             InitializeContextMenu();
-            LoadRealStocks();   
+            InitializeContextMenu();
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            LoadRealStocks();
         }
 
         private void SetupChartVisuals()
@@ -79,7 +85,7 @@ namespace BankApp.UI.Forms
             
             _allStocks.Clear();
             lstStocks.Items.Clear();
-            lstStocks.Items.Add(new StockInfo { Symbol = "...", Name = "Loading 50+ assets...", Price = 0 });
+            lstStocks.Items.Add(new StockInfo { Symbol = "...", Name = "50+ varlık yükleniyor...", Price = 0 });
             
             try
             {
@@ -120,7 +126,7 @@ namespace BankApp.UI.Forms
             {
                 System.Diagnostics.Debug.WriteLine($"LoadRealStocks Error: {ex.Message}");
                 lstStocks.Items.Clear();
-                lstStocks.Items.Add(new StockInfo { Symbol = "ERROR", Name = "Failed to load data.", Price = 0 });
+                lstStocks.Items.Add(new StockInfo { Symbol = "HATA", Name = "Veriler yüklenemedi.", Price = 0 });
             }
         }
         
