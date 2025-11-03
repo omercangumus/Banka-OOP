@@ -69,18 +69,8 @@ namespace BankApp.UI.Forms
                 
                 if (registerResult == null)
                 {
-                    XtraMessageBox.Show("Kayıt başarılı! Lütfen e-posta adresinize gelen doğrulama kodunu giriniz.", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    
-                    VerificationForm verifyForm = new VerificationForm(email);
-                    this.Hide();
-                    if(verifyForm.ShowDialog() == DialogResult.OK)
-                    {
-                        this.Close();
-                    }
-                    else
-                    {
-                        this.Show();
-                    }
+                    XtraMessageBox.Show("Kayıt başarılı! Giriş yapabilirsiniz.", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.Close();
                 }
                 else
                 {
