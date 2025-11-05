@@ -1,0 +1,21 @@
+﻿  Geri y├╝klenecek projeler belirleniyor...
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj : warning NU1603: BankApp.UI, DevExpress.Win.Design (>= 23.1.6) ├Â─şesine ba─şl─▒ ancak DevExpress.Win.Design 23.1.6 bulunamad─▒. Bunun yerine DevExpress.Win.Design 25.1.3 ├ğ├Âz├╝mlendi.
+  Geri y├╝kleme i├ğin t├╝m projeler g├╝ncel.
+C:\Program Files\dotnet\sdk\10.0.100-rc.2.25502.107\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(351,5): message NETSDK1057: Bir .NET ├Ânizleme s├╝r├╝m├╝ kullan─▒yorsunuz. Bkz. https://aka.ms/dotnet-support-policy [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj : warning NU1603: BankApp.UI, DevExpress.Win.Design (>= 23.1.6) ├Â─şesine ba─şl─▒ ancak DevExpress.Win.Design 23.1.6 bulunamad─▒. Bunun yerine DevExpress.Win.Design 25.1.3 ├ğ├Âz├╝mlendi.
+C:\Program Files\dotnet\sdk\10.0.100-rc.2.25502.107\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(351,5): message NETSDK1057: Bir .NET ├Ânizleme s├╝r├╝m├╝ kullan─▒yorsunuz. Bkz. https://aka.ms/dotnet-support-policy [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Infrastructure\BankApp.Infrastructure.csproj]
+  BankApp.Core -> C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Core\bin\Debug\net8.0\BankApp.Core.dll
+  BankApp.Infrastructure -> C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Infrastructure\bin\Debug\net8.0\BankApp.Infrastructure.dll
+CSC : warning DX1000: For evaluation purposes only. Redistribution prohibited. Please purchase a license to continue use of the following DevExpress product libraries: DevExpress.Xtra*/DevExpress.Win* - Included in Subscriptions: Universal, DXperience, WinForms (devexpress.com/DX1000) [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\BESForm.cs(225,22): error CS0122: 'PointSeriesViewBase.Marker' ├Â─şesine koruma d├╝zeyi nedeniyle eri┼şilemiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+
+Olu┼şturma BA┼ŞARISIZ OLDU.
+
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj : warning NU1603: BankApp.UI, DevExpress.Win.Design (>= 23.1.6) ├Â─şesine ba─şl─▒ ancak DevExpress.Win.Design 23.1.6 bulunamad─▒. Bunun yerine DevExpress.Win.Design 25.1.3 ├ğ├Âz├╝mlendi.
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj : warning NU1603: BankApp.UI, DevExpress.Win.Design (>= 23.1.6) ├Â─şesine ba─şl─▒ ancak DevExpress.Win.Design 23.1.6 bulunamad─▒. Bunun yerine DevExpress.Win.Design 25.1.3 ├ğ├Âz├╝mlendi.
+CSC : warning DX1000: For evaluation purposes only. Redistribution prohibited. Please purchase a license to continue use of the following DevExpress product libraries: DevExpress.Xtra*/DevExpress.Win* - Included in Subscriptions: Universal, DXperience, WinForms (devexpress.com/DX1000) [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\Forms\BESForm.cs(225,22): error CS0122: 'PointSeriesViewBase.Marker' ├Â─şesine koruma d├╝zeyi nedeniyle eri┼şilemiyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.UI\BankApp.UI.csproj]
+    3 Uyar─▒
+    1 Hata
+
+Ge├ğen S├╝re 00:00:01.72
