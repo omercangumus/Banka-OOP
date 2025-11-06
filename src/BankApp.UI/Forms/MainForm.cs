@@ -127,11 +127,9 @@ namespace BankApp.UI.Forms
                 quickActions.QRPayClicked += (s, e) => { }; // QR Removed
                 quickActions.ExchangeClicked += (s, e) => { }; // Exchange Removed
                 quickActions.SupportClicked += (s, e) => {
-                    DevExpress.XtraEditors.XtraMessageBox.Show(
-                        "🤖 NovaBank AI Asistan\n\nDestek: support@novabank.com",
-                        "Destek",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
+                    // Open AI Assistant Form
+                    var aiForm = new AIAssistantForm();
+                    aiForm.Show();
                 };
                 
                 // Create 2x3 Grid Layout
