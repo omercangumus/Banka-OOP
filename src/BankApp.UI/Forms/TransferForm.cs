@@ -221,31 +221,41 @@ namespace BankApp.UI.Forms
                 lueAccount.Properties.ValueMember = "Id";
                 lueAccount.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("AccountNumber", "Hesap No"));
                 lueAccount.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Balance", "Bakiye"));
+                
+                // Auto-select first account if available
+                if (accounts.Any())
+                {
+                    lueAccount.EditValue = accounts.First().Id;
+                }
             }
             catch {}
         }
 
         private async void BtnSend_Click(object sender, EventArgs e)
         {
-            if(lueAccount.EditValue == null) { XtraMessageBox.Show("Hesap Seçiniz!", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-            if(string.IsNullOrWhiteSpace(txtIBAN.Text)) { XtraMessageBox.Show("IBAN Giriniz!", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-            if(txtAmount.Value <= 0) { XtraMessageBox.Show("Tutar Giriniz!", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if(lueAccount.EditValue == null) { XtraMessageBox.Show("Lütfen gönderen hesabı seçiniz!", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if(string.IsNullOrWhiteSpace(txtIBAN.Text)) { XtraMessageBox.Show("Lütfen IBAN giriniz!", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if(txtAmount.Value <= 0) { XtraMessageBox.Show("Geçerli bir tutar giriniz!", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
 
             try {
                 int accountId = (int)lueAccount.EditValue;
-                var res = await _transactionService.TransferMoneyAsync(accountId, txtIBAN.Text, txtAmount.Value, txtDescription.Text);
                 
-                if(res == null)
+                // IBAN Sanitization: Remove spaces and trim
+                string cleanIban = txtIBAN.Text.Trim().Replace(" ", "");
+                
+                var res = await _transactionService.TransferMoneyAsync(accountId, cleanIban, txtAmount.Value, txtDescription.Text);
+                
+                if(res == null) // Success returns null
                 {
-                    XtraMessageBox.Show("Transfer Başarılı! ✅", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    XtraMessageBox.Show("Transfer Başarıyla Gerçekleşti! ✅\n\nAlıcıya bildirim gönderildi.", "İşlem Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     this.Close();
                 }
                 else
                 {
-                    XtraMessageBox.Show($"Hata: {res}", "Transfer Başarısız", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    XtraMessageBox.Show($"Transfer Yapılamadı:\n{res}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             } catch (Exception ex) {
-                XtraMessageBox.Show($"Sistem Hatası: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                XtraMessageBox.Show($"Beklenmedik Bir Hata Oluştu:\n{ex.Message}", "Sistem Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
