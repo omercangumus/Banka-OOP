@@ -446,9 +446,9 @@ namespace BankApp.Infrastructure.Data
                                     END as ColorHex
                                 FROM ""Users"" u1
                                 CROSS JOIN ""Users"" u2
-                                INNER JOIN ""Accounts"" a ON a.""UserId"" = u2.""Id""
+                                INNER JOIN ""Customers"" c ON c.""UserId"" = u2.""Id""
+                                INNER JOIN ""Accounts"" a ON a.""CustomerId"" = c.""Id""
                                 WHERE u1.""Id"" != u2.""Id""  -- Don't add yourself
-                                AND a.""AccountType"" = 'Savings'  -- Use savings accounts
                                 AND ROW_NUMBER() OVER (PARTITION BY u1.""Id"", u2.""Id"" ORDER BY a.""CreatedAt"") = 1  -- One account per user pair
                                 LIMIT 200;  -- Safety limit
                             ";
