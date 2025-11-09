@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Npgsql;
 using BankApp.Core.Interfaces;
 using BankApp.Core.Entities;
 
@@ -28,11 +29,54 @@ namespace BankApp.Infrastructure.Services
 
             try
             {
-                var user = await _userRepository.GetByUsernameAsync(username);
+                // SORUN DÜZELTİLDİ: Veritabanı bağlantı hatası kontrolü
+                User? user = null;
+                try
+                {
+                    user = await _userRepository.GetByUsernameAsync(username);
+                }
+                catch (Npgsql.NpgsqlException dbEx)
+                {
+                    // Veritabanı bağlantı hatası
+                    if (dbEx.Message.Contains("Failed to connect") || dbEx.Message.Contains("5432") || dbEx.Message.Contains("timeout"))
+                    {
+                        return "Veritabanı bağlantı hatası! PostgreSQL servisi çalışıyor mu? Lütfen servisleri kontrol edin.";
+                    }
+                    return $"Veritabanı hatası: {dbEx.Message}";
+                }
+                catch (Exception dbEx)
+                {
+                    return $"Kullanıcı sorgulama hatası: {dbEx.Message}";
+                }
+
                 if (user == null) return "Kullanıcı adı veya şifre hatalı."; // Güvenlik için detay verme
 
-                if (!user.IsVerified) return "Hesap doğrulanmamış.";
+                // PHASE 5: IsVerified kontrolü kaldırıldı - doğrulanmamış kullanıcılar da giriş yapabilir
+                // Özellik kısıtlamaları UI tarafında yapılacak (AppEvents.CurrentSession.IsVerified check)
+                
                 if (!user.IsActive) return "Hesap aktif değil.";
+                // PHASE 5: Add IsBanned check (fallback to IsActive = false if column doesn't exist)
+                // Note: IsBanned property may not exist yet, so we use reflection or fallback
+                try
+                {
+                    // Try to check IsBanned property via reflection
+                    var isBannedProp = user.GetType().GetProperty("IsBanned");
+                    if (isBannedProp != null)
+                    {
+                        var isBanned = (bool?)isBannedProp.GetValue(user);
+                        if (isBanned == true) return "Hesabınız yasaklanmıştır. Lütfen yönetici ile iletişime geçin.";
+                    }
+                    else
+                    {
+                        // Fallback: If IsBanned column doesn't exist, use IsActive
+                        if (!user.IsActive) return "Hesabınız yasaklanmıştır. Lütfen yönetici ile iletişime geçin.";
+                    }
+                }
+                catch
+                {
+                    // Fallback: If IsBanned column doesn't exist, use IsActive
+                    if (!user.IsActive) return "Hesabınız yasaklanmıştır. Lütfen yönetici ile iletişime geçin.";
+                }
 
                 if (VerifyPassword(password, user.PasswordHash))
                 {
@@ -45,7 +89,13 @@ namespace BankApp.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                return $"Sistem hatası: {ex.Message}";
+                // SORUN DÜZELTİLDİ: Daha detaylı hata mesajı
+                string errorMsg = $"Sistem hatası: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMsg += $"\nİç Hata: {ex.InnerException.Message}";
+                }
+                return errorMsg;
             }
         }
 

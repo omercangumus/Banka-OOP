@@ -360,23 +360,26 @@ namespace BankApp.UI.Controls
                 
                 if (saveDialog.ShowDialog() == DialogResult.OK)
                 {
-                    using (StreamWriter sw = new StreamWriter(saveDialog.FileName, false, Encoding.UTF8))
+                    var sb = new StringBuilder();
+                    
+                    // Write header
+                    var columns = gridViewUsers.Columns.Cast<DevExpress.XtraGrid.Columns.GridColumn>()
+                        .Where(c => c.Visible)
+                        .Select(c => c.Caption);
+                    sb.AppendLine(string.Join("\t", columns));
+                    
+                    // Write data rows
+                    for (int i = 0; i < gridViewUsers.DataRowCount; i++)
                     {
-                        // Write header
-                        var columns = gridViewUsers.Columns.Cast<DevExpress.XtraGrid.Columns.GridColumn>()
+                        var rowData = gridViewUsers.Columns.Cast<DevExpress.XtraGrid.Columns.GridColumn>()
                             .Where(c => c.Visible)
-                            .Select(c => c.Caption);
-                        sw.WriteLine(string.Join(",", columns));
-                        
-                        // Write data rows
-                        for (int i = 0; i < gridViewUsers.DataRowCount; i++)
-                        {
-                            var rowData = gridViewUsers.Columns.Cast<DevExpress.XtraGrid.Columns.GridColumn>()
-                                .Where(c => c.Visible)
-                                .Select(c => gridViewUsers.GetRowCellValue(i, c)?.ToString() ?? "");
-                            sw.WriteLine(string.Join(",", rowData));
-                        }
+                            .Select(c => gridViewUsers.GetRowCellValue(i, c)?.ToString() ?? "");
+                        sb.AppendLine(string.Join("\t", rowData));
                     }
+                    
+                    // Write with UTF-8 BOM for Excel compatibility
+                    var utf8WithBom = new UTF8Encoding(true);
+                    File.WriteAllText(saveDialog.FileName, sb.ToString(), utf8WithBom);
                     
                     XtraMessageBox.Show("Excel dosyası başarıyla oluşturuldu!", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
