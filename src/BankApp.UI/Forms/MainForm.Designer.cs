@@ -16,12 +16,20 @@ namespace BankApp.UI.Forms
         private IContainer components = null;
         private RibbonControl ribbonControl1;
         private RibbonPage pageDashboard;
-        private RibbonPage pageCustomers;
+        private RibbonPage pagePortfolio;
         private RibbonPage pageInvestments;
+        private RibbonPage pageCustomers;
         private RibbonPageGroup groupStats;
         private RibbonPageGroup groupAI;
         private RibbonPageGroup groupCustomerActions;
         private RibbonPageGroup groupInvestmentActions;
+        
+        // Toolbar groups for Tab1 (Genel Bakış)
+        private RibbonPageGroup groupGeneralActions;
+        // Toolbar groups for Tab2 (Portföy)
+        private RibbonPageGroup groupPortfolioActions;
+        // Toolbar groups for Tab3 (Yatırım)
+        private RibbonPageGroup groupTradingActions;
         
         // Ribbon Items
         private DevExpress.XtraBars.BarButtonItem btnAiAssist;
@@ -97,8 +105,9 @@ namespace BankApp.UI.Forms
             // Initialize all components
             this.ribbonControl1 = new RibbonControl();
             this.pageDashboard = new RibbonPage("Genel Bakış");
+            this.pagePortfolio = new RibbonPage("Portföy");
+            this.pageInvestments = new RibbonPage("Yatırım");
             this.pageCustomers = new RibbonPage("Müşteriler");
-            this.pageInvestments = new RibbonPage("Yatırım İşlemleri");
             this.groupStats = new RibbonPageGroup("Durum");
             this.groupAI = new RibbonPageGroup("AI");
             this.groupCustomerActions = new RibbonPageGroup("Müşteri İşlemleri");
@@ -197,7 +206,7 @@ namespace BankApp.UI.Forms
             // this.ribbonControl1.MaxItemId = 18;
             this.ribbonControl1.Name = "ribbonControl1";
             this.ribbonControl1.Pages.AddRange(new RibbonPage[] {
-                this.pageDashboard, this.pageCustomers, this.pageInvestments
+                this.pageDashboard, this.pagePortfolio, this.pageInvestments, this.pageCustomers
             });
             this.ribbonControl1.Size = new Size(1400, 130);
 
@@ -367,21 +376,53 @@ namespace BankApp.UI.Forms
             groupLogout.Name = "groupLogout";
             groupLogout.Text = "🚪 Oturum";
 
-            // Ribbon Pages - YENİ GRUPLARLA
-            this.pageDashboard.Groups.Add(this.groupStats);
-            this.pageDashboard.Groups.Add(this.groupAI);
-            this.pageDashboard.Groups.Add(groupLogout); // Logout eklendi
+            // ============================================
+            // TAB 1: GENEL BAKIŞ - Dashboard with general actions
+            // ============================================
+            this.groupGeneralActions = new RibbonPageGroup("Genel İşlemler");
+            this.groupGeneralActions.ItemLinks.Add(this.btnMoneyTransfer);
+            this.groupGeneralActions.ItemLinks.Add(this.btnAiAssist);
+            this.groupGeneralActions.ItemLinks.Add(this.btnRefresh);
+            
+            this.pageDashboard.Groups.Add(this.groupGeneralActions);
+            this.pageDashboard.Groups.Add(groupLogout);
             this.pageDashboard.Name = "pageDashboard";
-            this.pageDashboard.Text = "🏠 Genel Bakış";
+            this.pageDashboard.Text = "Genel Bakış";
 
+            // ============================================
+            // TAB 2: PORTFÖY - Dashboard with finance product shortcuts
+            // ============================================
+            this.groupPortfolioActions = new RibbonPageGroup("Finans Ürünleri");
+            this.groupPortfolioActions.ItemLinks.Add(this.btnInvestmentDashboard);
+            this.groupPortfolioActions.ItemLinks.Add(this.btnBES);
+            this.groupPortfolioActions.ItemLinks.Add(this.btnCards);
+            this.groupPortfolioActions.ItemLinks.Add(this.btnTimeDeposit);
+            this.groupPortfolioActions.ItemLinks.Add(this.btnLoanApplication);
+            this.groupPortfolioActions.ItemLinks.Add(this.btnLoanApproval);
+            
+            this.pagePortfolio.Groups.Add(this.groupPortfolioActions);
+            this.pagePortfolio.Groups.Add(groupLogout);
+            this.pagePortfolio.Name = "pagePortfolio";
+            this.pagePortfolio.Text = "Portföy";
+
+            // ============================================
+            // TAB 3: YATIRIM - TradingView-like investment screen
+            // ============================================
+            this.groupTradingActions = new RibbonPageGroup("Yatırım Araçları");
+            this.groupTradingActions.ItemLinks.Add(this.btnStockMarket);
+            this.groupTradingActions.ItemLinks.Add(this.btnRefresh);
+            
+            this.pageInvestments.Groups.Add(this.groupTradingActions);
+            this.pageInvestments.Name = "pageInvestments";
+            this.pageInvestments.Text = "Yatırım";
+
+            // ============================================
+            // TAB 4: MÜŞTERİLER - Admin only
+            // ============================================
             this.pageCustomers.Groups.Add(this.groupCustomerActions);
             this.pageCustomers.Groups.Add(groupReports);
             this.pageCustomers.Name = "pageCustomers";
-            this.pageCustomers.Text = "👥 Müşteriler";
-
-            this.pageInvestments.Groups.Add(this.groupInvestmentActions);
-            this.pageInvestments.Name = "pageInvestments";
-            this.pageInvestments.Text = "📈 Yatırım İşlemleri";
+            this.pageCustomers.Text = "Müşteriler";
 
             // ============================================
             // STAT CARDS - RENKLİ KARTLAR

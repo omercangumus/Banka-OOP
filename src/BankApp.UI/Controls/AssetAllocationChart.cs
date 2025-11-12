@@ -58,6 +58,7 @@ namespace BankApp.UI.Controls
                         var spendingData = await conn.QueryAsync<(string Category, decimal Amount)>(@"
                             SELECT 
                                 CASE 
+                                    WHEN ""Description"" LIKE '%Yatırım%' OR ""Description"" LIKE '%yatırım%' OR ""Description"" LIKE '%Investment%' THEN 'Yatırım'
                                     WHEN ""Description"" LIKE '%market%' OR ""Description"" LIKE '%Market%' THEN 'Market'
                                     WHEN ""Description"" LIKE '%fatura%' OR ""Description"" LIKE '%Fatura%' THEN 'Faturalar'
                                     WHEN ""Description"" LIKE '%kira%' OR ""Description"" LIKE '%Kira%' THEN 'Kira'
