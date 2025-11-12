@@ -32,7 +32,7 @@ namespace BankApp.UI.Forms
         private DevExpress.XtraEditors.ComboBoxEdit cmbFilter;
         private DataGridView gridUsers;
         private Panel userActions;
-        private DevExpress.XtraEditors.SimpleButton btnRefresh, btnBanUnban, btnExportCsv, btnExportPdf, btnTestConnection, btnTestEmail;
+        private DevExpress.XtraEditors.SimpleButton btnRefresh, btnBanUnban, btnExportPdf, btnTestConnection, btnTestEmail;
 
         // Right Panel - Loan Approval
         private TableLayoutPanel loanLayout;
@@ -454,17 +454,6 @@ namespace BankApp.UI.Forms
             btnBanUnban.Click += async (s, e) => await BanUnbanUserAsync();
             actionsLayout.Controls.Add(btnBanUnban, 1, 0);
 
-            btnExportCsv = new DevExpress.XtraEditors.SimpleButton
-            {
-                Text = "CSV Dışa Aktar",
-                Appearance = { BackColor = AccentGold, ForeColor = Color.Black },
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                Dock = DockStyle.Fill,
-                Margin = new Padding(2)
-            };
-            btnExportCsv.Click += (s, e) => ExportToCsv();
-            actionsLayout.Controls.Add(btnExportCsv, 2, 0);
-
             btnExportPdf = new DevExpress.XtraEditors.SimpleButton
             {
                 Text = "PDF Dışa Aktar",
@@ -474,7 +463,7 @@ namespace BankApp.UI.Forms
                 Margin = new Padding(2)
             };
             btnExportPdf.Click += (s, e) => ExportToPdf();
-            actionsLayout.Controls.Add(btnExportPdf, 3, 0);
+            actionsLayout.Controls.Add(btnExportPdf, 2, 0);
 
             userActions.Controls.Add(actionsLayout);
             userLayout.Controls.Add(userActions, 0, 3);
@@ -994,78 +983,7 @@ namespace BankApp.UI.Forms
             PopulateUsersGrid(filtered);
         }
 
-        private void ExportToCsv()
-        {
-            System.Diagnostics.Debug.WriteLine("[ExportToCsv] Started");
-            ExportLogger.LogInfo("ExportToCsv started.");
-
-            try
-            {
-                // STEP 1: SNAPSHOT DATA
-                // Use AdminGridExtractor to snapshot visible grid data safely
-                // This prevents crashes if the grid is modified during export
-                var dataTable = AdminGridExtractor.ExtractVisibleData(gridUsers);
-                
-                if (dataTable.Rows.Count == 0)
-                {
-                    XtraMessageBox.Show("Dışa aktarılacak veri bulunamadı.\nLütfen ekranda verinin listelendiğinden emin olun.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                // STEP 2: GET PATH
-                using var sfd = new SaveFileDialog
-                {
-                    Filter = "CSV Dosyası (*.csv)|*.csv",
-                    FileName = $"Kullanicilar_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
-                    Title = "CSV Olarak Kaydet",
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-                };
-
-                if (sfd.ShowDialog() != DialogResult.OK) return;
-                if (string.IsNullOrWhiteSpace(sfd.FileName)) return;
-
-                // STEP 3: UI LOCK
-                this.Cursor = Cursors.WaitCursor;
-                btnExportCsv.Enabled = false;
-                btnExportPdf.Enabled = false;
-                lblStatus.Text = "CSV dışa aktarılıyor...";
-                Application.DoEvents(); // Force UI update
-
-                // STEP 4: EXPORT
-                AdminCsvExporter.Export(dataTable, sfd.FileName);
-
-                // Success
-                lblStatus.Text = "CSV dışa aktarımı tamamlandı";
-                System.Diagnostics.Debug.WriteLine($"[ExportToCsv] Success: {sfd.FileName}");
-                ExportLogger.LogInfo($"CSV export succeeded: {sfd.FileName}");
-
-                var result = XtraMessageBox.Show(
-                    $"CSV başarıyla oluşturuldu!\n\nDosya: {sfd.FileName}\n\nDosyayı açmak ister misiniz?",
-                    "Başarılı",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Information);
-
-                if (result == DialogResult.Yes)
-                {
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = sfd.FileName, UseShellExecute = true }); }
-                    catch { }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ExportToCsv] Error: {ex}");
-                ExportLogger.LogError("CSV export failed", ex);
-                lblStatus.Text = "CSV hatası";
-                XtraMessageBox.Show($"CSV dışa aktarma hatası:\n\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                // STEP 5: RESTORE UI
-                this.Cursor = Cursors.Default;
-                if (btnExportCsv != null) btnExportCsv.Enabled = true;
-                if (btnExportPdf != null) btnExportPdf.Enabled = true;
-            }
-        }
+        // ExportToCsv method removed by user request
         
         private string EscapeCsvField(string field)
         {
@@ -1138,7 +1056,7 @@ namespace BankApp.UI.Forms
 
                 // STEP 3: UI LOCK
                 this.Cursor = Cursors.WaitCursor;
-                btnExportCsv.Enabled = false;
+                // btnExportCsv removed
                 btnExportPdf.Enabled = false;
                 lblStatus.Text = "PDF dışa aktarılıyor...";
                 Application.DoEvents(); // Force UI update
@@ -1160,8 +1078,18 @@ namespace BankApp.UI.Forms
 
                 if (result == DialogResult.Yes)
                 {
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = sfd.FileName, UseShellExecute = true }); }
-                    catch { }
+                    try 
+                    { 
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo 
+                        { 
+                            FileName = sfd.FileName, 
+                            UseShellExecute = true 
+                        }); 
+                    }
+                    catch (Exception openEx) 
+                    { 
+                        XtraMessageBox.Show("Dosya oluşturuldu ama otomatik açılamadı.\n" + openEx.Message, "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
                 }
             }
             catch (Exception ex)
@@ -1175,7 +1103,7 @@ namespace BankApp.UI.Forms
             {
                 // STEP 5: RESTORE UI
                 this.Cursor = Cursors.Default;
-                if (btnExportCsv != null) btnExportCsv.Enabled = true;
+                // btnExportCsv removed
                 if (btnExportPdf != null) btnExportPdf.Enabled = true;
             }
         }
