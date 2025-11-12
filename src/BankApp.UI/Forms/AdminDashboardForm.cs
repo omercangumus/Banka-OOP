@@ -997,17 +997,22 @@ namespace BankApp.UI.Forms
         private void ExportToCsv()
         {
             System.Diagnostics.Debug.WriteLine("[ExportToCsv] Started");
-            
+            ExportLogger.LogInfo("ExportToCsv started.");
+
             try
             {
-                // Validate data exists
-                var dataTable = CreateUsersDataTable();
+                // STEP 1: SNAPSHOT DATA
+                // Use AdminGridExtractor to snapshot visible grid data safely
+                // This prevents crashes if the grid is modified during export
+                var dataTable = AdminGridExtractor.ExtractVisibleData(gridUsers);
+                
                 if (dataTable.Rows.Count == 0)
                 {
-                    XtraMessageBox.Show("Dışa aktarılacak veri bulunamadı.\nLütfen önce 'Yenile' butonuna tıklayın.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    XtraMessageBox.Show("Dışa aktarılacak veri bulunamadı.\nLütfen ekranda verinin listelendiğinden emin olun.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
+                // STEP 2: GET PATH
                 using var sfd = new SaveFileDialog
                 {
                     Filter = "CSV Dosyası (*.csv)|*.csv",
@@ -1017,19 +1022,22 @@ namespace BankApp.UI.Forms
                 };
 
                 if (sfd.ShowDialog() != DialogResult.OK) return;
+                if (string.IsNullOrWhiteSpace(sfd.FileName)) return;
 
-                // Disable buttons and show wait cursor
+                // STEP 3: UI LOCK
                 this.Cursor = Cursors.WaitCursor;
                 btnExportCsv.Enabled = false;
                 btnExportPdf.Enabled = false;
                 lblStatus.Text = "CSV dışa aktarılıyor...";
-                Application.DoEvents();
+                Application.DoEvents(); // Force UI update
 
-                // Export using AdminCsvExporter
+                // STEP 4: EXPORT
                 AdminCsvExporter.Export(dataTable, sfd.FileName);
 
-                lblStatus.Text = "CSV dışa aktarma tamamlandı";
+                // Success
+                lblStatus.Text = "CSV dışa aktarımı tamamlandı";
                 System.Diagnostics.Debug.WriteLine($"[ExportToCsv] Success: {sfd.FileName}");
+                ExportLogger.LogInfo($"CSV export succeeded: {sfd.FileName}");
 
                 var result = XtraMessageBox.Show(
                     $"CSV başarıyla oluşturuldu!\n\nDosya: {sfd.FileName}\n\nDosyayı açmak ister misiniz?",
@@ -1046,14 +1054,16 @@ namespace BankApp.UI.Forms
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ExportToCsv] Error: {ex}");
+                ExportLogger.LogError("CSV export failed", ex);
                 lblStatus.Text = "CSV hatası";
                 XtraMessageBox.Show($"CSV dışa aktarma hatası:\n\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
+                // STEP 5: RESTORE UI
                 this.Cursor = Cursors.Default;
-                btnExportCsv.Enabled = true;
-                btnExportPdf.Enabled = true;
+                if (btnExportCsv != null) btnExportCsv.Enabled = true;
+                if (btnExportPdf != null) btnExportPdf.Enabled = true;
             }
         }
         
@@ -1100,17 +1110,21 @@ namespace BankApp.UI.Forms
         private void ExportToPdf()
         {
             System.Diagnostics.Debug.WriteLine("[ExportToPdf] Started");
-            
+            ExportLogger.LogInfo("ExportToPdf started.");
+
             try
             {
-                // Validate data exists
-                var dataTable = CreateUsersDataTable();
+                // STEP 1: SNAPSHOT DATA
+                // Use AdminGridExtractor to snapshot visible grid data safely
+                var dataTable = AdminGridExtractor.ExtractVisibleData(gridUsers);
+                
                 if (dataTable.Rows.Count == 0)
                 {
-                    XtraMessageBox.Show("Dışa aktarılacak veri bulunamadı.\nLütfen önce 'Yenile' butonuna tıklayın.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    XtraMessageBox.Show("Dışa aktarılacak veri bulunamadı.\nLütfen ekranda verinin listelendiğinden emin olun.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
+                // STEP 2: GET PATH
                 using var sfd = new SaveFileDialog
                 {
                     Filter = "PDF Dosyası (*.pdf)|*.pdf",
@@ -1120,19 +1134,23 @@ namespace BankApp.UI.Forms
                 };
 
                 if (sfd.ShowDialog() != DialogResult.OK) return;
+                if (string.IsNullOrWhiteSpace(sfd.FileName)) return;
 
-                // Disable buttons and show wait cursor
+                // STEP 3: UI LOCK
                 this.Cursor = Cursors.WaitCursor;
                 btnExportCsv.Enabled = false;
                 btnExportPdf.Enabled = false;
                 lblStatus.Text = "PDF dışa aktarılıyor...";
-                Application.DoEvents();
+                Application.DoEvents(); // Force UI update
 
-                // Export using AdminPdfExporter (QuestPDF)
+                // STEP 4: EXPORT
+                // Uses QuestPDF via AdminPdfExporter
                 AdminPdfExporter.Export(dataTable, sfd.FileName);
 
+                // Success
                 lblStatus.Text = "PDF dışa aktarma tamamlandı";
                 System.Diagnostics.Debug.WriteLine($"[ExportToPdf] Success: {sfd.FileName}");
+                ExportLogger.LogInfo($"PDF export succeeded: {sfd.FileName}");
 
                 var result = XtraMessageBox.Show(
                     $"PDF başarıyla oluşturuldu!\n\nDosya: {sfd.FileName}\n\nDosyayı açmak ister misiniz?",
@@ -1149,14 +1167,16 @@ namespace BankApp.UI.Forms
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ExportToPdf] Error: {ex}");
+                ExportLogger.LogError("PDF export failed", ex);
                 lblStatus.Text = "PDF hatası";
                 XtraMessageBox.Show($"PDF dışa aktarma hatası:\n\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
+                // STEP 5: RESTORE UI
                 this.Cursor = Cursors.Default;
-                btnExportCsv.Enabled = true;
-                btnExportPdf.Enabled = true;
+                if (btnExportCsv != null) btnExportCsv.Enabled = true;
+                if (btnExportPdf != null) btnExportPdf.Enabled = true;
             }
         }
     }
