@@ -8,6 +8,7 @@ using DevExpress.XtraEditors;
 using DevExpress.XtraCharts;
 using DevExpress.Utils;
 using BankApp.Infrastructure.Services;
+using BankApp.UI.Services.Pdf;
 
 namespace BankApp.UI.Forms
 {
@@ -178,7 +179,8 @@ namespace BankApp.UI.Forms
                 ("delete", "🗑", "Seçiliyi Sil (Del)"),
                 ("clearall", "🧹", "Tümünü Temizle"),
                 ("undo", "↩", "Geri Al (Ctrl+Z)"),
-                ("redo", "↪", "İleri Al (Ctrl+Y)")
+                ("redo", "↪", "İleri Al (Ctrl+Y)"),
+                ("exportpdf", "📄", "PDF Export")
             };
             
             int y = 8;
@@ -292,6 +294,9 @@ namespace BankApp.UI.Forms
                     return;
                 case "clearall":
                     ClearAllDrawings();
+                    return;
+                case "exportpdf":
+                    ExportPdf();
                     return;
                 case "undo":
                     Undo();
@@ -822,6 +827,76 @@ namespace BankApp.UI.Forms
             _undoStack.Push(current);
             _drawings = _redoStack.Pop();
             chartMain.Invalidate();
+        }
+        
+        private void ExportPdf()
+        {
+            try
+            {
+                using var dialog = new SaveFileDialog();
+                dialog.Filter = "PDF Files (*.pdf)|*.pdf";
+                dialog.FileName = $"{_symbol}_Analysis_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                dialog.Title = "PDF Raporu Kaydet";
+                
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+                
+                var lastPrice = _candles.Count > 0 ? _candles.Last().Close : 0;
+                var prevPrice = _candles.Count > 1 ? _candles[^2].Close : lastPrice;
+                var changePercent = prevPrice > 0 ? ((lastPrice - prevPrice) / prevPrice) * 100 : 0;
+                
+                var data = new InvestmentReportData
+                {
+                    Symbol = _symbol,
+                    Name = _symbol,
+                    AssetType = _dataProvider.GetType().Name.Contains("Binance") ? "Crypto" : "Stock",
+                    LastPrice = lastPrice,
+                    ChangePercent = changePercent,
+                    ChangeAbsolute = lastPrice - prevPrice,
+                    Timeframe = _timeframe,
+                    GeneratedAt = DateTime.Now,
+                    MA20 = _showMA20 && _candles.Count >= 20 ? _candles.Skip(_candles.Count - 20).Average(c => c.Close) : null,
+                    MA50 = _showMA50 && _candles.Count >= 50 ? _candles.Skip(_candles.Count - 50).Average(c => c.Close) : null,
+                    EMA12 = _showEMA12 && _candles.Count >= 12 ? CalculateEMA(12) : null,
+                    EMA26 = _showEMA26 && _candles.Count >= 26 ? CalculateEMA(26) : null,
+                    BollingerEnabled = _showBB,
+                    UserNotes = $"Drawings: {_drawings.Count} | Snap: {_snapToOHLC}"
+                };
+                
+                // Try to capture chart image
+                try
+                {
+                    using var ms = new System.IO.MemoryStream();
+                    chartMain.ExportToImage(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    data.ChartImage = ms.ToArray();
+                }
+                catch { }
+                
+                PdfGenerator.GenerateInvestmentAnalysisReport(data, dialog.FileName);
+                
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"PDF başarıyla oluşturuldu:\n{dialog.FileName}",
+                    "PDF Export",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"PDF oluşturulurken hata: {ex.Message}",
+                    "Hata",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+        
+        private double CalculateEMA(int period)
+        {
+            if (_candles.Count < period) return 0;
+            double multiplier = 2.0 / (period + 1);
+            double ema = _candles[0].Close;
+            for (int i = 1; i < _candles.Count; i++)
+                ema = (_candles[i].Close - ema) * multiplier + ema;
+            return ema;
         }
         
         #endregion
