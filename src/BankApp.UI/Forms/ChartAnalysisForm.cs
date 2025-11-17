@@ -23,7 +23,11 @@ namespace BankApp.UI.Forms
         private Panel pnlToolbar;
         private Panel pnlTopBar;
         private ChartControl chartMain;
+        private ChartControl chartRSI;
+        private ChartControl chartMACD;
         private XYDiagram _diagram;
+        private XYDiagram _diagramRSI;
+        private XYDiagram _diagramMACD;
         
         // Top bar controls
         private LabelControl lblSymbol;
@@ -200,17 +204,16 @@ namespace BankApp.UI.Forms
         
         private void InitializeChart()
         {
+            // Main chart (Candle + Volume)
             chartMain = new ChartControl();
             chartMain.Dock = DockStyle.Fill;
             chartMain.BackColor = Color.FromArgb(14, 14, 14);
+            chartMain.AppearanceName = "Dark";
             chartMain.Legend.Visibility = DefaultBoolean.False;
             chartMain.RuntimeHitTesting = true;
             chartMain.BorderOptions.Visibility = DefaultBoolean.False;
-            
-            // Disable right-click context menu
             chartMain.ContextMenuStrip = null;
             
-            // Events
             chartMain.MouseDown += Chart_MouseDown;
             chartMain.MouseMove += Chart_MouseMove;
             chartMain.MouseUp += Chart_MouseUp;
@@ -220,7 +223,30 @@ namespace BankApp.UI.Forms
             
             this.Controls.Add(chartMain);
             
-            // Ensure chart is behind other controls
+            // RSI chart (bottom panel)
+            chartRSI = new ChartControl();
+            chartRSI.Dock = DockStyle.Bottom;
+            chartRSI.Height = 150;
+            chartRSI.BackColor = Color.FromArgb(14, 14, 14);
+            chartRSI.AppearanceName = "Dark";
+            chartRSI.Legend.Visibility = DefaultBoolean.False;
+            chartRSI.BorderOptions.Visibility = DefaultBoolean.False;
+            chartRSI.ContextMenuStrip = null;
+            chartRSI.Visible = false;
+            this.Controls.Add(chartRSI);
+            
+            // MACD chart (bottom panel)
+            chartMACD = new ChartControl();
+            chartMACD.Dock = DockStyle.Bottom;
+            chartMACD.Height = 150;
+            chartMACD.BackColor = Color.FromArgb(14, 14, 14);
+            chartMACD.AppearanceName = "Dark";
+            chartMACD.Legend.Visibility = DefaultBoolean.False;
+            chartMACD.BorderOptions.Visibility = DefaultBoolean.False;
+            chartMACD.ContextMenuStrip = null;
+            chartMACD.Visible = false;
+            this.Controls.Add(chartMACD);
+            
             chartMain.SendToBack();
         }
         
@@ -396,15 +422,19 @@ namespace BankApp.UI.Forms
             
             chartMain.Series.Add(series);
             
-            // Add indicators
+            // Add indicators to main chart
             if (_showMA20) AddMA(20, Color.FromArgb(255, 193, 7));
             if (_showMA50) AddMA(50, Color.FromArgb(156, 39, 176));
             if (_showEMA12) AddEMA(12, Color.FromArgb(0, 188, 212));
             if (_showEMA26) AddEMA(26, Color.FromArgb(255, 152, 0));
             if (_showBB) AddBollingerBands(20, 2);
             if (_showVolume) AddVolumeIndicator();
-            if (_showRSI) AddRSIIndicator();
-            if (_showMACD) AddMACDIndicator();
+            
+            // RSI and MACD in separate panels
+            chartRSI.Visible = _showRSI;
+            chartMACD.Visible = _showMACD;
+            if (_showRSI) RenderRSIChart();
+            if (_showMACD) RenderMACDChart();
             
             // Configure diagram
             _diagram = chartMain.Diagram as XYDiagram;
@@ -539,9 +569,11 @@ namespace BankApp.UI.Forms
             }
         }
         
-        private void AddRSIIndicator(int period = 14)
+        private void RenderRSIChart(int period = 14)
         {
             if (_candles.Count < period + 1) return;
+            
+            chartRSI.Series.Clear();
             
             var rsiSeries = new Series("RSI(14)", ViewType.Line);
             rsiSeries.ArgumentScaleType = ScaleType.DateTime;
@@ -571,11 +603,11 @@ namespace BankApp.UI.Forms
             ((LineSeriesView)rsiSeries.View).Color = Color.FromArgb(233, 30, 99);
             ((LineSeriesView)rsiSeries.View).LineStyle.Thickness = 2;
             
-            chartMain.Series.Add(rsiSeries);
+            chartRSI.Series.Add(rsiSeries);
             
             // Add reference lines at 30 and 70
-            var overbought = new Series("RSI 70", ViewType.Line);
-            var oversold = new Series("RSI 30", ViewType.Line);
+            var overbought = new Series("OB", ViewType.Line);
+            var oversold = new Series("OS", ViewType.Line);
             overbought.ArgumentScaleType = oversold.ArgumentScaleType = ScaleType.DateTime;
             
             foreach (var c in _candles.Skip(period))
@@ -589,13 +621,28 @@ namespace BankApp.UI.Forms
             ((LineSeriesView)overbought.View).LineStyle.DashStyle = DevExpress.XtraCharts.DashStyle.Dot;
             ((LineSeriesView)oversold.View).LineStyle.DashStyle = DevExpress.XtraCharts.DashStyle.Dot;
             
-            chartMain.Series.Add(overbought);
-            chartMain.Series.Add(oversold);
+            chartRSI.Series.Add(overbought);
+            chartRSI.Series.Add(oversold);
+            
+            // Configure RSI diagram
+            _diagramRSI = chartRSI.Diagram as XYDiagram;
+            if (_diagramRSI != null)
+            {
+                _diagramRSI.AxisX.Visibility = DefaultBoolean.False;
+                _diagramRSI.AxisY.WholeRange.MinValue = 0;
+                _diagramRSI.AxisY.WholeRange.MaxValue = 100;
+                _diagramRSI.AxisY.WholeRange.Auto = false;
+                _diagramRSI.AxisY.GridLines.Color = Color.FromArgb(30, 30, 30);
+                _diagramRSI.AxisY.Label.TextColor = Color.FromArgb(150, 150, 150);
+                _diagramRSI.DefaultPane.BackColor = Color.FromArgb(14, 14, 14);
+            }
         }
         
-        private void AddMACDIndicator(int fastPeriod = 12, int slowPeriod = 26, int signalPeriod = 9)
+        private void RenderMACDChart(int fastPeriod = 12, int slowPeriod = 26, int signalPeriod = 9)
         {
             if (_candles.Count < slowPeriod + signalPeriod) return;
+            
+            chartMACD.Series.Clear();
             
             // Calculate EMA
             var fastEMA = CalculateEMAList(fastPeriod);
@@ -646,9 +693,19 @@ namespace BankApp.UI.Forms
             ((LineSeriesView)macdLine.View).LineStyle.Thickness = 2;
             ((LineSeriesView)signalLine.View).LineStyle.Thickness = 2;
             
-            chartMain.Series.Add(macdLine);
-            chartMain.Series.Add(signalLine);
-            chartMain.Series.Add(histogram);
+            chartMACD.Series.Add(histogram);
+            chartMACD.Series.Add(macdLine);
+            chartMACD.Series.Add(signalLine);
+            
+            // Configure MACD diagram
+            _diagramMACD = chartMACD.Diagram as XYDiagram;
+            if (_diagramMACD != null)
+            {
+                _diagramMACD.AxisX.Visibility = DefaultBoolean.False;
+                _diagramMACD.AxisY.GridLines.Color = Color.FromArgb(30, 30, 30);
+                _diagramMACD.AxisY.Label.TextColor = Color.FromArgb(150, 150, 150);
+                _diagramMACD.DefaultPane.BackColor = Color.FromArgb(14, 14, 14);
+            }
         }
         
         private List<double> CalculateEMAList(int period)
