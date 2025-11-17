@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -168,8 +168,15 @@ namespace BankApp.UI.Controls
         
         private Panel CreateAssetCard(MarketAsset asset)
         {
+            // Calculate responsive card width
+            int formWidth = this.Width > 0 ? this.Width : 1200;
+            int cardMinWidth = 280;
+            int cardMaxWidth = 350;
+            int cols = Math.Max(1, (formWidth - 40) / cardMinWidth);
+            int cardWidth = Math.Min(cardMaxWidth, (formWidth - 40 - (cols * 12)) / cols);
+            
             var card = new Panel();
-            card.Size = new Size(290, 85);
+            card.Size = new Size(cardWidth, 85);
             card.Margin = new Padding(6);
             card.BackColor = Color.FromArgb(24, 24, 24);
             card.Cursor = Cursors.Hand;

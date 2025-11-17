@@ -611,9 +611,19 @@ namespace BankApp.UI.Controls
             try
             {
                 var amt = double.Parse(txtAmount.Text ?? "0");
-                var price = 100.0; // Placeholder
-                txtTotal.EditValue = (amt * price).ToString("N2");
-                lblFee.Text = "Tahmini Komisyon: ~$" + (amt * price * 0.001).ToString("N2");
+                var price = _lastPrice > 0 ? _lastPrice : 100.0;
+                
+                // Use market price or limit price
+                if (cmbOrderType.EditValue?.ToString() != "Market" && !string.IsNullOrWhiteSpace(txtPrice.Text))
+                {
+                    if (double.TryParse(txtPrice.Text, out double limitPrice))
+                        price = limitPrice;
+                }
+                
+                var total = amt * price;
+                txtTotal.EditValue = total.ToString("N2");
+                lblFee.Text = $"Tahmini Komisyon: ~${(total * 0.001):N2}";
+                lblAvailBalance.Text = $"Bakiye: ${(_lastPrice * 10):N2}"; // Mock balance
             }
             catch { }
         }

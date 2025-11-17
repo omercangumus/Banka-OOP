@@ -402,6 +402,9 @@ namespace BankApp.UI.Forms
             if (_showEMA12) AddEMA(12, Color.FromArgb(0, 188, 212));
             if (_showEMA26) AddEMA(26, Color.FromArgb(255, 152, 0));
             if (_showBB) AddBollingerBands(20, 2);
+            if (_showVolume) AddVolumeIndicator();
+            if (_showRSI) AddRSIIndicator();
+            if (_showMACD) AddMACDIndicator();
             
             // Configure diagram
             _diagram = chartMain.Diagram as XYDiagram;
@@ -504,6 +507,168 @@ namespace BankApp.UI.Forms
             chartMain.Series.Add(middle);
             chartMain.Series.Add(upper);
             chartMain.Series.Add(lower);
+        }
+        
+        private void AddVolumeIndicator()
+        {
+            if (_candles.Count == 0) return;
+            
+            var volSeries = new Series("Volume", ViewType.Bar);
+            volSeries.ArgumentScaleType = ScaleType.DateTime;
+            
+            foreach (var c in _candles)
+            {
+                volSeries.Points.Add(new SeriesPoint(c.Time, c.Volume));
+            }
+            
+            var view = (BarSeriesView)volSeries.View;
+            view.Color = Color.FromArgb(100, 100, 100);
+            view.FillStyle.FillMode = DevExpress.XtraCharts.FillMode.Solid;
+            
+            chartMain.Series.Add(volSeries);
+            
+            // Volume should use secondary axis
+            if (_diagram != null && volSeries.View is BarSeriesView barView)
+            {
+                var secondaryAxisY = new SecondaryAxisY("VolumeAxis");
+                secondaryAxisY.Alignment = AxisAlignment.Far;
+                secondaryAxisY.Label.TextColor = Color.FromArgb(150, 150, 150);
+                secondaryAxisY.GridLines.Visible = false;
+                _diagram.SecondaryAxesY.Add(secondaryAxisY);
+                barView.AxisY = secondaryAxisY;
+            }
+        }
+        
+        private void AddRSIIndicator(int period = 14)
+        {
+            if (_candles.Count < period + 1) return;
+            
+            var rsiSeries = new Series("RSI(14)", ViewType.Line);
+            rsiSeries.ArgumentScaleType = ScaleType.DateTime;
+            
+            // Calculate RSI
+            var gains = new List<double>();
+            var losses = new List<double>();
+            
+            for (int i = 1; i < _candles.Count; i++)
+            {
+                var change = _candles[i].Close - _candles[i - 1].Close;
+                gains.Add(change > 0 ? change : 0);
+                losses.Add(change < 0 ? Math.Abs(change) : 0);
+            }
+            
+            for (int i = period; i < gains.Count; i++)
+            {
+                var avgGain = gains.Skip(i - period).Take(period).Average();
+                var avgLoss = losses.Skip(i - period).Take(period).Average();
+                
+                var rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
+                var rsi = 100 - (100 / (1 + rs));
+                
+                rsiSeries.Points.Add(new SeriesPoint(_candles[i + 1].Time, rsi));
+            }
+            
+            ((LineSeriesView)rsiSeries.View).Color = Color.FromArgb(233, 30, 99);
+            ((LineSeriesView)rsiSeries.View).LineStyle.Thickness = 2;
+            
+            chartMain.Series.Add(rsiSeries);
+            
+            // Add reference lines at 30 and 70
+            var overbought = new Series("RSI 70", ViewType.Line);
+            var oversold = new Series("RSI 30", ViewType.Line);
+            overbought.ArgumentScaleType = oversold.ArgumentScaleType = ScaleType.DateTime;
+            
+            foreach (var c in _candles.Skip(period))
+            {
+                overbought.Points.Add(new SeriesPoint(c.Time, 70));
+                oversold.Points.Add(new SeriesPoint(c.Time, 30));
+            }
+            
+            ((LineSeriesView)overbought.View).Color = Color.FromArgb(100, 255, 82, 82);
+            ((LineSeriesView)oversold.View).Color = Color.FromArgb(100, 105, 240, 174);
+            ((LineSeriesView)overbought.View).LineStyle.DashStyle = DevExpress.XtraCharts.DashStyle.Dot;
+            ((LineSeriesView)oversold.View).LineStyle.DashStyle = DevExpress.XtraCharts.DashStyle.Dot;
+            
+            chartMain.Series.Add(overbought);
+            chartMain.Series.Add(oversold);
+        }
+        
+        private void AddMACDIndicator(int fastPeriod = 12, int slowPeriod = 26, int signalPeriod = 9)
+        {
+            if (_candles.Count < slowPeriod + signalPeriod) return;
+            
+            // Calculate EMA
+            var fastEMA = CalculateEMAList(fastPeriod);
+            var slowEMA = CalculateEMAList(slowPeriod);
+            
+            if (fastEMA.Count == 0 || slowEMA.Count == 0) return;
+            
+            // MACD Line = Fast EMA - Slow EMA
+            var macdLine = new Series("MACD", ViewType.Line);
+            var signalLine = new Series("Signal", ViewType.Line);
+            var histogram = new Series("Histogram", ViewType.Bar);
+            
+            macdLine.ArgumentScaleType = signalLine.ArgumentScaleType = histogram.ArgumentScaleType = ScaleType.DateTime;
+            
+            var macdValues = new List<(DateTime time, double value)>();
+            
+            int startIdx = slowPeriod - 1;
+            for (int i = startIdx; i < _candles.Count; i++)
+            {
+                var macd = fastEMA[i - fastPeriod + 1] - slowEMA[i - slowPeriod + 1];
+                macdValues.Add((_candles[i].Time, macd));
+                macdLine.Points.Add(new SeriesPoint(_candles[i].Time, macd));
+            }
+            
+            // Signal Line = EMA of MACD
+            if (macdValues.Count >= signalPeriod)
+            {
+                double signalEMA = macdValues.Take(signalPeriod).Average(x => x.value);
+                double multiplier = 2.0 / (signalPeriod + 1);
+                
+                for (int i = 0; i < macdValues.Count; i++)
+                {
+                    if (i > 0)
+                        signalEMA = (macdValues[i].value - signalEMA) * multiplier + signalEMA;
+                    
+                    if (i >= signalPeriod - 1)
+                    {
+                        signalLine.Points.Add(new SeriesPoint(macdValues[i].time, signalEMA));
+                        var histValue = macdValues[i].value - signalEMA;
+                        histogram.Points.Add(new SeriesPoint(macdValues[i].time, histValue));
+                    }
+                }
+            }
+            
+            ((LineSeriesView)macdLine.View).Color = Color.FromArgb(33, 150, 243);
+            ((LineSeriesView)signalLine.View).Color = Color.FromArgb(255, 152, 0);
+            ((BarSeriesView)histogram.View).Color = Color.FromArgb(76, 175, 80);
+            ((LineSeriesView)macdLine.View).LineStyle.Thickness = 2;
+            ((LineSeriesView)signalLine.View).LineStyle.Thickness = 2;
+            
+            chartMain.Series.Add(macdLine);
+            chartMain.Series.Add(signalLine);
+            chartMain.Series.Add(histogram);
+        }
+        
+        private List<double> CalculateEMAList(int period)
+        {
+            var result = new List<double>();
+            if (_candles.Count < period) return result;
+            
+            double multiplier = 2.0 / (period + 1);
+            double ema = _candles.Take(period).Average(c => c.Close);
+            
+            for (int i = 0; i < period; i++)
+                result.Add(ema);
+            
+            for (int i = period; i < _candles.Count; i++)
+            {
+                ema = (_candles[i].Close - ema) * multiplier + ema;
+                result.Add(ema);
+            }
+            
+            return result;
         }
         
         #region Drawing Methods
