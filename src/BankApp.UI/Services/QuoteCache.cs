@@ -19,11 +19,14 @@ namespace BankApp.UI.Services
         
         public static void Set(string symbol, double price, double changePercent)
         {
+            if (string.IsNullOrWhiteSpace(symbol)) return;
+            
+            var key = NormalizeSymbol(symbol);
             lock (_lock)
             {
-                _cache[symbol] = new QuoteSnapshot
+                _cache[key] = new QuoteSnapshot
                 {
-                    Symbol = symbol,
+                    Symbol = key,
                     Price = price,
                     ChangePercent = changePercent,
                     CachedAt = DateTime.Now
@@ -33,9 +36,12 @@ namespace BankApp.UI.Services
         
         public static QuoteSnapshot Get(string symbol)
         {
+            if (string.IsNullOrWhiteSpace(symbol)) return null;
+            
+            var key = NormalizeSymbol(symbol);
             lock (_lock)
             {
-                if (_cache.TryGetValue(symbol, out var snapshot))
+                if (_cache.TryGetValue(key, out var snapshot))
                 {
                     var age = (DateTime.Now - snapshot.CachedAt).TotalSeconds;
                     if (age < CacheTTLSeconds)
@@ -43,6 +49,11 @@ namespace BankApp.UI.Services
                 }
                 return null;
             }
+        }
+        
+        private static string NormalizeSymbol(string symbol)
+        {
+            return symbol?.Trim().ToUpperInvariant() ?? string.Empty;
         }
         
         public static void Clear()

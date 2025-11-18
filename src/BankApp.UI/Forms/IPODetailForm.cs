@@ -13,12 +13,13 @@ namespace BankApp.UI.Forms
         private readonly string _priceRange;
         private readonly string _date;
         private readonly string _status;
-        private double _price;
+        private double? _price;
         
         private LabelControl lblTitle;
         private LabelControl lblStatus;
         private LabelControl lblDate;
         private LabelControl lblPriceRange;
+        private LabelControl lblPriceInfo;
         private SpinEdit spinLot;
         private TextEdit txtTotal;
         private SimpleButton btnSubmit;
@@ -99,12 +100,27 @@ namespace BankApp.UI.Forms
             
             // Price Range
             lblPriceRange = new LabelControl();
-            lblPriceRange.Text = $"Fiyat Aralığı: {_priceRange}";
+            lblPriceRange.Text = $"Fiyat Aralığı: {(_price.HasValue ? _priceRange : "—")}";
             lblPriceRange.Appearance.Font = new Font("Segoe UI", 10F);
             lblPriceRange.Appearance.ForeColor = Color.White;
             lblPriceRange.Location = new Point(20, y);
             this.Controls.Add(lblPriceRange);
-            y += 50;
+            y += 30;
+            
+            // Price Info (for TBA)
+            if (!_price.HasValue)
+            {
+                lblPriceInfo = new LabelControl();
+                lblPriceInfo.Text = "ℹ️ Fiyat açıklanınca talep alınacaktır.";
+                lblPriceInfo.Appearance.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
+                lblPriceInfo.Appearance.ForeColor = Color.FromArgb(255, 152, 0);
+                lblPriceInfo.Location = new Point(20, y);
+                lblPriceInfo.AutoSizeMode = LabelAutoSizeMode.None;
+                lblPriceInfo.Size = new Size(400, 20);
+                this.Controls.Add(lblPriceInfo);
+                y += 25;
+            }
+            y += 25;
             
             // Lot selection
             var lblLot = new LabelControl();
@@ -159,7 +175,7 @@ namespace BankApp.UI.Forms
             btnSubmit.Appearance.Options.UseForeColor = true;
             btnSubmit.Appearance.Options.UseFont = true;
             btnSubmit.Click += BtnSubmit_Click;
-            btnSubmit.Enabled = _status == "Open" || _status == "Upcoming";
+            btnSubmit.Enabled = (_status == "Open" || _status == "Upcoming") && _price.HasValue;
             this.Controls.Add(btnSubmit);
             
             btnCancel = new SimpleButton();
@@ -178,24 +194,42 @@ namespace BankApp.UI.Forms
         
         private void UpdateTotal()
         {
+            if (!_price.HasValue)
+            {
+                txtTotal.EditValue = "—";
+                txtTotal.Properties.Appearance.ForeColor = Color.FromArgb(120, 120, 120);
+                return;
+            }
+            
             var lot = (int)spinLot.Value;
-            var total = lot * _price;
+            var total = lot * _price.Value;
             txtTotal.EditValue = total.ToString("N2") + " ₺";
+            txtTotal.Properties.Appearance.ForeColor = Color.FromArgb(33, 150, 243);
         }
         
         private void BtnSubmit_Click(object sender, EventArgs e)
         {
             try
             {
+                if (!_price.HasValue)
+                {
+                    XtraMessageBox.Show(
+                        "Fiyat henüz açıklanmadı.",
+                        "Uyarı",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
+                
                 var lot = (int)spinLot.Value;
-                var total = lot * _price;
+                var total = lot * _price.Value;
                 
                 var request = new IPORequest
                 {
                     Symbol = _ticker,
                     Company = _company,
                     Lot = lot,
-                    Price = _price,
+                    Price = _price.Value,
                     Total = total,
                     Status = "Pending",
                     CreatedAt = DateTime.Now
@@ -238,13 +272,15 @@ namespace BankApp.UI.Forms
             }
         }
         
-        private double ParsePrice(string priceRange)
+        private double? ParsePrice(string priceRange)
         {
             try
             {
                 // Handle formats: "₺180-200", "₺45-55", "TBA", "$95"
-                if (priceRange.Contains("TBA") || priceRange.Contains("Announced"))
-                    return 0;
+                if (string.IsNullOrWhiteSpace(priceRange) || 
+                    priceRange.Contains("TBA") || 
+                    priceRange.Contains("Announced"))
+                    return null;
                 
                 var cleaned = priceRange.Replace("₺", "").Replace("$", "").Trim();
                 
@@ -253,17 +289,22 @@ namespace BankApp.UI.Forms
                     var parts = cleaned.Split('-');
                     if (parts.Length == 2)
                     {
-                        var low = double.Parse(parts[0].Trim());
-                        var high = double.Parse(parts[1].Trim());
-                        return (low + high) / 2;
+                        if (double.TryParse(parts[0].Trim(), out var low) && 
+                            double.TryParse(parts[1].Trim(), out var high))
+                        {
+                            return (low + high) / 2;
+                        }
                     }
                 }
                 
-                return double.Parse(cleaned);
+                if (double.TryParse(cleaned, out var price))
+                    return price;
+                    
+                return null;
             }
             catch
             {
-                return 100; // Default fallback
+                return null;
             }
         }
         
