@@ -1066,34 +1066,23 @@ namespace BankApp.UI.Forms
                 var prevPrice = _candles.Count > 1 ? _candles[^2].Close : lastPrice;
                 var changePercent = prevPrice > 0 ? ((lastPrice - prevPrice) / prevPrice) * 100 : 0;
                 
-                var data = new InvestmentReportData
+                // Use simple InvestmentAnalysisData instead of InvestmentReportData
+                var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
                 {
                     Symbol = _symbol,
                     Name = _symbol,
-                    AssetType = _dataProvider.GetType().Name.Contains("Binance") ? "Crypto" : "Stock",
+                    Timeframe = _timeframe,
                     LastPrice = lastPrice,
                     ChangePercent = changePercent,
                     ChangeAbsolute = lastPrice - prevPrice,
-                    Timeframe = _timeframe,
-                    GeneratedAt = DateTime.Now,
-                    MA20 = _showMA20 && _candles.Count >= 20 ? _candles.Skip(_candles.Count - 20).Average(c => c.Close) : null,
-                    MA50 = _showMA50 && _candles.Count >= 50 ? _candles.Skip(_candles.Count - 50).Average(c => c.Close) : null,
-                    EMA12 = _showEMA12 && _candles.Count >= 12 ? CalculateEMA(12) : null,
-                    EMA26 = _showEMA26 && _candles.Count >= 26 ? CalculateEMA(26) : null,
-                    BollingerEnabled = _showBB,
-                    UserNotes = $"Drawings: {_drawings.Count} | Snap: {_snapToOHLC}"
+                    RSI = _showRSI ? "Enabled" : "N/A",
+                    MACD = _showMACD ? "Enabled" : "N/A",
+                    Signal = _showMACD ? "Enabled" : "N/A",
+                    Volume = _showVolume ? "Enabled" : "N/A",
+                    GeneratedAt = DateTime.Now
                 };
                 
-                // Try to capture chart image
-                try
-                {
-                    using var ms = new System.IO.MemoryStream();
-                    chartMain.ExportToImage(ms, System.Drawing.Imaging.ImageFormat.Png);
-                    data.ChartImage = ms.ToArray();
-                }
-                catch { }
-                
-                PdfGenerator.GenerateInvestmentAnalysisReport(data, dialog.FileName);
+                BankApp.UI.Services.Pdf.PdfGenerator.GenerateInvestmentAnalysis(data, dialog.FileName);
                 
                 DevExpress.XtraEditors.XtraMessageBox.Show(
                     $"PDF başarıyla oluşturuldu:\n{dialog.FileName}",
@@ -1103,11 +1092,12 @@ namespace BankApp.UI.Forms
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"PDF Export Error: {ex.Message}");
                 DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"PDF oluşturulurken hata: {ex.Message}",
+                    "PDF oluşturulamadı. Lütfen tekrar deneyin.",
                     "Hata",
                     MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                    MessageBoxIcon.Warning);
             }
         }
         
