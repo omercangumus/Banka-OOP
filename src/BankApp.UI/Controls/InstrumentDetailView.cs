@@ -395,6 +395,10 @@ namespace BankApp.UI.Controls
             chartMain.BackColor = Color.FromArgb(14, 14, 14);
             chartMain.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
             
+            // Initialize with XYDiagram to prevent runtime Diagram assignment error
+            var diagram = new XYDiagram();
+            chartMain.Diagram = diagram;
+            
             pnlChart.Controls.Add(lblChartLoading);
             pnlChart.Controls.Add(chartMain);
             chartMain.BringToFront();
