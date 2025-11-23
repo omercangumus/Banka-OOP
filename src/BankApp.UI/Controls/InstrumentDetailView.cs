@@ -116,10 +116,14 @@ namespace BankApp.UI.Controls
         
         private void RenderChart(List<MarketCandle> candles)
         {
-            chartMain.Series.Clear();
-            if (candles == null || candles.Count == 0) { ShowChartError("Veri yok"); return; }
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[DEBUG] RenderChart START");
+                chartMain.Series.Clear();
+                System.Diagnostics.Debug.WriteLine("[DEBUG] Series cleared");
+                if (candles == null || candles.Count == 0) { ShowChartError("Veri yok"); return; }
             
-            var series = new Series(_currentSymbol, ViewType.CandleStick);
+                var series = new Series(_currentSymbol, ViewType.CandleStick);
             series.ArgumentScaleType = ScaleType.DateTime;
             foreach (var c in candles) series.Points.Add(new SeriesPoint(c.Time, c.Low, c.High, c.Open, c.Close));
             
@@ -131,13 +135,17 @@ namespace BankApp.UI.Controls
             view.LineThickness = 2;
             view.LevelLineLength = 0.6;
             
+            System.Diagnostics.Debug.WriteLine("[DEBUG] Adding series to chart");
             chartMain.Series.Add(series);
+            System.Diagnostics.Debug.WriteLine("[DEBUG] Series added successfully");
             
             if (_showMA20) AddMA(candles, 20, Color.FromArgb(255, 193, 7));
             if (_showEMA12) AddEMA(candles, 12, Color.FromArgb(0, 188, 212));
             if (_showBollinger) AddBollingerBands(candles, 20, 2);
             
+            System.Diagnostics.Debug.WriteLine("[DEBUG] Getting diagram reference");
             var diagram = chartMain.Diagram as XYDiagram;
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Diagram type: {chartMain.Diagram?.GetType().Name ?? "null"}");
             if (diagram != null)
             {
                 diagram.EnableAxisXZooming = true;
@@ -160,14 +168,22 @@ namespace BankApp.UI.Controls
                 diagram.DefaultPane.BackColor = Color.FromArgb(14, 14, 14);
             }
             
-            chartMain.CrosshairEnabled = DevExpress.Utils.DefaultBoolean.True;
-            chartMain.CrosshairOptions.ShowArgumentLabels = true;
-            chartMain.CrosshairOptions.ShowValueLabels = true;
-            chartMain.CrosshairOptions.ArgumentLineColor = Color.FromArgb(80, 80, 80);
-            chartMain.CrosshairOptions.ValueLineColor = Color.FromArgb(80, 80, 80);
-            chartMain.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
-            chartMain.Visible = true;
-            chartMain.BringToFront();
+                chartMain.CrosshairEnabled = DevExpress.Utils.DefaultBoolean.True;
+                chartMain.CrosshairOptions.ShowArgumentLabels = true;
+                chartMain.CrosshairOptions.ShowValueLabels = true;
+                chartMain.CrosshairOptions.ArgumentLineColor = Color.FromArgb(80, 80, 80);
+                chartMain.CrosshairOptions.ValueLineColor = Color.FromArgb(80, 80, 80);
+                chartMain.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
+                chartMain.Visible = true;
+                chartMain.BringToFront();
+                System.Diagnostics.Debug.WriteLine("[DEBUG] RenderChart COMPLETE");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERROR] RenderChart crashed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ERROR] Stack: {ex.StackTrace}");
+                throw;
+            }
         }
         
         private void AddMA(List<MarketCandle> candles, int period, Color color)
@@ -252,6 +268,7 @@ namespace BankApp.UI.Controls
         
         private void InitializeComponents()
         {
+            System.Diagnostics.Debug.WriteLine("[DEBUG] InitializeComponents START");
             this.SuspendLayout();
             this.Dock = DockStyle.Fill;
             this.BackColor = Color.FromArgb(14, 14, 14);
@@ -390,11 +407,13 @@ namespace BankApp.UI.Controls
             lblChartLoading.Dock = DockStyle.Fill;
             lblChartLoading.Visible = false;
             
+            System.Diagnostics.Debug.WriteLine("[DEBUG] Creating ChartControl");
             chartMain = new ChartControl();
+            System.Diagnostics.Debug.WriteLine("[DEBUG] ChartControl created");
             chartMain.Dock = DockStyle.Fill;
             chartMain.BackColor = Color.FromArgb(14, 14, 14);
             chartMain.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
-            // Don't set Diagram - DevExpress creates it automatically when Series are added
+            System.Diagnostics.Debug.WriteLine("[DEBUG] ChartControl configured - NOT setting Diagram");
             
             pnlChart.Controls.Add(lblChartLoading);
             pnlChart.Controls.Add(chartMain);
@@ -404,7 +423,9 @@ namespace BankApp.UI.Controls
             this.Controls.Add(pnlBottom);
             this.Controls.Add(pnlRight);
             this.Controls.Add(pnlHeader);
+            System.Diagnostics.Debug.WriteLine("[DEBUG] All panels added to form");
             this.ResumeLayout(true);
+            System.Diagnostics.Debug.WriteLine("[DEBUG] InitializeComponents COMPLETE");
         }
         
         private SimpleButton CreateTfBtn(string text, int x)
