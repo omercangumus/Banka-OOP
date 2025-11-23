@@ -119,6 +119,20 @@ namespace BankApp.UI.Controls
             try
             {
                 System.Diagnostics.Debug.WriteLine("[DEBUG] RenderChart START");
+                
+                // Lazy init ChartControl
+                if (chartMain == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DEBUG] Creating ChartControl (lazy init)");
+                    chartMain = new ChartControl();
+                    chartMain.Dock = DockStyle.Fill;
+                    chartMain.BackColor = Color.FromArgb(14, 14, 14);
+                    chartMain.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
+                    pnlChart.Controls.Add(chartMain);
+                    chartMain.BringToFront();
+                    System.Diagnostics.Debug.WriteLine("[DEBUG] ChartControl created and added to panel");
+                }
+                
                 chartMain.Series.Clear();
                 System.Diagnostics.Debug.WriteLine("[DEBUG] Series cleared");
                 if (candles == null || candles.Count == 0) { ShowChartError("Veri yok"); return; }
@@ -407,17 +421,10 @@ namespace BankApp.UI.Controls
             lblChartLoading.Dock = DockStyle.Fill;
             lblChartLoading.Visible = false;
             
-            System.Diagnostics.Debug.WriteLine("[DEBUG] Creating ChartControl");
-            chartMain = new ChartControl();
-            System.Diagnostics.Debug.WriteLine("[DEBUG] ChartControl created");
-            chartMain.Dock = DockStyle.Fill;
-            chartMain.BackColor = Color.FromArgb(14, 14, 14);
-            chartMain.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
-            System.Diagnostics.Debug.WriteLine("[DEBUG] ChartControl configured - NOT setting Diagram");
+            // Don't create ChartControl here - lazy init in RenderChart
+            System.Diagnostics.Debug.WriteLine("[DEBUG] Skipping ChartControl creation - will create on first render");
             
             pnlChart.Controls.Add(lblChartLoading);
-            pnlChart.Controls.Add(chartMain);
-            chartMain.BringToFront();
             
             this.Controls.Add(pnlChart);
             this.Controls.Add(pnlBottom);
