@@ -741,30 +741,22 @@ namespace BankApp.UI.Controls
                 
                 if (dialog.ShowDialog() != DialogResult.OK) return;
                 
-                var data = new InvestmentReportData
+                var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
                 {
-                    Symbol = _currentSymbol,
-                    Name = _currentSymbol,
-                    AssetType = _dataProvider.GetType().Name.Contains("Binance") ? "Crypto" : "Stock",
+                    Symbol = _currentSymbol ?? "UNKNOWN",
+                    Name = _currentSymbol ?? "UNKNOWN",
+                    Timeframe = _currentTimeframe ?? "1D",
                     LastPrice = _lastPrice,
                     ChangePercent = _changePercent,
                     ChangeAbsolute = _lastPrice * _changePercent / 100,
-                    Timeframe = _currentTimeframe,
-                    GeneratedAt = DateTime.Now,
-                    BollingerEnabled = _showBollinger,
-                    UserNotes = ""
+                    RSI = "N/A",
+                    MACD = "N/A",
+                    Signal = "N/A",
+                    Volume = "N/A",
+                    GeneratedAt = DateTime.Now
                 };
                 
-                // Try to capture chart image
-                try
-                {
-                    using var ms = new System.IO.MemoryStream();
-                    chartMain.ExportToImage(ms, System.Drawing.Imaging.ImageFormat.Png);
-                    data.ChartImage = ms.ToArray();
-                }
-                catch { }
-                
-                PdfGenerator.GenerateInvestmentAnalysisReport(data, dialog.FileName);
+                BankApp.UI.Services.Pdf.PdfGenerator.GenerateInvestmentAnalysis(data, dialog.FileName);
                 
                 DevExpress.XtraEditors.XtraMessageBox.Show(
                     $"PDF başarıyla oluşturuldu:\n{dialog.FileName}",
