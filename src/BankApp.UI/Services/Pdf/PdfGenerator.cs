@@ -41,10 +41,19 @@ namespace BankApp.UI.Services.Pdf
                 throw new ArgumentNullException(nameof(data));
             
             if (string.IsNullOrWhiteSpace(filePath))
-                throw new ArgumentNullException(nameof(filePath));
+                throw new ArgumentException("PDF path is empty.", nameof(filePath));
             
-            var document = new InvestmentAnalysisDocument(data);
-            document.GeneratePdf(filePath);
+            // Ensure directory exists
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                Directory.CreateDirectory(directory);
+            
+            // Generate PDF using QuestPDF Document API
+            Document.Create(container =>
+            {
+                new InvestmentAnalysisDocument(data).Compose(container);
+            })
+            .GeneratePdf(filePath);
         }
     }
 }
