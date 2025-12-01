@@ -176,7 +176,11 @@ namespace BankApp.UI
             if (ex == null) return;
             
             string timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-            string logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+            string logDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "NovaBank",
+                "logs"
+            );
             Directory.CreateDirectory(logDirectory);
             
             string logFilePath = Path.Combine(logDirectory, $"crash-{timestamp}.txt");
