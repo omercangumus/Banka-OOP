@@ -120,7 +120,7 @@ namespace BankApp.UI.Controls
             {
                 if (candles == null || candles.Count == 0) { ShowChartError("Veri yok"); return; }
                 
-                // Lazy init ChartControl
+                // Lazy init ChartControl - NO Diagram SET
                 if (chartMain == null)
                 {
                     chartMain = new ChartControl();
@@ -132,8 +132,12 @@ namespace BankApp.UI.Controls
                     chartMain.BringToFront();
                 }
                 
+                // Protect against early calls
+                if (chartMain.IsDisposed) return;
+                
                 chartMain.Series.Clear();
                 
+                // Create series - DevExpress will auto-create Diagram internally
                 var series = new Series(_currentSymbol, ViewType.CandleStick);
                 series.ArgumentScaleType = ScaleType.DateTime;
                 foreach (var c in candles) 
@@ -147,14 +151,29 @@ namespace BankApp.UI.Controls
                 view.LineThickness = 2;
                 view.LevelLineLength = 0.6;
                 
+                // Add series - this triggers DevExpress to create Diagram automatically
                 chartMain.Series.Add(series);
                 
                 if (_showMA20) AddMA(candles, 20, Color.FromArgb(255, 193, 7));
                 if (_showEMA12) AddEMA(candles, 12, Color.FromArgb(0, 188, 212));
                 if (_showBollinger) AddBollingerBands(candles, 20, 2);
                 
-                // Configure diagram AFTER series added (use BeginInvoke to ensure handle exists)
-                BeginInvoke(new Action(() => ConfigureDiagram()));
+                // READ-ONLY Diagram access - NO SET, only configure IF exists
+                if (chartMain.Diagram is XYDiagram xy)
+                {
+                    xy.EnableAxisXZooming = true;
+                    xy.EnableAxisYZooming = true;
+                    xy.EnableAxisXScrolling = true;
+                    xy.EnableAxisYScrolling = true;
+                    xy.AxisX.WholeRange.Auto = true;
+                    xy.AxisY.WholeRange.Auto = true;
+                    xy.AxisX.GridLines.Visible = true;
+                    xy.AxisY.GridLines.Visible = true;
+                    xy.AxisX.GridLines.Color = Color.FromArgb(30, 30, 30);
+                    xy.AxisY.GridLines.Color = Color.FromArgb(30, 30, 30);
+                    xy.DefaultPane.BackColor = Color.FromArgb(14, 14, 14);
+                }
+                // If Diagram is null - do nothing (soft-fail, no crash)
                 
                 chartMain.Visible = true;
                 chartMain.BringToFront();
@@ -164,40 +183,6 @@ namespace BankApp.UI.Controls
                 System.Diagnostics.Debug.WriteLine($"RenderChart Error: {ex.Message}");
                 ShowChartError("Grafik yüklenemedi");
             }
-        }
-        
-        private void ConfigureDiagram()
-        {
-            try
-            {
-                if (chartMain == null) return;
-                var diagram = chartMain.Diagram as XYDiagram;
-                if (diagram == null) return;
-                
-                diagram.EnableAxisXZooming = true;
-                diagram.EnableAxisYZooming = true;
-                diagram.EnableAxisXScrolling = true;
-                diagram.EnableAxisYScrolling = true;
-                diagram.ZoomingOptions.UseMouseWheel = true;
-                diagram.AxisX.Label.TextPattern = "{A:MM/dd}";
-                diagram.AxisX.Color = Color.FromArgb(40, 40, 40);
-                diagram.AxisY.Color = Color.FromArgb(40, 40, 40);
-                diagram.AxisX.GridLines.Color = Color.FromArgb(30, 30, 30);
-                diagram.AxisY.GridLines.Color = Color.FromArgb(30, 30, 30);
-                diagram.AxisX.GridLines.Visible = true;
-                diagram.AxisY.GridLines.Visible = true;
-                diagram.AxisX.Label.Font = new Font("Segoe UI", 8F);
-                diagram.AxisY.Label.Font = new Font("Segoe UI", 8F);
-                diagram.AxisX.Label.TextColor = Color.FromArgb(130, 130, 130);
-                diagram.AxisY.Label.TextColor = Color.FromArgb(130, 130, 130);
-                diagram.DefaultPane.BackColor = Color.FromArgb(14, 14, 14);
-                
-                chartMain.CrosshairOptions.ShowArgumentLabels = true;
-                chartMain.CrosshairOptions.ShowValueLabels = true;
-                chartMain.CrosshairOptions.ArgumentLineColor = Color.FromArgb(80, 80, 80);
-                chartMain.CrosshairOptions.ValueLineColor = Color.FromArgb(80, 80, 80);
-            }
-            catch { }
         }
         
         private void AddMA(List<MarketCandle> candles, int period, Color color)
