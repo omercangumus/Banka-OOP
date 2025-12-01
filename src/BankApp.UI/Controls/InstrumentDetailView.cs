@@ -717,46 +717,58 @@ namespace BankApp.UI.Controls
         
         private void BtnExportPdf_Click(object sender, EventArgs e)
         {
-            try
+            // TRACE: Track last UI action for crash diagnostics
+            UiActionTrace.LastAction = "BtnExportPdf_Click (InstrumentDetailView)";
+            
+            using var dialog = new SaveFileDialog();
+            dialog.Filter = "PDF Files (*.pdf)|*.pdf";
+            dialog.FileName = $"{_currentSymbol}_Analysis_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+            dialog.Title = "PDF Raporu Kaydet";
+            
+            if (dialog.ShowDialog() != DialogResult.OK) return;
+            
+            // Create data - NO chart references, only field values
+            var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
             {
-                using var dialog = new SaveFileDialog();
-                dialog.Filter = "PDF Files (*.pdf)|*.pdf";
-                dialog.FileName = $"{_currentSymbol}_Analysis_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
-                dialog.Title = "PDF Raporu Kaydet";
-                
-                if (dialog.ShowDialog() != DialogResult.OK) return;
-                
-                var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
+                Symbol = _currentSymbol ?? "UNKNOWN",
+                Name = _currentSymbol ?? "UNKNOWN",
+                Timeframe = _currentTimeframe ?? "1D",
+                LastPrice = _lastPrice,
+                ChangePercent = _changePercent,
+                ChangeAbsolute = _lastPrice * _changePercent / 100,
+                RSI = "N/A",
+                MACD = "N/A",
+                Signal = "N/A",
+                Volume = "N/A",
+                GeneratedAt = DateTime.Now
+            };
+            
+            var path = dialog.FileName;
+            
+            // ISOLATED: Run PDF generation on background thread
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                BankApp.UI.Services.Pdf.PdfGenerator.GenerateInvestmentAnalysis(data, path);
+            }).ContinueWith(t =>
+            {
+                if (t.Exception != null)
                 {
-                    Symbol = _currentSymbol ?? "UNKNOWN",
-                    Name = _currentSymbol ?? "UNKNOWN",
-                    Timeframe = _currentTimeframe ?? "1D",
-                    LastPrice = _lastPrice,
-                    ChangePercent = _changePercent,
-                    ChangeAbsolute = _lastPrice * _changePercent / 100,
-                    RSI = "N/A",
-                    MACD = "N/A",
-                    Signal = "N/A",
-                    Volume = "N/A",
-                    GeneratedAt = DateTime.Now
-                };
-                
-                BankApp.UI.Services.Pdf.PdfGenerator.GenerateInvestmentAnalysis(data, dialog.FileName);
-                
-                DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"PDF başarıyla oluşturuldu:\n{dialog.FileName}",
-                    "PDF Export",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"PDF oluşturulurken hata: {ex.Message}",
-                    "Hata",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
+                    System.Diagnostics.Debug.WriteLine($"PDF Error: {t.Exception}");
+                    DevExpress.XtraEditors.XtraMessageBox.Show(
+                        $"PDF oluşturulamadı: {t.Exception.InnerException?.Message ?? t.Exception.Message}\n\nlogs klasörüne bak.",
+                        "Hata",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+                else
+                {
+                    DevExpress.XtraEditors.XtraMessageBox.Show(
+                        $"PDF başarıyla oluşturuldu:\n{path}",
+                        "PDF Export",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+            }, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
         }
         
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
