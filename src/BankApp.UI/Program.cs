@@ -16,13 +16,25 @@ namespace BankApp.UI
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
+        // STATIC LOG DIR - created IMMEDIATELY
+        private static readonly string LogDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "NovaBank", "logs");
+        
         [STAThread]
         static async System.Threading.Tasks.Task Main()
         {
             // ==================================================================
-            // STEP 0: CONFIGURE QUESTPDF LICENSE
+            // STEP 0: CREATE LOG DIR IMMEDIATELY + TRACE
+            // ==================================================================
+            try { Directory.CreateDirectory(LogDir); } catch { }
+            WriteTrace("APP_START");
+            
+            // ==================================================================
+            // STEP 0.5: CONFIGURE QUESTPDF LICENSE
             // ==================================================================
             QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+            WriteTrace("QUESTPDF_CONFIGURED");
             
             // ==================================================================
             // STEP 1: GLOBAL EXCEPTION HANDLERS - PREVENT SILENT CRASHES
@@ -31,6 +43,7 @@ namespace BankApp.UI
             // Handler 1: UI thread exceptions
             Application.ThreadException += (sender, e) =>
             {
+                WriteTrace($"THREAD_EXCEPTION: {e.Exception?.Message}");
                 LogAndShowException(e.Exception, "UI Thread Exception");
             };
             
@@ -239,6 +252,19 @@ namespace BankApp.UI
                                    $"Log saved to:\n{logFilePath}";
             
             MessageBox.Show(messageBoxText, "Fatal Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        
+        /// <summary>
+        /// Writes a simple trace line to trace.txt for debugging startup/crash issues
+        /// </summary>
+        private static void WriteTrace(string message)
+        {
+            try
+            {
+                var tracePath = Path.Combine(LogDir, "trace.txt");
+                File.AppendAllText(tracePath, $"{DateTime.Now:HH:mm:ss.fff} | {message}\n");
+            }
+            catch { }
         }
     }
 }
