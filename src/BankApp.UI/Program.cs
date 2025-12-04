@@ -31,12 +31,6 @@ namespace BankApp.UI
             WriteTrace("APP_START");
             
             // ==================================================================
-            // STEP 0.5: CONFIGURE QUESTPDF LICENSE
-            // ==================================================================
-            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
-            WriteTrace("QUESTPDF_CONFIGURED");
-            
-            // ==================================================================
             // STEP 1: GLOBAL EXCEPTION HANDLERS - PREVENT SILENT CRASHES
             // ==================================================================
             

@@ -1061,9 +1061,9 @@ namespace BankApp.UI.Forms
                 lblStatus.Text = "PDF dışa aktarılıyor...";
                 Application.DoEvents(); // Force UI update
 
-                // STEP 4: EXPORT
-                // Uses QuestPDF via AdminPdfExporter
-                AdminPdfExporter.Export(dataTable, sfd.FileName);
+                // STEP 4: EXPORT - TODO: Implement with DevExpress XtraReports
+                XtraMessageBox.Show("Admin PDF export henüz hazır değil.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
 
                 // Success
                 lblStatus.Text = "PDF dışa aktarma tamamlandı";
