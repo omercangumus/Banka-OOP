@@ -1053,91 +1053,71 @@ namespace BankApp.UI.Forms
         
         private void ExportPdf()
         {
-            // TRACE: Track last UI action for crash diagnostics
-            UiActionTrace.LastAction = "ExportPdf (ChartAnalysisForm)";
-            
-            // Validate symbol exists
-            if (string.IsNullOrWhiteSpace(_symbol))
+            try
             {
-                DevExpress.XtraEditors.XtraMessageBox.Show(
-                    "PDF için sembol bilgisi bulunamadı.",
-                    "Uyarı",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-                return;
-            }
-            
-            using var dialog = new SaveFileDialog();
-            dialog.Filter = "PDF Files (*.pdf)|*.pdf";
-            dialog.FileName = $"{_symbol}_Analysis_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
-            dialog.Title = "PDF Raporu Kaydet";
-            dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-            
-            if (dialog.ShowDialog() != DialogResult.OK) return;
-            
-            // Validate path
-            if (string.IsNullOrWhiteSpace(dialog.FileName))
-                return;
-            
-            var lastPrice = _candles.Count > 0 ? _candles.Last().Close : 0;
-            var prevPrice = _candles.Count > 1 ? _candles[^2].Close : lastPrice;
-            var changePercent = prevPrice > 0 ? ((lastPrice - prevPrice) / prevPrice) * 100 : 0;
-            
-            // Create data - NO chart references, only field values
-            var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
-            {
-                Symbol = _symbol ?? "UNKNOWN",
-                Name = _symbol ?? "UNKNOWN",
-                Timeframe = _timeframe ?? "1D",
-                LastPrice = lastPrice,
-                ChangePercent = changePercent,
-                ChangeAbsolute = lastPrice - prevPrice,
-                RSI = _showRSI ? "Enabled" : "N/A",
-                MACD = _showMACD ? "Enabled" : "N/A",
-                Signal = _showMACD ? "Enabled" : "N/A",
-                Volume = _showVolume ? "Enabled" : "N/A",
-                GeneratedAt = DateTime.Now
-            };
-            
-            var path = dialog.FileName;
-            
-            // ISOLATED: Run PDF generation on background thread
-            System.Threading.Tasks.Task.Run(() =>
-            {
-                BankApp.UI.Services.Pdf.PdfGenerator.GenerateInvestmentAnalysis(data, path);
-            }).ContinueWith(t =>
-            {
-                if (t.Exception != null)
+                UiActionTrace.LastAction = "ExportPdf (ChartAnalysisForm)";
+                
+                // Validate symbol exists
+                if (string.IsNullOrWhiteSpace(_symbol))
                 {
-                    var ex = t.Exception.GetBaseException();
-                    System.Diagnostics.Debug.WriteLine($"PDF Error: {ex}");
                     DevExpress.XtraEditors.XtraMessageBox.Show(
-                        $"PDF oluşturulamadı:\n\n{ex.GetType().Name}\n{ex.Message}",
-                        "PDF Export Hatası",
+                        "PDF için sembol bilgisi bulunamadı.",
+                        "Uyarı",
                         MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
+                        MessageBoxIcon.Warning);
+                    return;
                 }
-                else
+                
+                using var dialog = new SaveFileDialog();
+                dialog.Filter = "PDF Files (*.pdf)|*.pdf";
+                dialog.FileName = $"{_symbol}_Analysis_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                dialog.Title = "PDF Raporu Kaydet";
+                dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+                
+                // Validate path
+                if (string.IsNullOrWhiteSpace(dialog.FileName))
+                    return;
+                
+                var lastPrice = _candles.Count > 0 ? _candles.Last().Close : 0;
+                var prevPrice = _candles.Count > 1 ? _candles[^2].Close : lastPrice;
+                var changePercent = prevPrice > 0 ? ((lastPrice - prevPrice) / prevPrice) * 100 : 0;
+                
+                // Create data - NO chart references, only field values
+                var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
                 {
-                    // Verify file actually exists and has content
-                    if (!System.IO.File.Exists(path) || new System.IO.FileInfo(path).Length < 200)
-                    {
-                        DevExpress.XtraEditors.XtraMessageBox.Show(
-                            $"PDF üretildi gibi görünüyor ama dosya oluşmadı veya boş.\n\nPath: {path}\n\nLog: %LocalAppData%\\NovaBank\\logs",
-                            "PDF Export Uyarı",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Warning);
-                    }
-                    else
-                    {
-                        DevExpress.XtraEditors.XtraMessageBox.Show(
-                            $"PDF başarıyla oluşturuldu:\n{path}",
-                            "PDF Export",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Information);
-                    }
-                }
-            }, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+                    Symbol = _symbol ?? "UNKNOWN",
+                    Name = _symbol ?? "UNKNOWN",
+                    Timeframe = _timeframe ?? "1D",
+                    LastPrice = lastPrice,
+                    ChangePercent = changePercent,
+                    ChangeAbsolute = lastPrice - prevPrice,
+                    RSI = _showRSI ? "Enabled" : "N/A",
+                    MACD = _showMACD ? "Enabled" : "N/A",
+                    Signal = _showMACD ? "Enabled" : "N/A",
+                    Volume = _showVolume ? "Enabled" : "N/A",
+                    GeneratedAt = DateTime.Now
+                };
+                
+                // Use DevExpress XtraReport instead of QuestPDF
+                BankApp.UI.Reports.PdfReportExporter.GenerateInvestmentReport(data, dialog.FileName);
+                
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"PDF başarıyla oluşturuldu:\n{dialog.FileName}",
+                    "PDF Export",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PDF Error: {ex}");
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"PDF oluşturulamadı:\n\n{ex.GetType().Name}\n{ex.Message}",
+                    "PDF Export Hatası",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
         
         private double CalculateEMA(int period)
