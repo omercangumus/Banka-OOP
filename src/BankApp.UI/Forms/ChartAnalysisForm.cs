@@ -1053,8 +1053,41 @@ namespace BankApp.UI.Forms
         
         private void ExportPdf()
         {
-            // NO-OP TEST - just show message, no PDF generation
-            DevExpress.XtraEditors.XtraMessageBox.Show("PDF CLICK TEST (no-op) - ChartAnalysisForm", "Test", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                var lastPrice = _candles.Count > 0 ? _candles.Last().Close : 0;
+                var prevPrice = _candles.Count > 1 ? _candles[^2].Close : lastPrice;
+                var changePercent = prevPrice > 0 ? ((lastPrice - prevPrice) / prevPrice) * 100 : 0;
+                
+                var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
+                {
+                    Symbol = _symbol ?? "UNKNOWN",
+                    Name = _symbol ?? "UNKNOWN",
+                    Timeframe = _timeframe ?? "1D",
+                    LastPrice = lastPrice,
+                    ChangePercent = changePercent,
+                    ChangeAbsolute = lastPrice - prevPrice,
+                    RSI = _showRSI ? "Enabled" : "N/A",
+                    MACD = _showMACD ? "Enabled" : "N/A",
+                    Signal = _showMACD ? "Enabled" : "N/A",
+                    Volume = _showVolume ? "Enabled" : "N/A",
+                    GeneratedAt = DateTime.Now
+                };
+                
+                var path = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                    $"{data.Symbol}_Chart_{DateTime.Now:yyyyMMdd_HHmmss}.pdf"
+                );
+                
+                using var report = new BankApp.UI.Reports.InvestmentAnalysisReport(data);
+                report.ExportToPdf(path);
+                
+                DevExpress.XtraEditors.XtraMessageBox.Show($"PDF oluşturuldu:\n{path}", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                DevExpress.XtraEditors.XtraMessageBox.Show($"PDF Hatası:\n{ex.GetType().Name}\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         
         private double CalculateEMA(int period)

@@ -719,15 +719,14 @@ namespace BankApp.UI.Controls
         {
             try
             {
-                // TEST: InvestmentAnalysisReport constructor only
                 var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
                 {
-                    Symbol = _currentSymbol ?? "TEST",
-                    Name = "Test",
-                    Timeframe = "1D",
-                    LastPrice = 100,
-                    ChangePercent = 5,
-                    ChangeAbsolute = 5,
+                    Symbol = _currentSymbol ?? "UNKNOWN",
+                    Name = _currentSymbol ?? "UNKNOWN",
+                    Timeframe = _currentTimeframe ?? "1D",
+                    LastPrice = _lastPrice,
+                    ChangePercent = _changePercent,
+                    ChangeAbsolute = _lastPrice * _changePercent / 100,
                     RSI = "N/A",
                     MACD = "N/A",
                     Signal = "N/A",
@@ -735,15 +734,19 @@ namespace BankApp.UI.Controls
                     GeneratedAt = DateTime.Now
                 };
                 
-                DevExpress.XtraEditors.XtraMessageBox.Show("Constructor test başlıyor...", "Test", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var path = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                    $"{data.Symbol}_Report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf"
+                );
                 
                 using var report = new BankApp.UI.Reports.InvestmentAnalysisReport(data);
+                report.ExportToPdf(path);
                 
-                DevExpress.XtraEditors.XtraMessageBox.Show("Constructor başarılı!", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                DevExpress.XtraEditors.XtraMessageBox.Show($"PDF oluşturuldu:\n{path}", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                DevExpress.XtraEditors.XtraMessageBox.Show($"CONSTRUCTOR HATASI:\n{ex.GetType().Name}\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                DevExpress.XtraEditors.XtraMessageBox.Show($"PDF Hatası:\n{ex.GetType().Name}\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         

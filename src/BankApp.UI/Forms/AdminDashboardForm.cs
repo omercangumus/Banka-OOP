@@ -1027,85 +1027,8 @@ namespace BankApp.UI.Forms
 
         private void ExportToPdf()
         {
-            System.Diagnostics.Debug.WriteLine("[ExportToPdf] Started");
-            ExportLogger.LogInfo("ExportToPdf started.");
-
-            try
-            {
-                // STEP 1: SNAPSHOT DATA
-                // Use AdminGridExtractor to snapshot visible grid data safely
-                var dataTable = AdminGridExtractor.ExtractVisibleData(gridUsers);
-                
-                if (dataTable.Rows.Count == 0)
-                {
-                    XtraMessageBox.Show("Dışa aktarılacak veri bulunamadı.\nLütfen ekranda verinin listelendiğinden emin olun.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                // STEP 2: GET PATH
-                using var sfd = new SaveFileDialog
-                {
-                    Filter = "PDF Dosyası (*.pdf)|*.pdf",
-                    FileName = $"Kullanicilar_{DateTime.Now:yyyyMMdd_HHmmss}.pdf",
-                    Title = "PDF Olarak Kaydet",
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-                };
-
-                if (sfd.ShowDialog() != DialogResult.OK) return;
-                if (string.IsNullOrWhiteSpace(sfd.FileName)) return;
-
-                // STEP 3: UI LOCK
-                this.Cursor = Cursors.WaitCursor;
-                // btnExportCsv removed
-                btnExportPdf.Enabled = false;
-                lblStatus.Text = "PDF dışa aktarılıyor...";
-                Application.DoEvents(); // Force UI update
-
-                // STEP 4: EXPORT - TODO: Implement with DevExpress XtraReports
-                XtraMessageBox.Show("Admin PDF export henüz hazır değil.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-
-                // Success
-                lblStatus.Text = "PDF dışa aktarma tamamlandı";
-                System.Diagnostics.Debug.WriteLine($"[ExportToPdf] Success: {sfd.FileName}");
-                ExportLogger.LogInfo($"PDF export succeeded: {sfd.FileName}");
-
-                var result = XtraMessageBox.Show(
-                    $"PDF başarıyla oluşturuldu!\n\nDosya: {sfd.FileName}\n\nDosyayı açmak ister misiniz?",
-                    "Başarılı",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Information);
-
-                if (result == DialogResult.Yes)
-                {
-                    try 
-                    { 
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo 
-                        { 
-                            FileName = sfd.FileName, 
-                            UseShellExecute = true 
-                        }); 
-                    }
-                    catch (Exception openEx) 
-                    { 
-                        XtraMessageBox.Show("Dosya oluşturuldu ama otomatik açılamadı.\n" + openEx.Message, "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ExportToPdf] Error: {ex}");
-                ExportLogger.LogError("PDF export failed", ex);
-                lblStatus.Text = "PDF hatası";
-                XtraMessageBox.Show($"PDF dışa aktarma hatası:\n\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                // STEP 5: RESTORE UI
-                this.Cursor = Cursors.Default;
-                // btnExportCsv removed
-                if (btnExportPdf != null) btnExportPdf.Enabled = true;
-            }
+            // DISABLED - Admin PDF export not implemented yet
+            XtraMessageBox.Show("Admin PDF export henüz hazır değil.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
