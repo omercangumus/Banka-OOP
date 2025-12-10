@@ -11,8 +11,11 @@ using System.Drawing;
 using System.Threading.Tasks;
 using BankApp.Core.Interfaces;
 using BankApp.Infrastructure.Services;
+using BankApp.Infrastructure.Services.Dashboard;
 using BankApp.Infrastructure.Data;
+using BankApp.Infrastructure.Events;
 using BankApp.UI.Controls;
+using BankApp.UI.Services;
 using Dapper;
 
 namespace BankApp.UI.Forms
@@ -20,6 +23,7 @@ namespace BankApp.UI.Forms
     public partial class MainForm : DevExpress.XtraEditors.XtraForm
     {
         private readonly IAIService _aiService;
+        private readonly IDashboardService _dashboardService;
 
 
         // Dashboard Widgets
@@ -29,6 +33,22 @@ namespace BankApp.UI.Forms
         private RecentTransactionsWidget recentTransactions;
         private AssetAllocationChart assetChart;
         private AdminDashboardPanel adminPanel;
+        private PortfolioView portfolioView;
+        
+        // Portfolio Dashboard (for Tab2)
+        private PanelControl pnlPortfolioDashboard;
+        private LayoutControl layoutPortfolioDashboard;
+        private LayoutControlGroup layoutPortfolioGroupRoot;
+        private HeroNetWorthCard portfolioHeroCard;
+        private InvestmentOpportunitiesWidget portfolioOpportunitiesWidget;
+        private QuickActionsBar portfolioQuickActions;
+        private RecentTransactionsWidget portfolioRecentTransactions;
+        private AssetAllocationChart portfolioAssetChart;
+        private readonly DashboardSummaryService _dashboardSummaryService;
+        
+        // Guards to prevent multiple setup
+        private bool _dashboardInitialized = false;
+        private bool _portfolioDashboardInitialized = false;
 
         public MainForm()
         {
@@ -41,9 +61,20 @@ namespace BankApp.UI.Forms
                 System.Diagnostics.Debug.WriteLine($"InitializeComponent Error: {ex.Message}");
                 // Continue execution to attempt showing the form
             }
+            
+            // BUILD MARKER - NO EXCUSES VALIDATION
+            string buildTime = DateTime.Now.ToString("HH:mm:ss");
+            this.Text = $"NovaBank DEBUG MARKER {buildTime}";
+            System.Diagnostics.Debug.WriteLine($"=== MAINFORM LOADED v2 @ {buildTime} ===");
+            System.Diagnostics.Debug.WriteLine($"=== EXE PATH: {System.Reflection.Assembly.GetExecutingAssembly().Location} ===");
             // Use real AI service with environment variable
             string apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? "your-api-key-here";
             _aiService = new OpenRouterAIService(apiKey);
+            
+            // Initialize Dashboard Service
+            var context = new DapperContext();
+            _dashboardService = new DashboardService(context);
+            _dashboardSummaryService = new DashboardSummaryService(context);
             
             InitializeInvestmentDashboard();
 
@@ -52,6 +83,35 @@ namespace BankApp.UI.Forms
             
             // Event sistemine abone ol
             SubscribeToEvents();
+            
+            // DashboardRefreshOrchestrator entegrasyonu
+            DashboardRefreshOrchestrator.Instance.DashboardRefreshed += OnDashboardRefreshRequested;
+            
+            // Portfolio events için abone ol
+            PortfolioEvents.PortfolioChanged += (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[DASHBOARD] PortfolioChanged received: UserId={e.UserId}, ChangeType={e.ChangeType}");
+                if (e.UserId == AppEvents.CurrentSession.UserId)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DASHBOARD] Triggering refresh for Investment");
+                    _ = DashboardRefreshOrchestrator.Instance.RequestRefreshAsync(e.UserId, RefreshReason.Investment);
+                }
+            };
+            PortfolioEvents.TransactionChanged += (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[DASHBOARD] TransactionChanged received: UserId={e.UserId}, Amount={e.Amount}");
+                if (e.UserId == AppEvents.CurrentSession.UserId)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DASHBOARD] Triggering refresh for Transfer");
+                    _ = DashboardRefreshOrchestrator.Instance.RequestRefreshAsync(e.UserId, RefreshReason.Transfer);
+                }
+            };
+            PortfolioEvents.LoanChanged += (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[DASHBOARD] LoanChanged received: UserId={e.UserId}");
+                if (e.UserId == AppEvents.CurrentSession.UserId)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DASHBOARD] Triggering refresh for LoanPayment");
+                    _ = DashboardRefreshOrchestrator.Instance.RequestRefreshAsync(e.UserId, RefreshReason.LoanPayment);
+                }
+            };
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -112,12 +172,25 @@ namespace BankApp.UI.Forms
             LoadDashboardCharts();
             LoadCustomers();
             SetupFintechProDashboard();
+            SetupPortfolioDashboard(); // Setup portfolio dashboard (same as Tab1)
         }
 
         private void SetupFintechProDashboard()
         {
+            System.Diagnostics.Debug.WriteLine($"[SETUP] SetupFintechProDashboard called, _dashboardInitialized={_dashboardInitialized}");
+            
             try {
                 if (layoutDashboard == null) return;
+                
+                // Guard: Only setup once
+                if (_dashboardInitialized)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SETUP] Dashboard already initialized, skipping setup, just updating data");
+                    UpdateHeroCard();
+                    UpdateAssetChart();
+                    return;
+                }
+                _dashboardInitialized = true;
                 
                 layoutDashboard.BeginUpdate();
                 
@@ -144,8 +217,6 @@ namespace BankApp.UI.Forms
                 
                 // Wire up quick actions
                 quickActions.SendMoneyClicked += (s, e) => btnMoneyTransfer_ItemClick(s, null);
-                quickActions.QRPayClicked += (s, e) => { }; // QR Removed
-                quickActions.ExchangeClicked += (s, e) => { }; // Exchange Removed
                 quickActions.SupportClicked += (s, e) => {
                     // Open AI Assistant Form V2
                     var aiForm = new AIAssistantFormV2();
@@ -196,41 +267,198 @@ namespace BankApp.UI.Forms
                 System.Diagnostics.Debug.WriteLine($"SetupFintechProDashboard Error: {ex.Message}");
             }
         }
+        
+        private void SetupPortfolioDashboard()
+        {
+            System.Diagnostics.Debug.WriteLine($"[SETUP] SetupPortfolioDashboard called, _portfolioDashboardInitialized={_portfolioDashboardInitialized}");
+            
+            try {
+                // Guard: Only setup once
+                if (_portfolioDashboardInitialized)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SETUP] Portfolio dashboard already initialized, just updating");
+                    UpdatePortfolioHeroCard();
+                    UpdatePortfolioAssetChart();
+                    return;
+                }
+                
+                // Create portfolio dashboard panel if not exists
+                if (pnlPortfolioDashboard == null)
+                {
+                    pnlPortfolioDashboard = new PanelControl();
+                    pnlPortfolioDashboard.Dock = DockStyle.Fill;
+                    pnlPortfolioDashboard.Appearance.BackColor = Color.FromArgb(18, 18, 18);
+                    pnlPortfolioDashboard.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+                    pnlPortfolioDashboard.Name = "pnlPortfolioDashboard";
+                    
+                    layoutPortfolioDashboard = new LayoutControl();
+                    layoutPortfolioDashboard.Dock = DockStyle.Fill;
+                    layoutPortfolioDashboard.BackColor = Color.FromArgb(18, 18, 18);
+                    
+                    layoutPortfolioGroupRoot = new LayoutControlGroup();
+                    layoutPortfolioDashboard.Root = layoutPortfolioGroupRoot;
+                    
+                    pnlPortfolioDashboard.Controls.Add(layoutPortfolioDashboard);
+                    this.Controls.Add(pnlPortfolioDashboard);
+                }
+                
+                _portfolioDashboardInitialized = true;
+                
+                layoutPortfolioDashboard.BeginUpdate();
+                
+                // Remove old controls
+                layoutPortfolioDashboard.Controls.Clear();
+                layoutPortfolioGroupRoot.Items.Clear();
+                
+                // Create portfolio widgets (same as Tab1)
+                portfolioHeroCard = new HeroNetWorthCard();
+                portfolioOpportunitiesWidget = new InvestmentOpportunitiesWidget();
+                portfolioQuickActions = new QuickActionsBar();
+                portfolioRecentTransactions = new RecentTransactionsWidget();
+                portfolioAssetChart = new AssetAllocationChart();
+                
+                // Add controls to portfolio layout
+                layoutPortfolioDashboard.Controls.Add(portfolioHeroCard);
+                layoutPortfolioDashboard.Controls.Add(portfolioOpportunitiesWidget);
+                layoutPortfolioDashboard.Controls.Add(portfolioQuickActions);
+                layoutPortfolioDashboard.Controls.Add(portfolioRecentTransactions);
+                layoutPortfolioDashboard.Controls.Add(portfolioAssetChart);
+                
+                // Wire up portfolio quick actions
+                portfolioQuickActions.SendMoneyClicked += (s, e) => btnMoneyTransfer_ItemClick(s, null);
+                portfolioQuickActions.SupportClicked += (s, e) => {
+                    var aiForm = new AIAssistantFormV2();
+                    aiForm.Show();
+                };
+                
+                // Create 2x3 Grid Layout (same as Tab1)
+                var groupRow1 = layoutPortfolioGroupRoot.AddGroup();
+                groupRow1.GroupBordersVisible = false;
+                groupRow1.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+                groupRow1.OptionsTableLayoutGroup.ColumnDefinitions.Clear();
+                groupRow1.OptionsTableLayoutGroup.RowDefinitions.Clear();
+                groupRow1.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+                groupRow1.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+                groupRow1.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
+                
+                AddControlToPortfolioGroup(groupRow1, portfolioHeroCard, 0, 0);
+                AddControlToPortfolioGroup(groupRow1, portfolioOpportunitiesWidget, 0, 1);
+                
+                var groupRow2 = layoutPortfolioGroupRoot.AddGroup();
+                groupRow2.GroupBordersVisible = false;
+                groupRow2.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+                groupRow2.OptionsTableLayoutGroup.ColumnDefinitions.Clear();
+                groupRow2.OptionsTableLayoutGroup.RowDefinitions.Clear();
+                groupRow2.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 33 });
+                groupRow2.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 33 });
+                groupRow2.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 34 });
+                groupRow2.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
+                
+                AddControlToPortfolioGroup(groupRow2, portfolioQuickActions, 0, 0);
+                AddControlToPortfolioGroup(groupRow2, portfolioRecentTransactions, 0, 1);
+                AddControlToPortfolioGroup(groupRow2, portfolioAssetChart, 0, 2);
+                
+                layoutPortfolioDashboard.EndUpdate();
+                
+                // Update portfolio hero card with real data
+                UpdatePortfolioHeroCard();
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"SetupPortfolioDashboard Error: {ex.Message}");
+            }
+        }
+        
+        private void AddControlToPortfolioGroup(LayoutControlGroup group, Control ctrl, int row, int col)
+        {
+            var item = group.AddItem();
+            item.Control = ctrl;
+            item.TextVisible = false;
+            item.OptionsTableLayoutItem.RowIndex = row;
+            item.OptionsTableLayoutItem.ColumnIndex = col;
+        }
+        
+        private async void UpdatePortfolioHeroCard()
+        {
+            try
+            {
+                var userId = AppEvents.CurrentSession.UserId;
+                
+                // Get real data using DashboardSummaryService
+                var totalDebt = await _dashboardSummaryService.GetTotalDebtAsync(userId);
+                var netWorth = await _dashboardSummaryService.GetNetWorthAsync(userId);
+                
+                // Update portfolio hero card
+                if (portfolioHeroCard != null)
+                {
+                    // Calculate trend (simplified)
+                    var trend = netWorth >= 0;
+                    var trendPercent = totalDebt > 0 ? (netWorth / totalDebt * 100) : 0;
+                    portfolioHeroCard.SetNetWorth(netWorth, totalDebt, trendPercent, trend, trend ? "📈" : "📉");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdatePortfolioHeroCard Error: {ex.Message}");
+            }
+        }
 
         private async void UpdateHeroCard()
         {
             try {
-                var portfolioService = new PortfolioService();
-                var netWorth = await portfolioService.GetNetWorthAsync();
+                if (heroCard == null) return;
                 
-                var context = new DapperContext();
-                using (var conn = context.CreateConnection())
-                {
-                    var bankBalance = await conn.ExecuteScalarAsync<decimal?>("SELECT COALESCE(SUM(\"Balance\"), 0) FROM \"Accounts\"") ?? 0;
-                    netWorth += bankBalance;
-                    
-                    // **CALCULATE TOTAL DEBT**
-                    var totalDebt = await conn.ExecuteScalarAsync<decimal?>(@"
-                        SELECT COALESCE(SUM(""Amount""), 0) 
-                        FROM ""Loans"" 
-                        WHERE ""UserId"" = @UserId AND ""Status"" = 'Approved'",
-                        new { UserId = AppEvents.CurrentSession.UserId }) ?? 0;
-                    
-                    // **GET USER'S IBAN**
-                    var userIban = await conn.ExecuteScalarAsync<string>(@"
-                        SELECT ""IBAN"" 
-                        FROM ""Accounts"" 
-                        WHERE ""UserId"" = @UserId 
-                        LIMIT 1",
-                        new { UserId = AppEvents.CurrentSession.UserId }) ?? "";
-                    
-                    // Mock trend for now (could be calculated from historical data)
-                    heroCard.SetNetWorth(netWorth, totalDebt, 2.4m, true, userIban);
-                }
+                // Use DashboardSummaryService for all metrics (premium data)
+                var fullData = await _dashboardSummaryService.GetFullDashboardDataAsync(AppEvents.CurrentSession.UserId);
+                
+                // Update hero card with full data
+                heroCard.SetFullData(
+                    fullData.TotalBalance,
+                    fullData.TotalDebt,
+                    fullData.NetWorth,
+                    fullData.MonthlyChange,
+                    fullData.ActiveAccounts,
+                    fullData.PrimaryIban
+                );
             }
             catch (Exception ex) {
                 System.Diagnostics.Debug.WriteLine($"UpdateHeroCard Error: {ex.Message}");
             }
+        }
+        
+        private void UpdateAssetChart()
+        {
+            try {
+                if (assetChart == null) return;
+                System.Diagnostics.Debug.WriteLine($"[CHART] UpdateAssetChart called, instance={assetChart.GetHashCode()}");
+                assetChart.RefreshData();
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"UpdateAssetChart Error: {ex.Message}");
+            }
+        }
+        
+        private void UpdatePortfolioAssetChart()
+        {
+            try {
+                if (portfolioAssetChart == null) return;
+                System.Diagnostics.Debug.WriteLine($"[CHART] UpdatePortfolioAssetChart called, instance={portfolioAssetChart.GetHashCode()}");
+                portfolioAssetChart.RefreshData();
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"UpdatePortfolioAssetChart Error: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Refresh ALL dashboard widgets (both tabs)
+        /// </summary>
+        private void RefreshAllDashboards()
+        {
+            System.Diagnostics.Debug.WriteLine("[REFRESH] RefreshAllDashboards called");
+            UpdateHeroCard();
+            UpdateAssetChart();
+            UpdatePortfolioHeroCard();
+            UpdatePortfolioAssetChart();
         }
 
         private async void LoadDashboardData()
@@ -321,6 +549,12 @@ namespace BankApp.UI.Forms
             investmentView.Dock = DockStyle.Fill;
             investmentView.Visible = false;
             this.Controls.Add(investmentView);
+            
+            // Portfolio View for Tab2 (Portföy)
+            portfolioView = new PortfolioView();
+            portfolioView.Dock = DockStyle.Fill;
+            portfolioView.Visible = false;
+            this.Controls.Add(portfolioView);
         }
 
         private void RibbonControl1_SelectedPageChanged(object sender, EventArgs e)
@@ -333,15 +567,24 @@ namespace BankApp.UI.Forms
             bool isTab3Investment = (ribbonControl1.SelectedPage == pageInvestments);
             bool isTab4Customers = (ribbonControl1.SelectedPage == pageCustomers);
 
-            // Tab1 and Tab2 both show the SAME dashboard content
-            // Only the toolbar buttons differ (handled by ribbon page groups)
-            bool showDashboard = isTab1Dashboard || isTab2Portfolio;
-
-            // Show/hide dashboard panel
+            // Tab1: Dashboard & Tab2: Portfolio (AYNI DASHBOARD)
             if (pnlDashboard != null)
             {
-                pnlDashboard.Visible = showDashboard;
-                if (showDashboard) pnlDashboard.BringToFront();
+                // Hem Genel Bakış hem Portföy sekmesinde aynı dashboard göster
+                pnlDashboard.Visible = isTab1Dashboard || isTab2Portfolio;
+                if (isTab1Dashboard || isTab2Portfolio) pnlDashboard.BringToFront();
+            }
+            
+            // Hide old portfolio view - artık kullanılmıyor
+            if (portfolioView != null)
+            {
+                portfolioView.Visible = false;
+            }
+            
+            // Hide portfolio dashboard panel - artık kullanılmıyor
+            if (pnlPortfolioDashboard != null)
+            {
+                pnlPortfolioDashboard.Visible = false;
             }
             
             // Hide legacy investmentDashboard - no longer used in tab switching
@@ -1129,6 +1372,39 @@ namespace BankApp.UI.Forms
              item.TextVisible = false;
              item.OptionsTableLayoutItem.RowIndex = row;
              item.OptionsTableLayoutItem.ColumnIndex = col;
+        }
+        
+        /// <summary>
+        /// Dashboard refresh event handler - tüm widget'ları günceller
+        /// </summary>
+        private void OnDashboardRefreshRequested(object sender, DashboardRefreshEventArgs e)
+        {
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new Action(() => OnDashboardRefreshRequested(sender, e)));
+                return;
+            }
+            
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"Dashboard Refresh: {e.Reason} at {e.Timestamp}");
+                
+                // Tab1 Dashboard Widgets
+                UpdateHeroCard();
+                heroCard?.Invalidate();
+                assetChart?.RefreshData();
+                recentTransactions?.RefreshData();
+                
+                // Tab2 Portfolio Dashboard Widgets
+                UpdatePortfolioHeroCard();
+                portfolioHeroCard?.Invalidate();
+                portfolioAssetChart?.RefreshData();
+                portfolioRecentTransactions?.RefreshData();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"OnDashboardRefreshRequested Error: {ex.Message}");
+            }
         }
     }
 }

@@ -1,10 +1,10 @@
 using System;
 using System.Drawing;
-using System.Threading.Tasks;
-using DevExpress.XtraCharts;
-using System.Windows.Forms;
 using System.Linq;
-using Dapper;
+using System.Windows.Forms;
+using DevExpress.XtraCharts;
+using DevExpress.XtraEditors;
+using BankApp.Infrastructure.Services.Dashboard;
 using BankApp.Infrastructure.Data;
 using BankApp.Infrastructure.Services;
 using BankApp.Core;
@@ -14,9 +14,14 @@ namespace BankApp.UI.Controls
     public partial class AssetAllocationChart : UserControl
     {
         private ChartControl chart;
+        private LabelControl lblEmpty;
+        private readonly DashboardSummaryService _summaryService;
 
         public AssetAllocationChart()
         {
+            var context = new DapperContext();
+            _summaryService = new DashboardSummaryService(context);
+            
             InitializeComponent();
             LoadChartData();
         }
@@ -25,6 +30,7 @@ namespace BankApp.UI.Controls
         {
             this.Size = new Size(380, 300);
             this.BackColor = Color.FromArgb(30, 30, 30);
+            this.Padding = new Padding(10);
 
             chart = new ChartControl
             {
@@ -35,95 +41,103 @@ namespace BankApp.UI.Controls
 
             chart.Titles.Add(new ChartTitle
             {
-                Text = "💰 Harcama Dağılımı",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                TextColor = Color.White
+                Text = "📊 Varlık Dağılımı",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                TextColor = Color.White,
+                Alignment = StringAlignment.Near
             });
+            
+            // Empty state label
+            lblEmpty = new LabelControl
+            {
+                Text = "📭 Henüz varlık bulunmuyor",
+                Appearance = { 
+                    Font = new Font("Segoe UI", 11, FontStyle.Regular),
+                    ForeColor = Color.FromArgb(148, 163, 184),
+                    TextOptions = { HAlignment = DevExpress.Utils.HorzAlignment.Center }
+                },
+                AutoSizeMode = LabelAutoSizeMode.None,
+                Dock = DockStyle.Fill,
+                Visible = false
+            };
 
             this.Controls.Add(chart);
+            this.Controls.Add(lblEmpty);
+        }
+
+        public async void RefreshData()
+        {
+            await LoadChartDataAsync();
         }
 
         private async void LoadChartData()
         {
+            await LoadChartDataAsync();
+        }
+
+        private async System.Threading.Tasks.Task LoadChartDataAsync()
+        {
             try
             {
-                Series series = new Series("Harcamalar", ViewType.Pie);
+                // Use Asset Allocation (Nakit / Yatırım / Borç)
+                var allocationData = await _summaryService.GetAssetAllocationAsync(AppEvents.CurrentSession.UserId);
                 
-                try
+                if (allocationData != null && allocationData.Any() && allocationData[0].Category != "Veri yok")
                 {
-                    var context = new DapperContext();
-                    using (var conn = context.CreateConnection())
+                    lblEmpty.Visible = false;
+                    chart.Visible = true;
+                    
+                    Series series = new Series("Varlıklar", ViewType.Doughnut);
+                    
+                    foreach (var item in allocationData)
                     {
-                        // **FETCH REAL SPENDING DATA BY CATEGORY**
-                        var spendingData = await conn.QueryAsync<(string Category, decimal Amount)>(@"
-                            SELECT 
-                                CASE 
-                                    WHEN ""Description"" LIKE '%Yatırım%' OR ""Description"" LIKE '%yatırım%' OR ""Description"" LIKE '%Investment%' THEN 'Yatırım'
-                                    WHEN ""Description"" LIKE '%market%' OR ""Description"" LIKE '%Market%' THEN 'Market'
-                                    WHEN ""Description"" LIKE '%fatura%' OR ""Description"" LIKE '%Fatura%' THEN 'Faturalar'
-                                    WHEN ""Description"" LIKE '%kira%' OR ""Description"" LIKE '%Kira%' THEN 'Kira'
-                                    WHEN ""Description"" LIKE '%restoran%' OR ""Description"" LIKE '%yemek%' THEN 'Yemek'
-                                    WHEN ""Description"" LIKE '%ulaşım%' OR ""Description"" LIKE '%Ulaşım%' THEN 'Ulaşım'
-                                    WHEN ""Description"" LIKE '%eğlence%' OR ""Description"" LIKE '%Eğlence%' THEN 'Eğlence'
-                                    ELSE 'Diğer'
-                                END as Category,
-                                SUM(ABS(""Amount"")) as Amount
-                            FROM ""Transactions""
-                            WHERE ""UserId"" = @UserId 
-                            AND ""TransactionType"" IN ('Withdraw', 'TransferOut')
-                            AND ""TransactionDate"" >= CURRENT_DATE - INTERVAL '30 days'
-                            GROUP BY Category
-                            HAVING SUM(ABS(""Amount"")) > 0
-                            ORDER BY Amount DESC",
-                            new { UserId = AppEvents.CurrentSession.UserId });
-
-                        if (spendingData.Any())
-                        {
-                            foreach (var item in spendingData)
-                            {
-                                series.Points.Add(new SeriesPoint(item.Category, item.Amount));
-                            }
-                        }
-                        else
-                        {
-                            // No real data, show sample
-                            AddSampleData(series);
-                        }
+                        var point = new SeriesPoint(item.Category, (double)item.Amount);
+                        point.Color = ColorTranslator.FromHtml(item.Color);
+                        series.Points.Add(point);
                     }
+                    
+                    // Doughnut styling
+                    if (series.View is DoughnutSeriesView doughnutView)
+                    {
+                        doughnutView.HoleRadiusPercent = 45;
+                        doughnutView.ExplodedDistancePercentage = 5;
+                    }
+                    
+                    // Premium label format: "Kategori - ₺X (Y%)"
+                    series.Label.TextPattern = "{A}\n₺{V:N0} ({VP:P0})";
+                    series.Label.ResolveOverlappingMode = ResolveOverlappingMode.Default;
+                    series.Label.Font = new Font("Segoe UI", 9, FontStyle.Regular);
+                    series.Label.TextColor = Color.White;
+                    series.LegendTextPattern = "{A} - ₺{V:N0} ({VP:P0})";
+                    
+                    chart.Series.Clear();
+                    chart.Series.Add(series);
+                    
+                    // Modern dark theme styling
+                    chart.PaletteName = "Mixed";
+                    chart.BorderOptions.Visibility = DevExpress.Utils.DefaultBoolean.False;
+                    chart.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
+                    chart.Legend.AlignmentHorizontal = LegendAlignmentHorizontal.Center;
+                    chart.Legend.AlignmentVertical = LegendAlignmentVertical.BottomOutside;
+                    chart.Legend.Direction = LegendDirection.LeftToRight;
+                    chart.Legend.TextColor = Color.White;
+                    chart.Legend.BackColor = Color.Transparent;
+                    chart.Legend.Font = new Font("Segoe UI", 9);
                 }
-                catch
+                else
                 {
-                    // Database error, show sample data
-                    AddSampleData(series);
+                    // Show empty state
+                    chart.Visible = false;
+                    lblEmpty.Visible = true;
                 }
-
-                PieSeriesView pieView = (PieSeriesView)series.View;
-                series.Label.TextPattern = "{A}: ₺{V:N0}";
-                
-                chart.Series.Clear();
-                chart.Series.Add(series);
-                
-                // Modern styling
-                chart.PaletteName = "Pastel";
-                chart.BorderOptions.Visibility = DevExpress.Utils.DefaultBoolean.False;
-                chart.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
-                chart.Legend.AlignmentHorizontal = LegendAlignmentHorizontal.Right;
-                chart.Legend.AlignmentVertical = LegendAlignmentVertical.Center;
-                chart.Legend.TextColor = Color.White;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"LoadChartData Error: {ex.Message}");
+                chart.Visible = false;
+                lblEmpty.Visible = true;
+                lblEmpty.Text = "⚠️ Veri yüklenemedi";
             }
-        }
-
-        private void AddSampleData(Series series)
-        {
-            series.Points.Add(new SeriesPoint("Market", 1500));
-            series.Points.Add(new SeriesPoint("Faturalar", 800));
-            series.Points.Add(new SeriesPoint("Ulaşım", 400));
-            series.Points.Add(new SeriesPoint("Yemek", 600));
-            series.Points.Add(new SeriesPoint("Diğer", 300));
         }
     }
 }

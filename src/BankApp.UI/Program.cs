@@ -79,7 +79,16 @@ namespace BankApp.UI
 
                 // 3. Existing Seeding Logic
                 var dataInit = new BankApp.Infrastructure.Data.DbInitializer();
-                dataInit.Initialize(); 
+                dataInit.Initialize();
+                
+                // 3.5 DEBUG ONLY: Test verileri ekle (username=1, password=1)
+#if DEBUG
+                // FORCE RESET - Temiz başlangıç için database'i sıfırla
+                await DebugSeedService.ForceResetAndSeedAsync();
+                
+                // DB durumunu kontrol et
+                await DbCheck.CheckAndLogAsync();
+#endif 
                 
                 // 4. ENSURE ADMIN USER EXISTS (Fix Login Issue) - SORUN DÜZELTİLDİ: Daha iyi hata yönetimi
                 try 

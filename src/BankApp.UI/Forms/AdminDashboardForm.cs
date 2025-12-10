@@ -179,15 +179,18 @@ namespace BankApp.UI.Forms
             {
                 Dock = DockStyle.Fill,
                 BackColor = BgCard,
-                Margin = new Padding(8),
-                Padding = new Padding(15)
+                Margin = new Padding(10),
+                Padding = new Padding(16)
             };
 
-            // Add border effect
+            // Premium border effect with accent on left
             card.Paint += (s, e) => {
                 var rect = new Rectangle(0, 0, card.Width - 1, card.Height - 1);
-                using var pen = new Pen(accentColor, 2);
-                e.Graphics.DrawRectangle(pen, rect);
+                using var borderPen = new Pen(Color.FromArgb(51, 65, 85), 1);
+                e.Graphics.DrawRectangle(borderPen, rect);
+                // Left accent bar
+                using var accentBrush = new SolidBrush(accentColor);
+                e.Graphics.FillRectangle(accentBrush, 0, 0, 4, card.Height);
             };
 
             var layout = new TableLayoutPanel
@@ -197,16 +200,16 @@ namespace BankApp.UI.Forms
                 RowCount = 2,
                 BackColor = Color.Transparent
             };
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 55));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
 
             // Icon
             var iconLabel = new Label
             {
                 Text = icon,
-                Font = new Font("Segoe UI", 24F),
+                Font = new Font("Segoe UI", 26F),
                 TextAlign = ContentAlignment.MiddleCenter,
                 Dock = DockStyle.Fill,
                 ForeColor = accentColor
@@ -214,22 +217,22 @@ namespace BankApp.UI.Forms
             layout.Controls.Add(iconLabel, 0, 0);
             layout.SetRowSpan(iconLabel, 2);
 
-            // Title
+            // Title - smaller, muted
             var titleLabel = new Label
             {
-                Text = title,
-                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+                Text = title.ToUpper(),
+                Font = new Font("Segoe UI", 8F, FontStyle.Bold),
                 ForeColor = TextSecondary,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.BottomLeft
             };
             layout.Controls.Add(titleLabel, 1, 0);
 
-            // Value
+            // Value - larger, prominent
             var valueLabel = new Label
             {
                 Text = value,
-                Font = new Font("Segoe UI", 18F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 22F, FontStyle.Bold),
                 ForeColor = TextPrimary,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.TopLeft
@@ -237,7 +240,7 @@ namespace BankApp.UI.Forms
             layout.Controls.Add(valueLabel, 1, 1);
 
             card.Controls.Add(layout);
-            card.Tag = new { ValueLabel = valueLabel, AccentColor = accentColor }; // Store reference for updates
+            card.Tag = new { ValueLabel = valueLabel, AccentColor = accentColor };
 
             return card;
         }
@@ -248,7 +251,7 @@ namespace BankApp.UI.Forms
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
-                SplitterDistance = this.Width / 2,
+                SplitterDistance = 700,
                 SplitterWidth = 8,
                 BackColor = BgHeader
             };
@@ -276,17 +279,17 @@ namespace BankApp.UI.Forms
             userLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // Grid
             userLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50)); // Actions
 
-            // Header
+            // Header - Premium section header
             userHeader = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = BgHeader,
-                Padding = new Padding(15)
+                Padding = new Padding(16, 12, 16, 12)
             };
             var headerLabel = new Label
             {
-                Text = "Kullanıcı Yönetimi",
-                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
+                Text = "Kullanici Yonetimi",
+                Font = new Font("Segoe UI", 13F, FontStyle.Bold),
                 ForeColor = AccentGold,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft
@@ -390,14 +393,19 @@ namespace BankApp.UI.Forms
             };
 
             // Configure grid appearance
-            gridUsers.DefaultCellStyle.BackColor = BgRow;
+            gridUsers.DefaultCellStyle.BackColor = BgCard;
             gridUsers.DefaultCellStyle.ForeColor = TextPrimary;
-            gridUsers.DefaultCellStyle.SelectionBackColor = AccentGold;
-            gridUsers.DefaultCellStyle.SelectionForeColor = Color.Black;
+            gridUsers.DefaultCellStyle.SelectionBackColor = AccentBlue;
+            gridUsers.DefaultCellStyle.SelectionForeColor = Color.White;
+            gridUsers.DefaultCellStyle.Padding = new Padding(4);
+            gridUsers.RowTemplate.Height = 32;
             gridUsers.ColumnHeadersDefaultCellStyle.BackColor = BgHeader;
             gridUsers.ColumnHeadersDefaultCellStyle.ForeColor = AccentGold;
             gridUsers.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            gridUsers.ColumnHeadersHeight = 36;
             gridUsers.EnableHeadersVisualStyles = false;
+            gridUsers.GridColor = Color.FromArgb(51, 65, 85);
+            gridUsers.AlternatingRowsDefaultCellStyle.BackColor = BgRow;
 
             gridUsers.Columns.Add(new DataGridViewTextBoxColumn { Name = "Id", HeaderText = "ID", Width = 60 });
             gridUsers.Columns.Add(new DataGridViewTextBoxColumn { Name = "Username", HeaderText = "Kullanıcı Adı", Width = 120 });
@@ -484,22 +492,22 @@ namespace BankApp.UI.Forms
             loanLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // Grid
             loanLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 120)); // Review Panel
 
-            // Header
+            // Header - Premium section header
             loanHeader = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = BgHeader,
-                Padding = new Padding(15)
+                Padding = new Padding(16, 12, 16, 12)
             };
-            var headerLabel = new Label
+            var loanHeaderLabel = new Label
             {
-                Text = "Kredi Onayları",
-                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
+                Text = "Kredi Onaylari",
+                Font = new Font("Segoe UI", 13F, FontStyle.Bold),
                 ForeColor = AccentGold,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft
             };
-            loanHeader.Controls.Add(headerLabel);
+            loanHeader.Controls.Add(loanHeaderLabel);
             loanLayout.Controls.Add(loanHeader, 0, 0);
 
             // Grid
@@ -518,14 +526,19 @@ namespace BankApp.UI.Forms
             };
 
             // Configure grid appearance
-            gridLoans.DefaultCellStyle.BackColor = BgRow;
+            gridLoans.DefaultCellStyle.BackColor = BgCard;
             gridLoans.DefaultCellStyle.ForeColor = TextPrimary;
-            gridLoans.DefaultCellStyle.SelectionBackColor = AccentGold;
-            gridLoans.DefaultCellStyle.SelectionForeColor = Color.Black;
+            gridLoans.DefaultCellStyle.SelectionBackColor = AccentBlue;
+            gridLoans.DefaultCellStyle.SelectionForeColor = Color.White;
+            gridLoans.DefaultCellStyle.Padding = new Padding(4);
+            gridLoans.RowTemplate.Height = 32;
             gridLoans.ColumnHeadersDefaultCellStyle.BackColor = BgHeader;
             gridLoans.ColumnHeadersDefaultCellStyle.ForeColor = AccentGold;
             gridLoans.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            gridLoans.ColumnHeadersHeight = 36;
             gridLoans.EnableHeadersVisualStyles = false;
+            gridLoans.GridColor = Color.FromArgb(51, 65, 85);
+            gridLoans.AlternatingRowsDefaultCellStyle.BackColor = BgRow;
 
             gridLoans.Columns.Add(new DataGridViewTextBoxColumn { Name = "Id", HeaderText = "ID", Width = 60 });
             gridLoans.Columns.Add(new DataGridViewTextBoxColumn { Name = "Username", HeaderText = "Kullanıcı", Width = 100 });
@@ -584,7 +597,7 @@ namespace BankApp.UI.Forms
                 Appearance = { BackColor = AccentGreen, ForeColor = Color.White },
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 Dock = DockStyle.Fill,
-                Margin = new Padding(2),
+                Margin = new Padding(4),
                 Enabled = false
             };
             btnApproveLoan.Click += async (s, e) => await ApproveLoanAsync();
@@ -596,7 +609,7 @@ namespace BankApp.UI.Forms
                 Appearance = { BackColor = AccentRed, ForeColor = Color.White },
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 Dock = DockStyle.Fill,
-                Margin = new Padding(2),
+                Margin = new Padding(4),
                 Enabled = false
             };
             btnRejectLoan.Click += async (s, e) => await RejectLoanAsync();
@@ -1027,8 +1040,56 @@ namespace BankApp.UI.Forms
 
         private void ExportToPdf()
         {
-            // DISABLED - Admin PDF export not implemented yet
-            XtraMessageBox.Show("Admin PDF export henüz hazır değil.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                this.Cursor = Cursors.WaitCursor;
+                
+                // Admin raporu için veri topla
+                var data = new BankApp.UI.Reports.AdminReportData
+                {
+                    // User stats
+                    TotalUsers = _cachedUsers?.Count ?? 0,
+                    ActiveUsers = _cachedUsers?.Count(u => u.IsActive) ?? 0,
+                    AdminUsers = _cachedUsers?.Count(u => u.Role == "Admin") ?? 0,
+                    BannedUsers = _cachedUsers?.Count(u => !u.IsActive) ?? 0,
+                    
+                    // Loan stats (placeholder - ideally from real data)
+                    TotalLoans = 0,
+                    PendingLoans = 0,
+                    ApprovedLoans = 0,
+                    RejectedLoans = 0,
+                    TotalLoanAmount = 0,
+                    PendingLoanAmount = 0,
+                    
+                    // Transaction stats (placeholder)
+                    TotalTransactions = 0,
+                    TodayTransactions = 0,
+                    WeekTransactions = 0,
+                    MonthTransactions = 0,
+                    
+                    // System info
+                    GeneratedBy = "Admin",
+                    DatabaseStatus = "Connected",
+                    Notes = "Bu rapor admin panelinden oluşturulmuştur.",
+                    GeneratedAt = DateTime.Now
+                };
+                
+                var path = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                    $"Admin_Report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf"
+                );
+                
+                using var report = new BankApp.UI.Reports.AdminDashboardReport(data);
+                report.ExportToPdf(path);
+                
+                this.Cursor = Cursors.Default;
+                XtraMessageBox.Show($"PDF oluşturuldu:\n{path}", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                this.Cursor = Cursors.Default;
+                XtraMessageBox.Show($"PDF Hatası:\n{ex.GetType().Name}\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
