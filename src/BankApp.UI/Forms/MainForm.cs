@@ -1266,6 +1266,18 @@ namespace BankApp.UI.Forms
             System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] RefreshDashboard called, this={GetType().FullName}");
             LoadDashboardData();
             LoadDashboardCharts();
+            
+            // Refresh AssetAllocationChart controls
+            if (assetChart != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[RUNTIME-TRACE] Refreshing assetChart (Tab1)");
+                assetChart.RefreshData();
+            }
+            if (portfolioAssetChart != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[RUNTIME-TRACE] Refreshing portfolioAssetChart (Tab2)");
+                portfolioAssetChart.RefreshData();
+            }
         }
 
         // Rol bazlı menü güncelleme
