@@ -67,6 +67,7 @@ namespace BankApp.UI.Controls
 
         public async void RefreshData()
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart.RefreshData called, control={GetType().FullName}");
             await LoadChartDataAsync();
         }
 
@@ -79,11 +80,14 @@ namespace BankApp.UI.Controls
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart.LoadChartDataAsync START, UserId={AppEvents.CurrentSession.UserId}");
                 // Use Asset Allocation (Nakit / Yatırım / Borç)
                 var allocationData = await _summaryService.GetAssetAllocationAsync(AppEvents.CurrentSession.UserId);
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart: Got {allocationData?.Count ?? 0} allocation slices");
                 
                 if (allocationData != null && allocationData.Any() && allocationData[0].Category != "Veri yok")
                 {
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart: Rendering chart with data");
                     lblEmpty.Visible = false;
                     chart.Visible = true;
                     
@@ -91,6 +95,7 @@ namespace BankApp.UI.Controls
                     
                     foreach (var item in allocationData)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart: Adding slice - {item.Category}: ₺{item.Amount:N0} ({item.Color})");
                         var point = new SeriesPoint(item.Category, (double)item.Amount);
                         point.Color = ColorTranslator.FromHtml(item.Color);
                         series.Points.Add(point);
