@@ -118,6 +118,8 @@ namespace BankApp.UI.Controls
                     chart.Series.Clear();
                     chart.Series.Add(series);
                     
+                    System.Diagnostics.Debug.WriteLine($"[CHART] Chart rendered - points={series.Points.Count}, totalValue=₺{allocationData.Sum(x => x.Amount):N0}");
+                    
                     // Modern dark theme styling
                     chart.PaletteName = "Mixed";
                     chart.BorderOptions.Visibility = DevExpress.Utils.DefaultBoolean.False;

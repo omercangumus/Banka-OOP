@@ -470,6 +470,8 @@ namespace BankApp.UI.Forms
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[DASHBOARD] Refresh START customerId={AppEvents.CurrentSession.UserId}");
+                
                 var context = new BankApp.Infrastructure.Data.DapperContext();
                 using (var conn = context.CreateConnection())
                 {
@@ -485,6 +487,24 @@ namespace BankApp.UI.Forms
                     var portfolioValue = await portfolioService.GetNetWorthAsync();
                     
                     var totalWealth = totalBankAssets + portfolioValue;
+                    
+                    // Get asset allocation breakdown
+                    var allocationData = await _dashboardSummaryService.GetAssetAllocationAsync(AppEvents.CurrentSession.UserId);
+                    decimal cash = 0, stock = 0, crypto = 0, debt = 0;
+                    int slices = 0;
+                    if (allocationData != null)
+                    {
+                        slices = allocationData.Count;
+                        foreach (var item in allocationData)
+                        {
+                            if (item.Category.Contains("Nakit")) cash = item.Amount;
+                            else if (item.Category.Contains("Hisse")) stock = item.Amount;
+                            else if (item.Category.Contains("Kripto")) crypto = item.Amount;
+                            else if (item.Category.Contains("Borç")) debt = item.Amount;
+                        }
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"[DASHBOARD] AssetAllocation computed slices={slices} cash=₺{cash:N0} stock=₺{stock:N0} crypto=₺{crypto:N0} debt=₺{debt:N0} total=₺{totalWealth:N0}");
                     
                     lblTotalAssetsValue.Text = totalWealth.ToString("N2");
                     
@@ -505,6 +525,8 @@ namespace BankApp.UI.Forms
                     var random = new Random();
                     var change = (random.NextDouble() * 2 - 1).ToString("F3");
                     lblExchangeRateValue.Text = $"{change}%";
+                    
+                    System.Diagnostics.Debug.WriteLine($"[DASHBOARD] Refresh END");
                 }
             }
             catch (Exception ex)

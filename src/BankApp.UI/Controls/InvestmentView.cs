@@ -1212,28 +1212,40 @@ namespace BankApp.UI.Controls
                             "SELECT \"Balance\" FROM \"Accounts\" WHERE \"Id\" = @AccId", 
                             new { AccId = primaryAccount.Id });
                         
-                        // Transaction count
-                        var txCount = await conn.ExecuteScalarAsync<int>(
-                            "SELECT COUNT(*) FROM \"Transactions\" WHERE \"AccountId\" = @AccId", 
+                        // Last transaction details
+                        var lastTx = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                            "SELECT \"Description\", \"Amount\", \"TransactionDate\" FROM \"Transactions\" WHERE \"AccountId\" = @AccId ORDER BY \"TransactionDate\" DESC LIMIT 1",
                             new { AccId = primaryAccount.Id });
                         
-                        // Portfolio positions
+                        // Portfolio position for this symbol
+                        var portfolioPosition = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                            "SELECT \"Quantity\", \"AverageCost\" FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId AND \"StockSymbol\" = @Symbol",
+                            new { CustId = primaryAccount.CustomerId, Symbol = _currentSymbol });
+                        
+                        // Total portfolio positions
                         var portfolioCount = await conn.ExecuteScalarAsync<int>(
                             "SELECT COUNT(*) FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId", 
                             new { CustId = primaryAccount.CustomerId });
                         
-                        // Symbol position (if exists)
-                        var symbolQty = await conn.ExecuteScalarAsync<decimal?>(
-                            "SELECT \"Quantity\" FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId AND \"StockSymbol\" = @Symbol",
-                            new { CustId = primaryAccount.CustomerId, Symbol = _currentSymbol });
-                        
-                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] ===== POST-TRADE VERIFICATION =====");
-                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] Action: {actionType}");
-                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] Account Balance: ₺{currentBalance:N2}");
-                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] Total Transactions: {txCount}");
-                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] Total Portfolio Positions: {portfolioCount}");
-                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] {_currentSymbol} Quantity: {symbolQty?.ToString("N2") ?? "0 (no position)"}");
-                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] ===============================");
+                        System.Diagnostics.Debug.WriteLine($"[DB] ===== POST-TRADE VERIFICATION =====");
+                        System.Diagnostics.Debug.WriteLine($"[DB] Action: {actionType}");
+                        System.Diagnostics.Debug.WriteLine($"[DB] BalanceAfter=₺{currentBalance:N2}");
+                        if (lastTx != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[DB] LastTx: {lastTx.Description} | Amount=₺{lastTx.Amount:N2} | Date={lastTx.TransactionDate:yyyy-MM-dd HH:mm:ss}");
+                        }
+                        if (portfolioPosition != null)
+                        {
+                            decimal qty = portfolioPosition.Quantity;
+                            decimal avgCost = portfolioPosition.AverageCost;
+                            System.Diagnostics.Debug.WriteLine($"[DB] PortfolioAfter: {_currentSymbol} qty={qty:N2} avgCost=₺{avgCost:N2} totalValue=₺{(qty * avgCost):N2}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[DB] PortfolioAfter: {_currentSymbol} - NO POSITION (sold all or never bought)");
+                        }
+                        System.Diagnostics.Debug.WriteLine($"[DB] Total Portfolio Positions: {portfolioCount}");
+                        System.Diagnostics.Debug.WriteLine($"[DB] ===============================");
                     }
                     catch (Exception dbEx)
                     {
