@@ -120,6 +120,12 @@ namespace BankApp.UI.Forms
         {
             System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] MainForm_Load fired, this={GetType().FullName}");
             
+            // BUILD STAMP VERIFICATION
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            var buildTime = DateTime.Now.ToString("HH:mm:ss");
+            this.Text = $"NovaBank - v{version} | Build: {buildTime} | Commit: 8072102";
+            System.Diagnostics.Debug.WriteLine($"[BUILD-STAMP] NovaBank v{version} | {buildTime} | Commit 8072102");
+            
             // Role-Based Dashboard
             if (AppEvents.CurrentSession.IsAdmin)
             {
@@ -430,24 +436,24 @@ namespace BankApp.UI.Forms
             }
         }
         
-        private void UpdateAssetChart()
+        private async void UpdateAssetChart()
         {
             try {
                 if (assetChart == null) return;
                 System.Diagnostics.Debug.WriteLine($"[CHART] UpdateAssetChart called, instance={assetChart.GetHashCode()}");
-                assetChart.RefreshData();
+                await assetChart.RefreshDataAsync();
             }
             catch (Exception ex) {
                 System.Diagnostics.Debug.WriteLine($"UpdateAssetChart Error: {ex.Message}");
             }
         }
         
-        private void UpdatePortfolioAssetChart()
+        private async void UpdatePortfolioAssetChart()
         {
             try {
                 if (portfolioAssetChart == null) return;
                 System.Diagnostics.Debug.WriteLine($"[CHART] UpdatePortfolioAssetChart called, instance={portfolioAssetChart.GetHashCode()}");
-                portfolioAssetChart.RefreshData();
+                await portfolioAssetChart.RefreshDataAsync();
             }
             catch (Exception ex) {
                 System.Diagnostics.Debug.WriteLine($"UpdatePortfolioAssetChart Error: {ex.Message}");
@@ -1283,9 +1289,20 @@ namespace BankApp.UI.Forms
         }
 
         // Dashboard'u yenile
-        private void RefreshDashboard()
+        private async void RefreshDashboard()
         {
             System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] RefreshDashboard called, this={GetType().FullName}");
+            
+            // VERIFICATION TOAST (one-time proof)
+            if (assetChart != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VERIFY] assetChart: Hash={assetChart.GetHashCode()}, Parent={assetChart.Parent?.Name ?? "null"}, Visible={assetChart.Visible}");
+            }
+            if (portfolioAssetChart != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VERIFY] portfolioAssetChart: Hash={portfolioAssetChart.GetHashCode()}, Parent={portfolioAssetChart.Parent?.Name ?? "null"}, Visible={portfolioAssetChart.Visible}");
+            }
+            
             LoadDashboardData();
             LoadDashboardCharts();
             
@@ -1293,12 +1310,12 @@ namespace BankApp.UI.Forms
             if (assetChart != null)
             {
                 System.Diagnostics.Debug.WriteLine("[RUNTIME-TRACE] Refreshing assetChart (Tab1)");
-                assetChart.RefreshData();
+                await assetChart.RefreshDataAsync();
             }
             if (portfolioAssetChart != null)
             {
                 System.Diagnostics.Debug.WriteLine("[RUNTIME-TRACE] Refreshing portfolioAssetChart (Tab2)");
-                portfolioAssetChart.RefreshData();
+                await portfolioAssetChart.RefreshDataAsync();
             }
         }
 
@@ -1419,14 +1436,8 @@ namespace BankApp.UI.Forms
         /// <summary>
         /// Dashboard refresh event handler - tüm widget'ları günceller
         /// </summary>
-        private void OnDashboardRefreshRequested(object sender, DashboardRefreshEventArgs e)
+        private async void OnDashboardRefreshRequested(object sender, DashboardRefreshEventArgs e)
         {
-            if (this.InvokeRequired)
-            {
-                this.BeginInvoke(new Action(() => OnDashboardRefreshRequested(sender, e)));
-                return;
-            }
-            
             try
             {
                 System.Diagnostics.Debug.WriteLine($"Dashboard Refresh: {e.Reason} at {e.Timestamp}");
@@ -1434,14 +1445,12 @@ namespace BankApp.UI.Forms
                 // Tab1 Dashboard Widgets
                 UpdateHeroCard();
                 heroCard?.Invalidate();
-                assetChart?.RefreshData();
-                recentTransactions?.RefreshData();
+                if (assetChart != null) await assetChart.RefreshDataAsync();
                 
                 // Tab2 Portfolio Dashboard Widgets
                 UpdatePortfolioHeroCard();
                 portfolioHeroCard?.Invalidate();
-                portfolioAssetChart?.RefreshData();
-                portfolioRecentTransactions?.RefreshData();
+                if (portfolioAssetChart != null) await portfolioAssetChart.RefreshDataAsync();
             }
             catch (Exception ex)
             {

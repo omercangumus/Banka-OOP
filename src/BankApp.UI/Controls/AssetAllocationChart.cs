@@ -65,9 +65,9 @@ namespace BankApp.UI.Controls
             this.Controls.Add(lblEmpty);
         }
 
-        public async void RefreshData()
+        public async Task RefreshDataAsync()
         {
-            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart.RefreshData called, control={GetType().FullName}");
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart.RefreshDataAsync called, control={GetType().FullName}, Hash={this.GetHashCode()}");
             await LoadChartDataAsync();
         }
 
