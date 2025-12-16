@@ -1153,14 +1153,18 @@ namespace BankApp.UI.Controls
                 decimal totalAmount = quantity * price;
                 
                 // Get user's primary account (UserId is used as CustomerId)
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] Trade START - UserId={AppEvents.CurrentSession.UserId}");
                 var accounts = await _accountRepository.GetByCustomerIdAsync(AppEvents.CurrentSession.UserId);
                 var primaryAccount = accounts?.FirstOrDefault();
                 
                 if (primaryAccount == null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] ERROR: No account found for UserId={AppEvents.CurrentSession.UserId}");
                     ShowToast("Hata", "Hesap bulunamadı.", isError: true);
                     return;
                 }
+                
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] Trade - AccountId={primaryAccount.Id}, CustomerId={primaryAccount.CustomerId}, UserId={AppEvents.CurrentSession.UserId}");
                 
                 string result;
                 string actionType;
@@ -1177,15 +1181,18 @@ namespace BankApp.UI.Controls
                     // Update portfolio position
                     if (result == null)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[CRITICAL] BuyAsync - CustomerId={primaryAccount.CustomerId}, Symbol={_currentSymbol}, Qty={quantity}");
                         await _portfolioRepository.BuyAsync(primaryAccount.CustomerId, _currentSymbol, quantity, price);
                     }
                 }
                 else
                 {
                     // SAT: Önce pozisyon kontrolü
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] SellAsync - CustomerId={primaryAccount.CustomerId}, Symbol={_currentSymbol}, Qty={quantity}");
                     var canSell = await _portfolioRepository.SellAsync(primaryAccount.CustomerId, _currentSymbol, quantity);
                     if (!canSell)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[CRITICAL] SELL FAILED: Insufficient position for {_currentSymbol}");
                         ShowToast("Hata", $"Yetersiz {_currentSymbol} pozisyonu.", isError: true);
                         return;
                     }

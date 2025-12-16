@@ -476,7 +476,7 @@ namespace BankApp.UI.Forms
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[DASHBOARD] Refresh START customerId={AppEvents.CurrentSession.UserId}");
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] LoadDashboardData START - UserId={AppEvents.CurrentSession.UserId}, Username={AppEvents.CurrentSession.Username}");
                 
                 var context = new BankApp.Infrastructure.Data.DapperContext();
                 using (var conn = context.CreateConnection())
