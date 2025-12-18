@@ -122,6 +122,12 @@ namespace BankApp.UI.Controls
                     
                     System.Diagnostics.Debug.WriteLine($"[CHART] Chart rendered - points={series.Points.Count}, totalValue=₺{allocationData.Sum(x => x.Amount):N0}");
                     
+                    // FORCE REPAINT
+                    chart.Invalidate();
+                    chart.Refresh();
+                    this.Invalidate();
+                    this.Refresh();
+                    
                     // Modern dark theme styling
                     chart.PaletteName = "Mixed";
                     chart.BorderOptions.Visibility = DevExpress.Utils.DefaultBoolean.False;
@@ -135,9 +141,12 @@ namespace BankApp.UI.Controls
                 }
                 else
                 {
+                    System.Diagnostics.Debug.WriteLine("[CHART] No data - showing empty state");
                     // Show empty state
                     chart.Visible = false;
                     lblEmpty.Visible = true;
+                    this.Invalidate();
+                    this.Refresh();
                 }
             }
             catch (Exception ex)
