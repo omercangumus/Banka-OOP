@@ -15,7 +15,7 @@ using BankApp.UI.Services.Pdf;
 
 namespace BankApp.UI.Controls
 {
-    public class InstrumentDetailView : XtraUserControl
+    public partial class InstrumentDetailView : XtraUserControl
     {
         public event EventHandler BackRequested;
         public event EventHandler<string> TradeTerminalRequested;
@@ -681,22 +681,16 @@ namespace BankApp.UI.Controls
             pnlBottom.Controls.Add(tabBottom);
         }
         
-        private void BtnBuy_Click(object sender, EventArgs e)
+        private async void BtnBuy_Click(object sender, EventArgs e)
         {
             if (!ValidateOrder()) return;
-            var orderType = cmbOrderType.EditValue?.ToString() ?? "Market";
-            var amount = txtAmount.Text;
-            var price = orderType == "Market" ? "Piyasa Fiyatı" : txtPrice.Text;
-            MessageBox.Show($"✅ BUY Emri Oluşturuldu\n\nSembol: {_currentSymbol}\nTip: {orderType}\nFiyat: {price}\nMiktar: {amount}\nToplam: {txtTotal.Text}", "Emir Onayı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            await ExecuteRealTradeAsync(isBuy: true);
         }
         
-        private void BtnSell_Click(object sender, EventArgs e)
+        private async void BtnSell_Click(object sender, EventArgs e)
         {
             if (!ValidateOrder()) return;
-            var orderType = cmbOrderType.EditValue?.ToString() ?? "Market";
-            var amount = txtAmount.Text;
-            var price = orderType == "Market" ? "Piyasa Fiyatı" : txtPrice.Text;
-            MessageBox.Show($"✅ SELL Emri Oluşturuldu\n\nSembol: {_currentSymbol}\nTip: {orderType}\nFiyat: {price}\nMiktar: {amount}\nToplam: {txtTotal.Text}", "Emir Onayı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            await ExecuteRealTradeAsync(isBuy: false);
         }
         
         private bool ValidateOrder()
