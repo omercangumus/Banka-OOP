@@ -1209,13 +1209,15 @@ namespace BankApp.UI.Controls
                 {
                     System.Diagnostics.Debug.WriteLine($"[TRADE] SUCCESS - {actionType} completed");
                     
+                    decimal currentBalance = 0;
+                    
                     // DB Verification - READ-ONLY CHECK
                     try
                     {
                         using var conn = new DapperContext().CreateConnection();
                         
                         // Balance verification
-                        var currentBalance = await conn.ExecuteScalarAsync<decimal>(
+                        currentBalance = await conn.ExecuteScalarAsync<decimal>(
                             "SELECT \"Balance\" FROM \"Accounts\" WHERE \"Id\" = @AccId", 
                             new { AccId = primaryAccount.Id });
                         
@@ -1278,6 +1280,13 @@ namespace BankApp.UI.Controls
                         $"✓ {tradeType} Emri Gerçekleşti",
                         $"{_currentSymbol} • {quantity} adet • ${totalAmount:N2}",
                         isError: false);
+                    
+                    // DEBUG: EKRANDA GÖSTER
+                    DevExpress.XtraEditors.XtraMessageBox.Show(
+                        $"TRADE COMPLETE!\n\nUserId: {AppEvents.CurrentSession.UserId}\nCustomerId: {primaryAccount.CustomerId}\nSymbol: {_currentSymbol}\nQty: {quantity}\nBalance After: ₺{currentBalance:N2}",
+                        "Trade Debug",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
                     
                     // Clear quantity field
                     txtOrderQuantity.Text = "";

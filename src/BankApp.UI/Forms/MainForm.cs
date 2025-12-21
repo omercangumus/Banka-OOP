@@ -126,6 +126,9 @@ namespace BankApp.UI.Forms
             this.Text = $"NovaBank - v{version} | Build: {buildTime} | Commit: 8072102";
             System.Diagnostics.Debug.WriteLine($"[BUILD-STAMP] NovaBank v{version} | {buildTime} | Commit 8072102");
             
+            // EKRANDA GÖSTER (Debug Output yerine)
+            XtraMessageBox.Show($"Build: {buildTime}\nCommit: 8072102\nUserId: {AppEvents.CurrentSession.UserId}\nUsername: {AppEvents.CurrentSession.Username}", "NovaBank Başlatıldı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            
             // Role-Based Dashboard
             if (AppEvents.CurrentSession.IsAdmin)
             {
