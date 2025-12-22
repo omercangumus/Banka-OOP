@@ -56,13 +56,33 @@ namespace BankApp.UI.Controls
                 
                 // Get user's primary account
                 System.Diagnostics.Debug.WriteLine($"[CRITICAL] InstrumentDetailView Trade START - UserId={AppEvents.CurrentSession.UserId}");
-                var accounts = await _accountRepository.GetByCustomerIdAsync(AppEvents.CurrentSession.UserId);
+                
+                // 1. Get Customer from UserId
+                int? customerId = null;
+                using (var conn = _context.CreateConnection())
+                {
+                    customerId = await conn.QueryFirstOrDefaultAsync<int?>(
+                        "SELECT \"Id\" FROM \"Customers\" WHERE \"UserId\" = @UserId LIMIT 1",
+                        new { UserId = AppEvents.CurrentSession.UserId });
+                }
+                
+                if (!customerId.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] ERROR: No Customer found for UserId={AppEvents.CurrentSession.UserId}");
+                    MessageBox.Show($"Müşteri bulunamadı (UserId={AppEvents.CurrentSession.UserId}).", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] Customer found: UserId={AppEvents.CurrentSession.UserId} -> CustomerId={customerId.Value}");
+                
+                // 2. Get Account from CustomerId
+                var accounts = await _accountRepository.GetByCustomerIdAsync(customerId.Value);
                 var primaryAccount = accounts?.FirstOrDefault();
                 
                 if (primaryAccount == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] ERROR: No account found for UserId={AppEvents.CurrentSession.UserId}");
-                    MessageBox.Show("Hesap bulunamadı.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] ERROR: No account found for CustomerId={customerId.Value}");
+                    MessageBox.Show($"Hesap bulunamadı (CustomerId={customerId.Value}).", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
                 
