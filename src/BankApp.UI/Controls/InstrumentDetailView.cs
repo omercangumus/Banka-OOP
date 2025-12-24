@@ -473,10 +473,19 @@ namespace BankApp.UI.Controls
             pnlRight.Controls.Add(lblCurrentPrice);
             y += 40;
             
+            // BAŞLIK: SPOT İŞLEM
+            var lblSpotTitle = new LabelControl();
+            lblSpotTitle.Text = "⚡ SPOT İŞLEM PANELİ";
+            lblSpotTitle.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            lblSpotTitle.Appearance.ForeColor = Color.FromArgb(0, 180, 240); // Mavi
+            lblSpotTitle.Location = new Point(15, y);
+            pnlRight.Controls.Add(lblSpotTitle);
+            y += 35;
+            
             var lblType = new LabelControl();
-            lblType.Text = "Emir Tipi";
+            lblType.Text = "Emir Tipi (Hemen Al/Sat veya Limit Fiyat)";
             lblType.Appearance.Font = new Font("Segoe UI", 9F);
-            lblType.Appearance.ForeColor = Color.FromArgb(130, 130, 130);
+            lblType.Appearance.ForeColor = Color.FromArgb(180, 180, 180);
             lblType.Location = new Point(15, y);
             pnlRight.Controls.Add(lblType);
             y += 22;
@@ -493,9 +502,9 @@ namespace BankApp.UI.Controls
             y += 38;
             
             var lblPriceLbl = new LabelControl();
-            lblPriceLbl.Text = "Fiyat (USDT)";
+            lblPriceLbl.Text = "Fiyat (USDT) - Market seçiliyse otomatik";
             lblPriceLbl.Appearance.Font = new Font("Segoe UI", 9F);
-            lblPriceLbl.Appearance.ForeColor = Color.FromArgb(130, 130, 130);
+            lblPriceLbl.Appearance.ForeColor = Color.FromArgb(180, 180, 180);
             lblPriceLbl.Location = new Point(15, y);
             pnlRight.Controls.Add(lblPriceLbl);
             y += 22;
@@ -511,22 +520,23 @@ namespace BankApp.UI.Controls
             y += 38;
             
             var lblAmtLbl = new LabelControl();
-            lblAmtLbl.Text = "Miktar";
-            lblAmtLbl.Appearance.Font = new Font("Segoe UI", 9F);
-            lblAmtLbl.Appearance.ForeColor = Color.FromArgb(130, 130, 130);
+            lblAmtLbl.Text = "Miktar (Kaç adet alacaksınız?)";
+            lblAmtLbl.Appearance.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblAmtLbl.Appearance.ForeColor = Color.FromArgb(220, 220, 220); // Daha açık
             lblAmtLbl.Location = new Point(15, y);
             pnlRight.Controls.Add(lblAmtLbl);
-            y += 22;
+            y += 25;
             
             txtAmount = new TextEdit();
-            txtAmount.Size = new Size(270, 28);
+            txtAmount.Size = new Size(270, 32); // Biraz daha büyük
             txtAmount.Location = new Point(15, y);
-            txtAmount.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
+            txtAmount.Properties.Appearance.BackColor = Color.FromArgb(40, 40, 40); // Daha açık arka plan
             txtAmount.Properties.Appearance.ForeColor = Color.White;
+            txtAmount.Properties.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             txtAmount.EditValue = "1";
             txtAmount.EditValueChanged += (s, e) => UpdateTotal();
             pnlRight.Controls.Add(txtAmount);
-            y += 38;
+            y += 40;
             
             // Quick % buttons
             int bx = 15;
@@ -545,37 +555,38 @@ namespace BankApp.UI.Controls
             y += 38;
             
             var lblTotalLbl = new LabelControl();
-            lblTotalLbl.Text = "Toplam (USDT)";
-            lblTotalLbl.Appearance.Font = new Font("Segoe UI", 9F);
-            lblTotalLbl.Appearance.ForeColor = Color.FromArgb(130, 130, 130);
+            lblTotalLbl.Text = "💰 Toplam Tutar (Komisyon dahil)";
+            lblTotalLbl.Appearance.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblTotalLbl.Appearance.ForeColor = Color.FromArgb(255, 200, 0); // Altın sarısı
             lblTotalLbl.Location = new Point(15, y);
             pnlRight.Controls.Add(lblTotalLbl);
-            y += 22;
+            y += 25;
             
             txtTotal = new TextEdit();
-            txtTotal.Size = new Size(270, 28);
+            txtTotal.Size = new Size(270, 35);
             txtTotal.Location = new Point(15, y);
-            txtTotal.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
-            txtTotal.Properties.Appearance.ForeColor = Color.White;
+            txtTotal.Properties.Appearance.BackColor = Color.FromArgb(50, 50, 50);
+            txtTotal.Properties.Appearance.ForeColor = Color.FromArgb(255, 200, 0); // Altın
+            txtTotal.Properties.Appearance.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             txtTotal.Properties.ReadOnly = true;
             pnlRight.Controls.Add(txtTotal);
-            y += 38;
+            y += 45;
             
             lblAvailBalance = new LabelControl();
-            lblAvailBalance.Text = "Bakiye: ,000.00";
+            lblAvailBalance.Text = "💵 Kullanılabilir Bakiye: $10,000.00";
             lblAvailBalance.Appearance.Font = new Font("Segoe UI", 9F);
-            lblAvailBalance.Appearance.ForeColor = Color.FromArgb(100, 100, 100);
+            lblAvailBalance.Appearance.ForeColor = Color.FromArgb(0, 200, 100); // Yeşil
             lblAvailBalance.Location = new Point(15, y);
             pnlRight.Controls.Add(lblAvailBalance);
             y += 22;
             
             lblFee = new LabelControl();
-            lblFee.Text = "Tahmini Komisyon: ~.10";
+            lblFee.Text = "⚡ Komisyon (0.1%): $10.00";
             lblFee.Appearance.Font = new Font("Segoe UI", 9F);
-            lblFee.Appearance.ForeColor = Color.FromArgb(100, 100, 100);
+            lblFee.Appearance.ForeColor = Color.FromArgb(150, 150, 150);
             lblFee.Location = new Point(15, y);
             pnlRight.Controls.Add(lblFee);
-            y += 32;
+            y += 35;
             
             btnBuy = new SimpleButton();
             btnBuy.Text = "AL (BUY)";
