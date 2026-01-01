@@ -2,24 +2,35 @@
 using BankApp.Core.Entities;
 using BankApp.Core.Interfaces;
 using Dapper;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace BankApp.Infrastructure.Data
 {
-    // Simple Repository Implementation for User
+    /// <summary>
+    /// Kullanıcı repository sınıfı - Veritabanı işlemleri
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public class UserRepository : IGenericRepository<User>, IUserRepository
     {
         private readonly DapperContext _context;
 
+        /// <summary>
+        /// UserRepository yapıcı metodu
+        /// </summary>
+        /// <param name="context">Veritabanı bağlantı context'i</param>
         public UserRepository(DapperContext context)
         {
             _context = context;
         }
 
+        /// <summary>
+        /// Tüm kullanıcıları getirir
+        /// </summary>
+        /// <returns>Kullanıcı listesi</returns>
         public async Task<IEnumerable<User>> GetAllAsync()
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -28,9 +39,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// ID'ye göre kullanıcı getirir
+        /// </summary>
+        /// <param name="id">Kullanıcı ID</param>
+        /// <returns>Kullanıcı veya null</returns>
         public async Task<User?> GetByIdAsync(int id)
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -39,15 +54,18 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Yeni kullanıcı ekler
+        /// </summary>
+        /// <param name="entity">Kullanıcı nesnesi</param>
+        /// <returns>Eklenen kullanıcının ID'si</returns>
         public async Task<int> AddAsync(User entity)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü ve connection açma eklendi
             if (entity == null)
             {
                 throw new ArgumentNullException(nameof(entity));
             }
 
-            // Ensure CreatedAt has a value
             if (entity.CreatedAt == default)
             {
                 entity.CreatedAt = DateTime.UtcNow;
@@ -61,9 +79,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Kullanıcı siler
+        /// </summary>
+        /// <param name="id">Silinecek kullanıcı ID</param>
+        /// <returns>İşlem başarılı mı</returns>
         public async Task<bool> DeleteAsync(int id)
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -72,9 +94,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Kullanıcı bilgilerini günceller
+        /// </summary>
+        /// <param name="entity">Güncellenecek kullanıcı</param>
+        /// <returns>İşlem başarılı mı</returns>
         public async Task<bool> UpdateAsync(User entity)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü ve connection açma eklendi
             if (entity == null)
             {
                 throw new ArgumentNullException(nameof(entity));
@@ -88,7 +114,11 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
-        // Custom method for Login - SORUN DÜZELTİLDİ: Null kontrolü eklendi
+        /// <summary>
+        /// Kullanıcı adına göre kullanıcı getirir
+        /// </summary>
+        /// <param name="username">Kullanıcı adı</param>
+        /// <returns>Kullanıcı veya null</returns>
         public async Task<User?> GetByUsernameAsync(string username)
         {
             if (string.IsNullOrWhiteSpace(username))
@@ -104,7 +134,11 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
-        // Custom method for Forgot Password - SORUN DÜZELTİLDİ: Null kontrolü ve connection açma eklendi
+        /// <summary>
+        /// E-posta adresine göre kullanıcı getirir
+        /// </summary>
+        /// <param name="email">E-posta adresi</param>
+        /// <returns>Kullanıcı veya null</returns>
         public async Task<User?> GetByEmailAsync(string email)
         {
             if (string.IsNullOrWhiteSpace(email))

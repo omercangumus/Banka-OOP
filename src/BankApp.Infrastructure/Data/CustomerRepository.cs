@@ -8,18 +8,29 @@ using System.Threading.Tasks;
 
 namespace BankApp.Infrastructure.Data
 {
+    /// <summary>
+    /// Müşteri repository sınıfı - Veritabanı işlemleri
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public class CustomerRepository : ICustomerRepository
     {
         private readonly DapperContext _context;
 
+        /// <summary>
+        /// CustomerRepository yapıcı metodu
+        /// </summary>
+        /// <param name="context">Veritabanı bağlantı context'i</param>
         public CustomerRepository(DapperContext context)
         {
             _context = context;
         }
 
+        /// <summary>
+        /// Tüm müşterileri getirir
+        /// </summary>
+        /// <returns>Müşteri listesi</returns>
         public async Task<IEnumerable<Customer>> GetAllAsync()
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -28,9 +39,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// ID'ye göre müşteri getirir
+        /// </summary>
+        /// <param name="id">Müşteri ID</param>
+        /// <returns>Müşteri veya null</returns>
         public async Task<Customer?> GetByIdAsync(int id)
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -39,9 +54,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// TC Kimlik numarasına göre müşteri getirir
+        /// </summary>
+        /// <param name="identityNumber">TC Kimlik No</param>
+        /// <returns>Müşteri veya null</returns>
         public async Task<Customer?> GetByIdentityAsync(string identityNumber)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü ve connection açma eklendi
             if (string.IsNullOrWhiteSpace(identityNumber))
             {
                 return null;
@@ -55,18 +74,21 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Yeni müşteri ekler
+        /// </summary>
+        /// <param name="entity">Müşteri nesnesi</param>
+        /// <returns>Eklenen müşterinin ID'si</returns>
         public async Task<int> AddAsync(Customer entity)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü ve connection açma eklendi
             if (entity == null)
             {
                 throw new ArgumentNullException(nameof(entity));
             }
 
-            // Ensure CreatedAt has a value
             if (entity.CreatedAt == default)
             {
-                entity.CreatedAt = System.DateTime.UtcNow;
+                entity.CreatedAt = DateTime.UtcNow;
             }
             
             using (var connection = _context.CreateConnection())
@@ -77,9 +99,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Müşteri bilgilerini günceller
+        /// </summary>
+        /// <param name="entity">Güncellenecek müşteri</param>
+        /// <returns>İşlem başarılı mı</returns>
         public async Task<bool> UpdateAsync(Customer entity)
         {
-            // SORUN DÜZELTİLDİ: Connection açma ve DateOfBirth kolonu eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -88,9 +114,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Müşteri siler
+        /// </summary>
+        /// <param name="id">Silinecek müşteri ID</param>
+        /// <returns>İşlem başarılı mı</returns>
         public async Task<bool> DeleteAsync(int id)
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();

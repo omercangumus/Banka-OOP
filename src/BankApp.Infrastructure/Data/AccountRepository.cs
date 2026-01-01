@@ -8,18 +8,29 @@ using System.Threading.Tasks;
 
 namespace BankApp.Infrastructure.Data
 {
+    /// <summary>
+    /// Hesap repository sınıfı - Veritabanı işlemleri
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public class AccountRepository : IGenericRepository<Account>, IAccountRepository
     {
         private readonly DapperContext _context;
 
+        /// <summary>
+        /// AccountRepository yapıcı metodu
+        /// </summary>
+        /// <param name="context">Veritabanı bağlantı context'i</param>
         public AccountRepository(DapperContext context)
         {
             _context = context;
         }
 
+        /// <summary>
+        /// Tüm hesapları getirir
+        /// </summary>
+        /// <returns>Hesap listesi</returns>
         public async Task<IEnumerable<Account>> GetAllAsync()
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -28,9 +39,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// ID'ye göre hesap getirir
+        /// </summary>
+        /// <param name="id">Hesap ID</param>
+        /// <returns>Hesap veya null</returns>
         public async Task<Account?> GetByIdAsync(int id)
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -39,9 +54,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Yeni hesap ekler
+        /// </summary>
+        /// <param name="entity">Hesap nesnesi</param>
+        /// <returns>Eklenen hesabın ID'si</returns>
         public async Task<int> AddAsync(Account entity)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü ve connection açma eklendi
             if (entity == null)
             {
                 throw new ArgumentNullException(nameof(entity));
@@ -51,15 +70,19 @@ namespace BankApp.Infrastructure.Data
             {
                 connection.Open();
                 var query = "INSERT INTO \"Accounts\" (\"CustomerId\", \"AccountNumber\", \"IBAN\", \"Balance\", \"CurrencyCode\", \"OpenedDate\", \"CreatedAt\") VALUES (@CustomerId, @AccountNumber, @IBAN, @Balance, @CurrencyCode, @OpenedDate, @CreatedAt) RETURNING \"Id\"";
-                if (entity.OpenedDate == default) entity.OpenedDate = System.DateTime.UtcNow;
-                if (entity.CreatedAt == default) entity.CreatedAt = System.DateTime.UtcNow;
+                if (entity.OpenedDate == default) entity.OpenedDate = DateTime.UtcNow;
+                if (entity.CreatedAt == default) entity.CreatedAt = DateTime.UtcNow;
                 return await connection.ExecuteScalarAsync<int>(query, entity);
             }
         }
 
+        /// <summary>
+        /// Hesap siler
+        /// </summary>
+        /// <param name="id">Silinecek hesap ID</param>
+        /// <returns>İşlem başarılı mı</returns>
         public async Task<bool> DeleteAsync(int id)
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -68,9 +91,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Hesap bilgilerini günceller
+        /// </summary>
+        /// <param name="entity">Güncellenecek hesap</param>
+        /// <returns>İşlem başarılı mı</returns>
         public async Task<bool> UpdateAsync(Account entity)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü ve connection açma eklendi
             if (entity == null)
             {
                 throw new ArgumentNullException(nameof(entity));
@@ -84,9 +111,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Müşteri ID'sine göre hesapları getirir
+        /// </summary>
+        /// <param name="customerId">Müşteri ID</param>
+        /// <returns>Hesap listesi</returns>
         public async Task<IEnumerable<Account>> GetByCustomerIdAsync(int customerId)
         {
-            // SORUN DÜZELTİLDİ: Connection açma eklendi
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -95,9 +126,13 @@ namespace BankApp.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// IBAN'a göre hesap getirir
+        /// </summary>
+        /// <param name="iban">IBAN numarası</param>
+        /// <returns>Hesap veya null</returns>
         public async Task<Account?> GetByIBANAsync(string iban)
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü ve connection açma eklendi
             if (string.IsNullOrWhiteSpace(iban))
             {
                 return null;
