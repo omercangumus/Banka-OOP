@@ -29,25 +29,19 @@ namespace BankApp.Infrastructure.Services
             try
             {
                 var user = await _userRepository.GetByUsernameAsync(username);
-                if (user == null) 
-                {
-                    await LogAuditAsync(null, "LoginFailed", $"User not found: {username}");
-                    return "Kullanıcı adı veya şifre hatalı.";
-                }
+                if (user == null) return "Kullanıcı adı veya şifre hatalı."; // Güvenlik için detay verme
 
-                if (!user.IsVerified) return "Hesabınız doğrulanmamış.";
-                if (!user.IsActive) return "Hesabınız aktif değil.";
+                if (!user.IsVerified) return "Hesap doğrulanmamış.";
+                if (!user.IsActive) return "Hesap aktif değil.";
 
-                if (VerifyPassword(password, user.PasswordHash ?? ""))
+                if (VerifyPassword(password, user.PasswordHash))
                 {
-                    await LogAuditAsync(user.Id, "LoginSuccess", "User logged in.");
+                    await LogAuditAsync(user.Id, "LoginSuccess", "Giriş yapıldı.");
                     return null; // Başarılı
                 }
-                else
-                {
-                    await LogAuditAsync(user.Id, "LoginFailed", "Invalid password.");
-                    return "Kullanıcı adı veya şifre hatalı.";
-                }
+                
+                await LogAuditAsync(user.Id, "LoginFailed", "Hatalı şifre.");
+                return "Kullanıcı adı veya şifre hatalı.";
             }
             catch (Exception ex)
             {
