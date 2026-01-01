@@ -40,6 +40,11 @@ namespace BankApp.UI.Forms
         // Yeni: Yatırım butonları
         private DevExpress.XtraBars.BarButtonItem btnStockMarket;
         private DevExpress.XtraBars.BarButtonItem btnBES;
+        private DevExpress.XtraBars.BarButtonItem btnCards;
+        private DevExpress.XtraBars.BarButtonItem btnTimeDeposit;
+        private DevExpress.XtraBars.BarButtonItem btnLoanApplication;
+        private DevExpress.XtraBars.BarButtonItem btnLoanApproval;
+        private DevExpress.XtraBars.BarButtonItem btnLogout;
         
         // Dashboard Controls - YENİ TASARIM
         private PanelControl pnlDashboard;
@@ -105,6 +110,11 @@ namespace BankApp.UI.Forms
             this.btnAuditLogs = new DevExpress.XtraBars.BarButtonItem();
             this.btnStockMarket = new DevExpress.XtraBars.BarButtonItem();
             this.btnBES = new DevExpress.XtraBars.BarButtonItem();
+            this.btnCards = new DevExpress.XtraBars.BarButtonItem();
+            this.btnTimeDeposit = new DevExpress.XtraBars.BarButtonItem();
+            this.btnLoanApplication = new DevExpress.XtraBars.BarButtonItem();
+            this.btnLoanApproval = new DevExpress.XtraBars.BarButtonItem();
+            this.btnLogout = new DevExpress.XtraBars.BarButtonItem();
             
             // Dashboard Panel
             this.pnlDashboard = new PanelControl();
@@ -152,130 +162,204 @@ namespace BankApp.UI.Forms
             this.SuspendLayout();
 
             // ============================================
-            // RIBBON CONTROL
+            // RIBBON CONTROL - MODERN OFFİCE 2019 STİL
             // ============================================
+            this.ribbonControl1.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonControlStyle.Office2019;
+            this.ribbonControl1.ShowApplicationButton = DevExpress.Utils.DefaultBoolean.False;
+            this.ribbonControl1.ShowToolbarCustomizeItem = false;
+            this.ribbonControl1.ToolbarLocation = DevExpress.XtraBars.Ribbon.RibbonQuickAccessToolbarLocation.Hidden;
+            this.ribbonControl1.ShowPageHeadersMode = DevExpress.XtraBars.Ribbon.ShowPageHeadersMode.Show;
+            this.ribbonControl1.ColorScheme = DevExpress.XtraBars.Ribbon.RibbonControlColorScheme.DarkBlue;
             this.ribbonControl1.ExpandCollapseItem.Id = 0;
             this.ribbonControl1.Items.AddRange(new DevExpress.XtraBars.BarItem[] {
                 this.ribbonControl1.ExpandCollapseItem,
                 this.btnAiAssist, this.btnRefresh, this.btnMoneyTransfer,
                 this.btnAddCustomer, this.btnEditCustomer, this.btnDeleteCustomer,
                 this.btnCustomerAccounts, this.btnExportExcel, this.btnExportPdf,
-                this.btnAuditLogs, this.btnStockMarket, this.btnBES
+                this.btnAuditLogs, this.btnStockMarket, this.btnBES, this.btnCards,
+                this.btnTimeDeposit, this.btnLoanApplication, this.btnLoanApproval, this.btnLogout
             });
             this.ribbonControl1.Location = new Point(0, 0);
-            this.ribbonControl1.MaxItemId = 13;
+            this.ribbonControl1.MaxItemId = 18;
             this.ribbonControl1.Name = "ribbonControl1";
             this.ribbonControl1.Pages.AddRange(new RibbonPage[] {
                 this.pageDashboard, this.pageCustomers, this.pageInvestments
             });
-            this.ribbonControl1.Size = new Size(1400, 158);
+            this.ribbonControl1.Size = new Size(1400, 130);
 
-            // Button Configurations
-            this.btnAiAssist.Caption = "AI Asistan";
+            // Button Configurations - MODERN İKONLAR
+            this.btnAiAssist.Caption = "🤖 AI Asistan";
             this.btnAiAssist.Id = 1;
             this.btnAiAssist.Name = "btnAiAssist";
             this.btnAiAssist.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnAiAssist.ImageOptions.Image = CreateIconImage(Color.FromArgb(156, 39, 176), "AI");
             this.btnAiAssist.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnAiAssist_ItemClick);
 
-            this.btnRefresh.Caption = "Yenile";
+            this.btnRefresh.Caption = "🔄 Yenile";
             this.btnRefresh.Id = 2;
             this.btnRefresh.Name = "btnRefresh";
+            this.btnRefresh.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnRefresh.ImageOptions.Image = CreateIconImage(Color.FromArgb(76, 175, 80), "↻");
 
-            this.btnMoneyTransfer.Caption = "Para Transferi";
+            this.btnMoneyTransfer.Caption = "💸 Para Transferi";
             this.btnMoneyTransfer.Id = 3;
             this.btnMoneyTransfer.Name = "btnMoneyTransfer";
             this.btnMoneyTransfer.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnMoneyTransfer.ImageOptions.Image = CreateIconImage(Color.FromArgb(33, 150, 243), "₺");
             this.btnMoneyTransfer.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnMoneyTransfer_ItemClick);
 
-            this.btnAddCustomer.Caption = "Yeni Müşteri";
+            this.btnAddCustomer.Caption = "➕ Yeni Müşteri";
             this.btnAddCustomer.Id = 4;
             this.btnAddCustomer.Name = "btnAddCustomer";
             this.btnAddCustomer.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnAddCustomer.ImageOptions.Image = CreateIconImage(Color.FromArgb(76, 175, 80), "+");
             this.btnAddCustomer.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnAddCustomer_ItemClick);
 
-            this.btnEditCustomer.Caption = "Düzenle";
+            this.btnEditCustomer.Caption = "✏️ Düzenle";
             this.btnEditCustomer.Id = 5;
             this.btnEditCustomer.Name = "btnEditCustomer";
+            this.btnEditCustomer.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnEditCustomer.ImageOptions.Image = CreateIconImage(Color.FromArgb(255, 152, 0), "✎");
             this.btnEditCustomer.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnEditCustomer_ItemClick);
 
-            this.btnDeleteCustomer.Caption = "Sil";
+            this.btnDeleteCustomer.Caption = "🗑️ Sil";
             this.btnDeleteCustomer.Id = 6;
             this.btnDeleteCustomer.Name = "btnDeleteCustomer";
+            this.btnDeleteCustomer.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnDeleteCustomer.ImageOptions.Image = CreateIconImage(Color.FromArgb(244, 67, 54), "✕");
             this.btnDeleteCustomer.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnDeleteCustomer_ItemClick);
 
-            this.btnCustomerAccounts.Caption = "Hesaplar";
+            this.btnCustomerAccounts.Caption = "🏦 Hesaplar";
             this.btnCustomerAccounts.Id = 7;
             this.btnCustomerAccounts.Name = "btnCustomerAccounts";
+            this.btnCustomerAccounts.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnCustomerAccounts.ImageOptions.Image = CreateIconImage(Color.FromArgb(0, 150, 136), "$");
             this.btnCustomerAccounts.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnCustomerAccounts_ItemClick);
 
-            this.btnExportExcel.Caption = "Excel'e Aktar";
+            this.btnExportExcel.Caption = "📊 Excel";
             this.btnExportExcel.Id = 8;
             this.btnExportExcel.Name = "btnExportExcel";
             this.btnExportExcel.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnExportExcel.ImageOptions.Image = CreateIconImage(Color.FromArgb(76, 175, 80), "X");
             this.btnExportExcel.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnExportExcel_ItemClick);
 
-            this.btnExportPdf.Caption = "PDF'e Aktar";
+            this.btnExportPdf.Caption = "📄 PDF";
             this.btnExportPdf.Id = 9;
             this.btnExportPdf.Name = "btnExportPdf";
             this.btnExportPdf.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnExportPdf.ImageOptions.Image = CreateIconImage(Color.FromArgb(244, 67, 54), "P");
             this.btnExportPdf.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnExportPdf_ItemClick);
 
-            this.btnAuditLogs.Caption = "Sistem Logları";
+            this.btnAuditLogs.Caption = "📋 Sistem Logları";
             this.btnAuditLogs.Id = 10;
             this.btnAuditLogs.Name = "btnAuditLogs";
+            this.btnAuditLogs.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnAuditLogs.ImageOptions.Image = CreateIconImage(Color.FromArgb(96, 125, 139), "L");
             this.btnAuditLogs.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnAuditLogs_ItemClick);
 
-            // YENİ: Yatırım Butonları
-            this.btnStockMarket.Caption = "Borsa";
+            // YENİ: Yatırım Butonları - MODERN İKONLAR
+            this.btnStockMarket.Caption = "📈 Borsa";
             this.btnStockMarket.Id = 11;
             this.btnStockMarket.Name = "btnStockMarket";
             this.btnStockMarket.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnStockMarket.ImageOptions.Image = CreateIconImage(Color.FromArgb(33, 150, 243), "↗");
             this.btnStockMarket.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnStockMarket_ItemClick);
 
-            this.btnBES.Caption = "BES (Emeklilik)";
+            this.btnBES.Caption = "🏛️ Vadeli Hesap";
             this.btnBES.Id = 12;
             this.btnBES.Name = "btnBES";
             this.btnBES.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnBES.ImageOptions.Image = CreateIconImage(Color.FromArgb(156, 39, 176), "E");
             this.btnBES.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnBES_ItemClick);
 
-            // Ribbon Page Groups
+            this.btnCards.Caption = "💳 Kartlarım";
+            this.btnCards.Id = 13;
+            this.btnCards.Name = "btnCards";
+            this.btnCards.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnCards.ImageOptions.Image = CreateIconImage(Color.FromArgb(255, 193, 7), "$");
+            this.btnCards.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnCards_ItemClick);
+
+            this.btnTimeDeposit.Caption = "🏦 Vadeli Hesap";
+            this.btnTimeDeposit.Id = 14;
+            this.btnTimeDeposit.Name = "btnTimeDeposit";
+            this.btnTimeDeposit.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnTimeDeposit.ImageOptions.Image = CreateIconImage(Color.FromArgb(0, 150, 136), "V");
+            this.btnTimeDeposit.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnTimeDeposit_ItemClick);
+
+            this.btnLoanApplication.Caption = "💰 Kredi Başvurusu";
+            this.btnLoanApplication.Id = 15;
+            this.btnLoanApplication.Name = "btnLoanApplication";
+            this.btnLoanApplication.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnLoanApplication.ImageOptions.Image = CreateIconImage(Color.FromArgb(76, 175, 80), "K");
+            this.btnLoanApplication.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnLoanApplication_ItemClick);
+
+            this.btnLoanApproval.Caption = "✅ Kredi Onay (Admin)";
+            this.btnLoanApproval.Id = 16;
+            this.btnLoanApproval.Name = "btnLoanApproval";
+            this.btnLoanApproval.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnLoanApproval.ImageOptions.Image = CreateIconImage(Color.FromArgb(244, 67, 54), "A");
+            this.btnLoanApproval.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnLoanApproval_ItemClick);
+
+            this.btnLogout.Caption = "🚪 Çıkış Yap";
+            this.btnLogout.Id = 17;
+            this.btnLogout.Name = "btnLogout";
+            this.btnLogout.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnLogout.ImageOptions.Image = CreateIconImage(Color.FromArgb(120, 120, 130), "X");
+            this.btnLogout.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnLogout_ItemClick);
+
+            // Ribbon Page Groups - YENİDEN DÜZENLENMIŞ
             this.groupStats.ItemLinks.Add(this.btnRefresh);
             this.groupStats.ItemLinks.Add(this.btnMoneyTransfer);
-            this.groupStats.ItemLinks.Add(this.btnAuditLogs);
             this.groupStats.Name = "groupStats";
-            this.groupStats.Text = "Genel";
+            this.groupStats.Text = "💼 Temel İşlemler";
 
             this.groupAI.ItemLinks.Add(this.btnAiAssist);
             this.groupAI.Name = "groupAI";
-            this.groupAI.Text = "Yapay Zeka";
+            this.groupAI.Text = "🤖 Yapay Zeka";
 
             this.groupCustomerActions.ItemLinks.Add(this.btnAddCustomer);
             this.groupCustomerActions.ItemLinks.Add(this.btnEditCustomer);
             this.groupCustomerActions.ItemLinks.Add(this.btnDeleteCustomer);
             this.groupCustomerActions.ItemLinks.Add(this.btnCustomerAccounts);
-            this.groupCustomerActions.ItemLinks.Add(this.btnExportExcel);
-            this.groupCustomerActions.ItemLinks.Add(this.btnExportPdf);
             this.groupCustomerActions.Name = "groupCustomerActions";
-            this.groupCustomerActions.Text = "Müşteri";
+            this.groupCustomerActions.Text = "👥 Müşteri İşlemleri";
+
+            // Yeni Grup: Raporlar
+            var groupReports = new RibbonPageGroup("📊 Raporlar");
+            groupReports.ItemLinks.Add(this.btnExportExcel);
+            groupReports.ItemLinks.Add(this.btnExportPdf);
+            groupReports.ItemLinks.Add(this.btnAuditLogs);
 
             this.groupInvestmentActions.ItemLinks.Add(this.btnStockMarket);
             this.groupInvestmentActions.ItemLinks.Add(this.btnBES);
+            this.groupInvestmentActions.ItemLinks.Add(this.btnCards);
+            this.groupInvestmentActions.ItemLinks.Add(this.btnTimeDeposit);
+            this.groupInvestmentActions.ItemLinks.Add(this.btnLoanApplication);
+            this.groupInvestmentActions.ItemLinks.Add(this.btnLoanApproval);
             this.groupInvestmentActions.Name = "groupInvestmentActions";
-            this.groupInvestmentActions.Text = "Yatırım Araçları";
+            this.groupInvestmentActions.Text = "💳 Yatırım & Kredi";
 
-            // Ribbon Pages
+            // Logout grubu
+            var groupLogout = new RibbonPageGroup();
+            groupLogout.ItemLinks.Add(this.btnLogout);
+            groupLogout.Name = "groupLogout";
+            groupLogout.Text = "🚪 Oturum";
+
+            // Ribbon Pages - YENİ GRUPLARLA
             this.pageDashboard.Groups.Add(this.groupStats);
             this.pageDashboard.Groups.Add(this.groupAI);
+            this.pageDashboard.Groups.Add(groupLogout); // Logout eklendi
             this.pageDashboard.Name = "pageDashboard";
-            this.pageDashboard.Text = "Genel Bakış";
+            this.pageDashboard.Text = "🏠 Genel Bakış";
 
             this.pageCustomers.Groups.Add(this.groupCustomerActions);
+            this.pageCustomers.Groups.Add(groupReports);
             this.pageCustomers.Name = "pageCustomers";
-            this.pageCustomers.Text = "Müşteriler";
+            this.pageCustomers.Text = "👥 Müşteriler";
 
             this.pageInvestments.Groups.Add(this.groupInvestmentActions);
             this.pageInvestments.Name = "pageInvestments";
-            this.pageInvestments.Text = "Yatırım İşlemleri";
+            this.pageInvestments.Text = "📈 Yatırım İşlemleri";
 
             // ============================================
             // STAT CARDS - RENKLİ KARTLAR
@@ -510,6 +594,32 @@ namespace BankApp.UI.Forms
             this.layoutDashboard.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
+        }
+
+        // Helper method - Create colorful icon for Ribbon buttons
+        private Image CreateIconImage(Color backgroundColor, string symbol)
+        {
+            var bmp = new Bitmap(32, 32);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.Clear(Color.Transparent);
+                
+                // Draw rounded rectangle background
+                using (var brush = new SolidBrush(backgroundColor))
+                {
+                    g.FillEllipse(brush, 2, 2, 28, 28);
+                }
+                
+                // Draw symbol
+                using (var font = new Font("Segoe UI", 12F, FontStyle.Bold))
+                using (var brush = new SolidBrush(Color.White))
+                {
+                    var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                    g.DrawString(symbol, font, brush, new RectangleF(0, 0, 32, 32), sf);
+                }
+            }
+            return bmp;
         }
     }
 }

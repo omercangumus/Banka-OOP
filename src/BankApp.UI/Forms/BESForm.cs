@@ -1,273 +1,271 @@
+#nullable enable
 using System;
-using System.Drawing;
-using System.Windows.Forms;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Windows.Forms;
 using DevExpress.XtraEditors;
 using DevExpress.XtraCharts;
 using DevExpress.LookAndFeel;
+using BankApp.Infrastructure.Services;
 
 namespace BankApp.UI.Forms
 {
-    public partial class BESForm : XtraForm
+    /// <summary>
+    /// BES (Bireysel Emeklilik Sistemi) Formu
+    /// Gelecek tahmini grafiği ve aylık ödeme hesaplayıcı
+    /// </summary>
+    public class BESForm : XtraForm
     {
-        private PanelControl cardCurrentSavings;
-        private PanelControl cardStateContribution;
+        private CalcEdit txtMonthlyPayment;
+        private SpinEdit spinYears;
+        private TrackBarControl trackContributionRate;
+        private LabelControl lblContributionRate;
+        private LabelControl lblTotalContribution;
+        private LabelControl lblStateContribution;
+        private LabelControl lblEstimatedTotal;
         private ChartControl chartProjection;
-        private LookUpEdit cmbFund;
-        private SimpleButton btnChangeFund;
-        private LabelControl lblTitle;
-        private LabelControl lblCurrentSavingsTitle;
-        private LabelControl lblCurrentSavingsValue;
-        private LabelControl lblStateContributionTitle;
-        private LabelControl lblStateContributionValue;
-        private LabelControl lblFundLabel;
-        private LabelControl lblCurrentFund;
+        private SimpleButton btnStart;
 
         public BESForm()
         {
             InitializeComponent();
-            LoadBESData();
+            UpdateCalculation();
         }
 
         private void InitializeComponent()
         {
             UserLookAndFeel.Default.SetSkinStyle("Office 2019 Black");
             
-            this.cardCurrentSavings = new PanelControl();
-            this.cardStateContribution = new PanelControl();
-            this.chartProjection = new ChartControl();
-            this.cmbFund = new LookUpEdit();
-            this.btnChangeFund = new SimpleButton();
-            this.lblTitle = new LabelControl();
-            this.lblCurrentSavingsTitle = new LabelControl();
-            this.lblCurrentSavingsValue = new LabelControl();
-            this.lblStateContributionTitle = new LabelControl();
-            this.lblStateContributionValue = new LabelControl();
-            this.lblFundLabel = new LabelControl();
-            this.lblCurrentFund = new LabelControl();
-
-            ((System.ComponentModel.ISupportInitialize)(this.cardCurrentSavings)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.cardStateContribution)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.chartProjection)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.cmbFund.Properties)).BeginInit();
-            this.cardCurrentSavings.SuspendLayout();
-            this.cardStateContribution.SuspendLayout();
-            this.SuspendLayout();
-
             // Title
-            this.lblTitle.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
-            this.lblTitle.Appearance.ForeColor = Color.White;
-            this.lblTitle.Location = new Point(20, 15);
-            this.lblTitle.Text = "🏦 Bireysel Emeklilik Sistemi (BES)";
-            this.lblTitle.Name = "lblTitle";
+            var lblTitle = new LabelControl();
+            lblTitle.Text = "🏛️ Bireysel Emeklilik Sistemi";
+            lblTitle.Location = new Point(30, 20);
+            lblTitle.Appearance.Font = new Font("Segoe UI", 20F, FontStyle.Bold);
+            lblTitle.Appearance.ForeColor = Color.White;
 
-            // ============================================
-            // CARD 1: Mevcut Birikim (Yeşil)
-            // ============================================
-            this.cardCurrentSavings.Location = new Point(20, 60);
-            this.cardCurrentSavings.Size = new Size(380, 120);
-            this.cardCurrentSavings.Appearance.BackColor = Color.FromArgb(76, 175, 80);
-            this.cardCurrentSavings.Appearance.Options.UseBackColor = true;
-            this.cardCurrentSavings.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            this.cardCurrentSavings.Name = "cardCurrentSavings";
+            var lblSubtitle = new LabelControl();
+            lblSubtitle.Text = "Geleceğinizi bugünden planlayın";
+            lblSubtitle.Location = new Point(30, 60);
+            lblSubtitle.Appearance.Font = new Font("Segoe UI", 10F);
+            lblSubtitle.Appearance.ForeColor = Color.FromArgb(150, 150, 160);
 
-            this.lblCurrentSavingsTitle.Appearance.ForeColor = Color.White;
-            this.lblCurrentSavingsTitle.Appearance.Font = new Font("Segoe UI", 12F);
-            this.lblCurrentSavingsTitle.Location = new Point(20, 20);
-            this.lblCurrentSavingsTitle.Text = "💰 Mevcut Birikim";
-            this.lblCurrentSavingsTitle.Name = "lblCurrentSavingsTitle";
+            // Monthly Payment
+            var lblPaymentTitle = new LabelControl();
+            lblPaymentTitle.Text = "💰 Aylık Katkı Payı";
+            lblPaymentTitle.Location = new Point(30, 110);
+            lblPaymentTitle.Appearance.Font = new Font("Segoe UI Semibold", 11F);
+            lblPaymentTitle.Appearance.ForeColor = Color.White;
 
-            this.lblCurrentSavingsValue.Appearance.ForeColor = Color.White;
-            this.lblCurrentSavingsValue.Appearance.Font = new Font("Segoe UI", 28F, FontStyle.Bold);
-            this.lblCurrentSavingsValue.Location = new Point(20, 55);
-            this.lblCurrentSavingsValue.Text = "45.680,00 TL";
-            this.lblCurrentSavingsValue.Name = "lblCurrentSavingsValue";
+            this.txtMonthlyPayment = new CalcEdit();
+            this.txtMonthlyPayment.Location = new Point(30, 140);
+            this.txtMonthlyPayment.Size = new Size(200, 50);
+            this.txtMonthlyPayment.Value = 1000;
+            this.txtMonthlyPayment.Properties.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
+            this.txtMonthlyPayment.Properties.Appearance.ForeColor = Color.FromArgb(156, 39, 176);
+            this.txtMonthlyPayment.Properties.Appearance.BackColor = Color.FromArgb(45, 48, 58);
+            this.txtMonthlyPayment.Properties.DisplayFormat.FormatString = "₺ #,##0";
+            this.txtMonthlyPayment.Properties.DisplayFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+            this.txtMonthlyPayment.EditValueChanged += (s, e) => UpdateCalculation();
 
-            this.cardCurrentSavings.Controls.Add(this.lblCurrentSavingsTitle);
-            this.cardCurrentSavings.Controls.Add(this.lblCurrentSavingsValue);
+            // Years
+            var lblYearsTitle = new LabelControl();
+            lblYearsTitle.Text = "📅 Süre (Yıl)";
+            lblYearsTitle.Location = new Point(250, 110);
+            lblYearsTitle.Appearance.Font = new Font("Segoe UI Semibold", 11F);
+            lblYearsTitle.Appearance.ForeColor = Color.White;
 
-            // ============================================
-            // CARD 2: Devlet Katkısı (Mavi)
-            // ============================================
-            this.cardStateContribution.Location = new Point(420, 60);
-            this.cardStateContribution.Size = new Size(380, 120);
-            this.cardStateContribution.Appearance.BackColor = Color.FromArgb(33, 150, 243);
-            this.cardStateContribution.Appearance.Options.UseBackColor = true;
-            this.cardStateContribution.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            this.cardStateContribution.Name = "cardStateContribution";
+            this.spinYears = new SpinEdit();
+            this.spinYears.Location = new Point(250, 140);
+            this.spinYears.Size = new Size(120, 50);
+            this.spinYears.Value = 10;
+            this.spinYears.Properties.MinValue = 3;
+            this.spinYears.Properties.MaxValue = 35;
+            this.spinYears.Properties.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
+            this.spinYears.Properties.Appearance.ForeColor = Color.White;
+            this.spinYears.Properties.Appearance.BackColor = Color.FromArgb(45, 48, 58);
+            this.spinYears.EditValueChanged += (s, e) => UpdateCalculation();
 
-            this.lblStateContributionTitle.Appearance.ForeColor = Color.White;
-            this.lblStateContributionTitle.Appearance.Font = new Font("Segoe UI", 12F);
-            this.lblStateContributionTitle.Location = new Point(20, 20);
-            this.lblStateContributionTitle.Text = "🏛️ Devlet Katkısı";
-            this.lblStateContributionTitle.Name = "lblStateContributionTitle";
+            // State Contribution Rate (devlet katkısı %30)
+            var lblRateTitle = new LabelControl();
+            lblRateTitle.Text = "🏛️ Getiri Oranı (Tahmini)";
+            lblRateTitle.Location = new Point(30, 210);
+            lblRateTitle.Appearance.Font = new Font("Segoe UI Semibold", 11F);
+            lblRateTitle.Appearance.ForeColor = Color.White;
 
-            this.lblStateContributionValue.Appearance.ForeColor = Color.White;
-            this.lblStateContributionValue.Appearance.Font = new Font("Segoe UI", 28F, FontStyle.Bold);
-            this.lblStateContributionValue.Location = new Point(20, 55);
-            this.lblStateContributionValue.Text = "11.420,00 TL";
-            this.lblStateContributionValue.Name = "lblStateContributionValue";
+            this.trackContributionRate = new TrackBarControl();
+            this.trackContributionRate.Location = new Point(30, 240);
+            this.trackContributionRate.Size = new Size(340, 40);
+            this.trackContributionRate.Properties.Minimum = 5;
+            this.trackContributionRate.Properties.Maximum = 25;
+            this.trackContributionRate.Value = 12;
+            this.trackContributionRate.EditValueChanged += (s, e) => UpdateCalculation();
 
-            this.cardStateContribution.Controls.Add(this.lblStateContributionTitle);
-            this.cardStateContribution.Controls.Add(this.lblStateContributionValue);
+            this.lblContributionRate = new LabelControl();
+            this.lblContributionRate.Location = new Point(30, 285);
+            this.lblContributionRate.Appearance.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            this.lblContributionRate.Appearance.ForeColor = Color.FromArgb(33, 150, 243);
 
-            // ============================================
-            // CHART: Tahmini Emeklilik Birikimi (Area)
-            // ============================================
-            this.chartProjection.Location = new Point(20, 200);
-            this.chartProjection.Size = new Size(780, 350);
-            this.chartProjection.Name = "chartProjection";
-            this.chartProjection.BackColor = Color.FromArgb(30, 30, 30);
-            this.chartProjection.AppearanceNameSerializable = "Dark Chameleon";
-
-            // ============================================
-            // FON SEÇİMİ
-            // ============================================
-            this.lblCurrentFund.Appearance.ForeColor = Color.FromArgb(156, 39, 176);
-            this.lblCurrentFund.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            this.lblCurrentFund.Location = new Point(20, 570);
-            this.lblCurrentFund.Text = "Aktif Fon: Dengeli Fon (%60 Hisse, %40 Tahvil)";
-            this.lblCurrentFund.Name = "lblCurrentFund";
-
-            this.lblFundLabel.Appearance.ForeColor = Color.White;
-            this.lblFundLabel.Appearance.Font = new Font("Segoe UI", 10F);
-            this.lblFundLabel.Location = new Point(20, 610);
-            this.lblFundLabel.Text = "Fon Değiştir:";
-            this.lblFundLabel.Name = "lblFundLabel";
-
-            this.cmbFund.Location = new Point(120, 605);
-            this.cmbFund.Size = new Size(450, 28);
-            this.cmbFund.Name = "cmbFund";
-            this.cmbFund.Properties.NullText = "Fon Seçiniz...";
-
-            this.btnChangeFund.Location = new Point(590, 600);
-            this.btnChangeFund.Size = new Size(130, 35);
-            this.btnChangeFund.Text = "Fon Değiştir";
-            this.btnChangeFund.Appearance.BackColor = Color.FromArgb(156, 39, 176);
-            this.btnChangeFund.Appearance.ForeColor = Color.White;
-            this.btnChangeFund.Appearance.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            this.btnChangeFund.Appearance.Options.UseBackColor = true;
-            this.btnChangeFund.Appearance.Options.UseForeColor = true;
-            this.btnChangeFund.Appearance.Options.UseFont = true;
-            this.btnChangeFund.Name = "btnChangeFund";
-            this.btnChangeFund.Click += BtnChangeFund_Click;
-
-            // Form
-            this.ClientSize = new Size(820, 680);
-            this.Controls.Add(this.lblTitle);
-            this.Controls.Add(this.cardCurrentSavings);
-            this.Controls.Add(this.cardStateContribution);
-            this.Controls.Add(this.chartProjection);
-            this.Controls.Add(this.lblCurrentFund);
-            this.Controls.Add(this.lblFundLabel);
-            this.Controls.Add(this.cmbFund);
-            this.Controls.Add(this.btnChangeFund);
-            this.Name = "BESForm";
-            this.Text = "Bireysel Emeklilik Sistemi (BES)";
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-
-            ((System.ComponentModel.ISupportInitialize)(this.cardCurrentSavings)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.cardStateContribution)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.chartProjection)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.cmbFund.Properties)).EndInit();
-            this.cardCurrentSavings.ResumeLayout(false);
-            this.cardStateContribution.ResumeLayout(false);
-            this.ResumeLayout(false);
-            this.PerformLayout();
-        }
-
-        private void LoadBESData()
-        {
-            // Fon listesi
-            var funds = new List<BESFund>
-            {
-                new BESFund { Id = 1, Name = "Muhafazakar Fon (%20 Hisse, %80 Tahvil)", ExpectedReturn = 8.5m },
-                new BESFund { Id = 2, Name = "Dengeli Fon (%60 Hisse, %40 Tahvil)", ExpectedReturn = 12.0m },
-                new BESFund { Id = 3, Name = "Agresif Fon (%80 Hisse, %20 Tahvil)", ExpectedReturn = 16.5m },
-                new BESFund { Id = 4, Name = "Kamu Borçlanma Araçları Fonu", ExpectedReturn = 6.0m },
-                new BESFund { Id = 5, Name = "Altın ve Kıymetli Madenler Fonu", ExpectedReturn = 10.0m },
-                new BESFund { Id = 6, Name = "Teknoloji ve İnovasyon Fonu", ExpectedReturn = 18.0m }
+            // Results Panel
+            var pnlResults = new Panel();
+            pnlResults.Location = new Point(30, 330);
+            pnlResults.Size = new Size(340, 170);
+            pnlResults.BackColor = Color.FromArgb(30, 35, 45);
+            pnlResults.Paint += (s, e) => {
+                using (var brush = new LinearGradientBrush(pnlResults.ClientRectangle, 
+                    Color.FromArgb(40, 156, 39, 176), Color.FromArgb(20, 33, 150, 243), 45F))
+                {
+                    e.Graphics.FillRectangle(brush, pnlResults.ClientRectangle);
+                }
             };
 
-            cmbFund.Properties.DataSource = funds;
-            cmbFund.Properties.DisplayMember = "Name";
-            cmbFund.Properties.ValueMember = "Id";
+            var lblResultTitle = new LabelControl();
+            lblResultTitle.Text = "📊 Tahmini Sonuçlar";
+            lblResultTitle.Location = new Point(15, 10);
+            lblResultTitle.Appearance.Font = new Font("Segoe UI Semibold", 11F);
+            lblResultTitle.Appearance.ForeColor = Color.White;
+            pnlResults.Controls.Add(lblResultTitle);
 
-            // Projeksiyon grafiği
-            LoadProjectionChart(12.0m); // Dengeli fon getirisi
-        }
+            this.lblTotalContribution = new LabelControl();
+            this.lblTotalContribution.Location = new Point(15, 45);
+            this.lblTotalContribution.Appearance.Font = new Font("Segoe UI", 10F);
+            this.lblTotalContribution.Appearance.ForeColor = Color.FromArgb(180, 180, 190);
+            pnlResults.Controls.Add(lblTotalContribution);
 
-        private void LoadProjectionChart(decimal expectedReturn)
-        {
-            chartProjection.Series.Clear();
+            this.lblStateContribution = new LabelControl();
+            this.lblStateContribution.Location = new Point(15, 75);
+            this.lblStateContribution.Appearance.Font = new Font("Segoe UI", 10F);
+            this.lblStateContribution.Appearance.ForeColor = Color.FromArgb(76, 175, 80);
+            pnlResults.Controls.Add(lblStateContribution);
 
-            var series = new Series("Tahmini Birikim", ViewType.Area);
+            this.lblEstimatedTotal = new LabelControl();
+            this.lblEstimatedTotal.Location = new Point(15, 115);
+            this.lblEstimatedTotal.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
+            this.lblEstimatedTotal.Appearance.ForeColor = Color.FromArgb(255, 193, 7);
+            pnlResults.Controls.Add(lblEstimatedTotal);
+
+            // Chart
+            this.chartProjection = new ChartControl();
+            this.chartProjection.Location = new Point(400, 100);
+            this.chartProjection.Size = new Size(380, 400);
+            this.chartProjection.BackColor = Color.Transparent;
             
-            decimal currentSavings = 45680m;
-            decimal monthlyContribution = 2000m;
-            decimal stateContribution = 0.25m; // %25 devlet katkısı
+            var diagram = new XYDiagram();
+            diagram.AxisX.Title.Text = "Yıl";
+            diagram.AxisX.Title.Visibility = DevExpress.Utils.DefaultBoolean.True;
+            diagram.AxisX.Color = Color.FromArgb(80, 80, 90);
+            diagram.AxisY.Title.Text = "Birikim (₺)";
+            diagram.AxisY.Title.Visibility = DevExpress.Utils.DefaultBoolean.True;
+            diagram.AxisY.Color = Color.FromArgb(80, 80, 90);
+            this.chartProjection.Diagram = diagram;
             
-            // 25 yıllık projeksiyon
-            for (int year = 0; year <= 25; year++)
-            {
-                decimal totalContribution = currentSavings + (monthlyContribution * 12 * year * (1 + stateContribution));
-                decimal compoundGrowth = totalContribution * (decimal)Math.Pow((double)(1 + expectedReturn / 100), year);
-                
-                series.Points.Add(new SeriesPoint($"Yıl {year}", (double)compoundGrowth));
-            }
+            var series = new Series("Birikim", ViewType.Area);
+            series.View.Color = Color.FromArgb(100, 156, 39, 176);
+            this.chartProjection.Series.Add(series);
+            
+            this.chartProjection.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
 
-            var areaView = (AreaSeriesView)series.View;
-            areaView.Color = Color.FromArgb(100, 76, 175, 80);
-            areaView.Border.Color = Color.FromArgb(76, 175, 80);
-            areaView.MarkerVisibility = DevExpress.Utils.DefaultBoolean.True;
-            // areaView.Marker.Color = Color.FromArgb(76, 175, 80); // Marker is protected, uses series color by default
+            // Start Button
+            this.btnStart = new SimpleButton();
+            this.btnStart.Text = "🚀 BES'e Başla";
+            this.btnStart.Location = new Point(30, 520);
+            this.btnStart.Size = new Size(340, 55);
+            this.btnStart.Appearance.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            this.btnStart.Appearance.BackColor = Color.FromArgb(156, 39, 176);
+            this.btnStart.Appearance.ForeColor = Color.White;
+            this.btnStart.Appearance.Options.UseBackColor = true;
+            this.btnStart.Appearance.Options.UseForeColor = true;
+            this.btnStart.ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.HotFlat;
+            this.btnStart.Click += BtnStart_Click;
 
-            chartProjection.Series.Add(series);
-            chartProjection.Titles.Clear();
-            chartProjection.Titles.Add(new ChartTitle() 
-            { 
-                Text = $"Tahmini Emeklilik Birikimi (Yıllık %{expectedReturn:N1} Getiri)", 
-                TextColor = Color.White 
+            // Form
+            this.Controls.AddRange(new Control[] { 
+                lblTitle, lblSubtitle, 
+                lblPaymentTitle, txtMonthlyPayment,
+                lblYearsTitle, spinYears,
+                lblRateTitle, trackContributionRate, lblContributionRate,
+                pnlResults, chartProjection, btnStart
             });
-
-            // Y ekseni para formatı
-            var diagram = chartProjection.Diagram as XYDiagram;
-            if (diagram != null)
-            {
-                diagram.AxisY.Label.TextPattern = "{V:N0} TL";
-            }
+            
+            this.ClientSize = new Size(810, 600);
+            this.Text = "BES - Bireysel Emeklilik";
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.BackColor = Color.FromArgb(20, 20, 25);
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
         }
 
-        private void BtnChangeFund_Click(object sender, EventArgs e)
+        private void UpdateCalculation()
         {
-            if (cmbFund.EditValue == null)
+            decimal monthly = txtMonthlyPayment.Value;
+            int years = (int)spinYears.Value;
+            decimal rate = trackContributionRate.Value;
+
+            int totalMonths = years * 12;
+            decimal totalContribution = monthly * totalMonths;
+            
+            // Devlet katkısı %30 (max yıllık asgari ücret)
+            decimal stateContribution = totalContribution * 0.30m;
+            
+            // Bileşik getiri hesabı (basitleştirilmiş)
+            decimal totalWithReturn = 0;
+            decimal balance = 0;
+            
+            // Grafik için veri
+            var chartData = new List<(int Year, decimal Value)>();
+            
+            for (int year = 1; year <= years; year++)
             {
-                XtraMessageBox.Show("Lütfen bir fon seçiniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                // Yıllık katkı
+                balance += monthly * 12;
+                // Yıllık getiri
+                balance += balance * (rate / 100);
+                // Devlet katkısı (sadece %30 ana para üzerinden, yılsonunda)
+                decimal yearlyStateContrib = (monthly * 12) * 0.30m;
+                balance += yearlyStateContrib;
+                
+                chartData.Add((year, balance));
             }
+            
+            totalWithReturn = balance;
 
-            var selectedFund = cmbFund.GetSelectedDataRow() as BESFund;
-            if (selectedFund != null)
+            // Labels güncelle
+            lblContributionRate.Text = $"%{rate:N0} Yıllık Getiri";
+            lblTotalContribution.Text = $"Toplam Katkı Payınız: {totalContribution:N0} ₺";
+            lblStateContribution.Text = $"Tahmini Devlet Katkısı: + {stateContribution:N0} ₺ (Max %30)";
+            lblEstimatedTotal.Text = $"Toplam: {totalWithReturn:N0} ₺";
+
+            // Grafik güncelle
+            var series = chartProjection.Series[0];
+            series.Points.Clear();
+            foreach (var (year, value) in chartData)
             {
-                lblCurrentFund.Text = $"Aktif Fon: {selectedFund.Name}";
-                LoadProjectionChart(selectedFund.ExpectedReturn);
-
-                XtraMessageBox.Show(
-                    $"✅ FON DEĞİŞİKLİĞİ BAŞARILI\n\n" +
-                    $"Yeni Fon: {selectedFund.Name}\n" +
-                    $"Beklenen Yıllık Getiri: %{selectedFund.ExpectedReturn:N1}",
-                    "Fon Değişikliği", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                series.Points.Add(new SeriesPoint(year, (double)value));
             }
         }
-    }
 
-    // BES Fund Model
-    public class BESFund
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public decimal ExpectedReturn { get; set; }
+        private void BtnStart_Click(object? sender, EventArgs e)
+        {
+            var confirm = XtraMessageBox.Show(
+                $"Aylık {txtMonthlyPayment.Value:N0} ₺ katkı payı ile BES'e başlamak istiyor musunuz?\n\n" +
+                $"Not: Bu bir simülasyondur.",
+                "BES Başvurusu",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (confirm == DialogResult.Yes)
+            {
+                XtraMessageBox.Show(
+                    "BES başvurunuz alındı! 🎉\n\nAylık ödemeleriniz otomatik olarak hesabınızdan çekilecektir.",
+                    "Başarılı",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+                
+                AppEvents.NotifyDataChanged("BES", "Started");
+                this.Close();
+            }
+        }
     }
 }

@@ -24,6 +24,9 @@ namespace BankApp.UI.Forms
             
             this.ribbonControl1.SelectedPageChanged += RibbonControl1_SelectedPageChanged;
             this.Load += MainForm_Load;
+            
+            // Event sistemine abone ol
+            SubscribeToEvents();
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -31,6 +34,7 @@ namespace BankApp.UI.Forms
             LoadDashboardData();
             LoadDashboardCharts();
             LoadCustomers();
+            UpdateMenuForRole(); // Rol bazlı menü güncelle
         }
 
         private async void LoadDashboardData()
@@ -119,37 +123,37 @@ namespace BankApp.UI.Forms
                 {
                     conn.Open();
                     
-                    // 1. Mevduat Dağılımı - Doughnut (Pie) Chart
-                    var currencyData = await conn.QueryAsync<dynamic>(
-                        @"SELECT ""CurrencyCode"", SUM(""Balance"") as Total 
-                          FROM ""Accounts"" 
-                          GROUP BY ""CurrencyCode""");
-                    
-                    Series seriesPie = new Series("Mevduat Dağılımı", ViewType.Doughnut);
-                    foreach (var item in currencyData)
-                    {
-                        string currency = item.CurrencyCode?.ToString() ?? "TRY";
-                        decimal total = item.Total ?? 0m;
-                        seriesPie.Points.Add(new SeriesPoint(currency, (double)total));
-                    }
-                    
-                    // Eğer veri yoksa örnek veri ekle
-                    if (seriesPie.Points.Count == 0)
-                    {
-                        seriesPie.Points.Add(new SeriesPoint("TRY", 750000));
-                        seriesPie.Points.Add(new SeriesPoint("USD", 125000));
-                        seriesPie.Points.Add(new SeriesPoint("EUR", 85000));
-                    }
+                    // 1. Harcamalar Dağılımı - Doughnut (Pie) Chart
+                    // Dummy veriler ile grafik görünümü sağlanıyor
+                    Series seriesPie = new Series("Harcamalar", ViewType.Doughnut);
+                    seriesPie.Points.Add(new SeriesPoint("Market", 1200));
+                    seriesPie.Points.Add(new SeriesPoint("Faturalar", 850));
+                    seriesPie.Points.Add(new SeriesPoint("Giyim", 450));
+                    seriesPie.Points.Add(new SeriesPoint("Eğlence", 600));
                     
                     // Doughnut görünüm ayarları
                     var doughnutView = (DoughnutSeriesView)seriesPie.View;
-                    doughnutView.HoleRadiusPercent = 40;
+                    doughnutView.HoleRadiusPercent = 45;
                     seriesPie.Label.TextPattern = "{A}: {VP:P1}";
+                    
+                    // Label pozisyonu - TwoColumns
+                    if (seriesPie.Label is DoughnutSeriesLabel doughnutLabel)
+                    {
+                        doughnutLabel.Position = PieSeriesLabelPosition.TwoColumns;
+                    }
                     
                     chartCurrency.Series.Clear();
                     chartCurrency.Series.Add(seriesPie);
+                    
+                    // Palette ve Legend ayarları
+                    chartCurrency.PaletteName = "Nature Colors";
+                    chartCurrency.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
+                    chartCurrency.Legend.AlignmentHorizontal = DevExpress.XtraCharts.LegendAlignmentHorizontal.Left;
+                    chartCurrency.Legend.AlignmentVertical = DevExpress.XtraCharts.LegendAlignmentVertical.Center;
+                    chartCurrency.Legend.TextColor = Color.White;
+                    
                     chartCurrency.Titles.Clear();
-                    chartCurrency.Titles.Add(new ChartTitle() { Text = "Mevduat Dağılımı", TextColor = Color.White });
+                    chartCurrency.Titles.Add(new ChartTitle() { Text = "Harcama Dağılımı", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
 
                     // 2. İşlem Hacmi - Bar Chart (Son 5 Gün)
                     var transactionData = await conn.QueryAsync<dynamic>(
@@ -201,21 +205,30 @@ namespace BankApp.UI.Forms
 
         private void LoadSampleChartData()
         {
-            // Pie Chart
-            Series seriesPie = new Series("Mevduat Dağılımı", ViewType.Doughnut);
-            seriesPie.Points.Add(new SeriesPoint("TRY", 750000));
-            seriesPie.Points.Add(new SeriesPoint("USD", 125000));
-            seriesPie.Points.Add(new SeriesPoint("EUR", 85000));
-            seriesPie.Points.Add(new SeriesPoint("Altın", 45000));
+            // Harcamalar - Doughnut Chart
+            Series seriesPie = new Series("Harcamalar", ViewType.Doughnut);
+            seriesPie.Points.Add(new SeriesPoint("Market", 1200));
+            seriesPie.Points.Add(new SeriesPoint("Faturalar", 850));
+            seriesPie.Points.Add(new SeriesPoint("Giyim", 450));
+            seriesPie.Points.Add(new SeriesPoint("Eğlence", 600));
             
             var doughnutView = (DoughnutSeriesView)seriesPie.View;
-            doughnutView.HoleRadiusPercent = 40;
+            doughnutView.HoleRadiusPercent = 45;
             seriesPie.Label.TextPattern = "{A}: {VP:P1}";
+            
+            // Label pozisyonu - TwoColumns
+            if (seriesPie.Label is DoughnutSeriesLabel doughnutLabel)
+            {
+                doughnutLabel.Position = PieSeriesLabelPosition.TwoColumns;
+            }
             
             chartCurrency.Series.Clear();
             chartCurrency.Series.Add(seriesPie);
+            chartCurrency.PaletteName = "Nature Colors";
+            chartCurrency.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
+            chartCurrency.Legend.TextColor = Color.White;
             chartCurrency.Titles.Clear();
-            chartCurrency.Titles.Add(new ChartTitle() { Text = "Mevduat Dağılımı", TextColor = Color.White });
+            chartCurrency.Titles.Add(new ChartTitle() { Text = "Harcama Dağılımı", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
 
             // Bar Chart
             Series seriesBar = new Series("İşlem Hacmi", ViewType.Bar);
@@ -232,20 +245,13 @@ namespace BankApp.UI.Forms
             chartTransactions.Series.Clear();
             chartTransactions.Series.Add(seriesBar);
             chartTransactions.Titles.Clear();
-            chartTransactions.Titles.Add(new ChartTitle() { Text = "İşlem Hacmi (Son 5 Gün)", TextColor = Color.White });
+            chartTransactions.Titles.Add(new ChartTitle() { Text = "İşlem Hacmi (Son 5 Gün)", TextColor = Color.White, Font = new Font("Segoe UI", 12F, FontStyle.Bold) });
         }
 
-        private async void btnAiAssist_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        private void btnAiAssist_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            try
-            {
-                string advice = await _aiService.GetResponseAsync("Genel Durum");
-                XtraMessageBox.Show(advice, "AI Finansal Asistan", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                XtraMessageBox.Show("AI Servisine ulaşılamadı: " + ex.Message);
-            }
+            AIAssistantForm frm = new AIAssistantForm();
+            frm.ShowDialog();
         }
 
         private void btnMoneyTransfer_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -394,8 +400,9 @@ namespace BankApp.UI.Forms
         // YENİ: Yatırım İşlemleri
         private void btnStockMarket_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            StockMarketForm frm = new StockMarketForm();
+            InvestmentForm frm = new InvestmentForm();
             frm.ShowDialog();
+            RefreshDashboard(); // İşlem sonrası dashboard'u güncelle
         }
 
         private void btnBES_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -403,5 +410,106 @@ namespace BankApp.UI.Forms
             BESForm frm = new BESForm();
             frm.ShowDialog();
         }
+
+        // YENİ: Kartlarım butonu
+        private void btnCards_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            CardsForm frm = new CardsForm();
+            frm.ShowDialog();
+        }
+
+        // YENİ: Vadeli Hesap
+        private void btnTimeDeposit_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            TimeDepositForm frm = new TimeDepositForm();
+            frm.ShowDialog();
+            RefreshDashboard();
+        }
+
+        // YENİ: Kredi Başvurusu (User)
+        private void btnLoanApplication_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            LoanApplicationForm frm = new LoanApplicationForm();
+            frm.ShowDialog();
+        }
+
+        // YENİ: Kredi Onay (Admin)
+        private void btnLoanApproval_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            if (!AppEvents.CurrentSession.IsAdmin)
+            {
+                XtraMessageBox.Show("Bu özellik sadece Yöneticiler için!", "Yetki Hatası", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            
+            LoanApprovalForm frm = new LoanApprovalForm();
+            frm.ShowDialog();
+            RefreshDashboard();
+        }
+
+        // YENİ: Çıkış Yap
+        private void btnLogout_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            var confirm = XtraMessageBox.Show("Çıkış yapmak istediğinize emin misiniz?", 
+                "Çıkış", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            
+            if (confirm == DialogResult.Yes)
+            {
+                AppEvents.CurrentSession.Clear();
+                this.Hide();
+                
+                // Login formunu yeniden aç
+                var loginForm = new LoginForm();
+                if (loginForm.ShowDialog() == DialogResult.OK)
+                {
+                    // Yeniden yükle
+                    LoadDashboardData();
+                    LoadDashboardCharts();
+                    LoadCustomers();
+                    UpdateMenuForRole();
+                    this.Show();
+                }
+                else
+                {
+                    Application.Exit();
+                }
+            }
+        }
+
+        // Dashboard'u yenile
+        private void RefreshDashboard()
+        {
+            LoadDashboardData();
+            LoadDashboardCharts();
+        }
+
+        // Rol bazlı menü güncelleme
+        private void UpdateMenuForRole()
+        {
+            // Admin değilse kredi onay butonunu gizle
+            if (btnLoanApproval != null)
+            {
+                btnLoanApproval.Visibility = AppEvents.CurrentSession.IsAdmin 
+                    ? DevExpress.XtraBars.BarItemVisibility.Always 
+                    : DevExpress.XtraBars.BarItemVisibility.Never;
+            }
+        }
+
+        // Event sistemi için subscribe (form load'da çağrılmalı)
+        private void SubscribeToEvents()
+        {
+            AppEvents.DataChanged += (sender, args) =>
+            {
+                // UI thread'e geç
+                if (this.InvokeRequired)
+                {
+                    this.BeginInvoke(new Action(() => RefreshDashboard()));
+                    return;
+                }
+                RefreshDashboard();
+            };
+        }
     }
 }
+
