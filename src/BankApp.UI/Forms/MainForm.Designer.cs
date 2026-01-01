@@ -51,11 +51,11 @@ namespace BankApp.UI.Forms
         private LayoutControl layoutDashboard;
         private LayoutControlGroup layoutGroupRoot;
         
-        // Stat Cards
-        private PanelControl cardTotalAssets;
-        private PanelControl cardDailyTransactions;
-        private PanelControl cardActiveCustomers;
-        private PanelControl cardExchangeRate;
+        // Stat Cards (pnl prefix per Fırat standards)
+        private PanelControl pnlTotalAssets;
+        private PanelControl pnlDailyTransactions;
+        private PanelControl pnlActiveCustomers;
+        private PanelControl pnlExchangeRate;
         
         private LabelControl lblTotalAssetsTitle;
         private LabelControl lblTotalAssetsValue;
@@ -121,11 +121,11 @@ namespace BankApp.UI.Forms
             this.layoutDashboard = new LayoutControl();
             this.layoutGroupRoot = new LayoutControlGroup();
             
-            // Stat Cards
-            this.cardTotalAssets = new PanelControl();
-            this.cardDailyTransactions = new PanelControl();
-            this.cardActiveCustomers = new PanelControl();
-            this.cardExchangeRate = new PanelControl();
+            // Stat Cards (pnl prefix per Fırat standards)
+            this.pnlTotalAssets = new PanelControl();
+            this.pnlDailyTransactions = new PanelControl();
+            this.pnlActiveCustomers = new PanelControl();
+            this.pnlExchangeRate = new PanelControl();
             
             this.lblTotalAssetsTitle = new LabelControl();
             this.lblTotalAssetsValue = new LabelControl();
@@ -149,10 +149,10 @@ namespace BankApp.UI.Forms
             ((ISupportInitialize)(this.pnlDashboard)).BeginInit();
             ((ISupportInitialize)(this.layoutDashboard)).BeginInit();
             ((ISupportInitialize)(this.layoutGroupRoot)).BeginInit();
-            ((ISupportInitialize)(this.cardTotalAssets)).BeginInit();
-            ((ISupportInitialize)(this.cardDailyTransactions)).BeginInit();
-            ((ISupportInitialize)(this.cardActiveCustomers)).BeginInit();
-            ((ISupportInitialize)(this.cardExchangeRate)).BeginInit();
+            ((ISupportInitialize)(this.pnlTotalAssets)).BeginInit();
+            ((ISupportInitialize)(this.pnlDailyTransactions)).BeginInit();
+            ((ISupportInitialize)(this.pnlActiveCustomers)).BeginInit();
+            ((ISupportInitialize)(this.pnlExchangeRate)).BeginInit();
             ((ISupportInitialize)(this.chartCurrency)).BeginInit();
             ((ISupportInitialize)(this.chartTransactions)).BeginInit();
             ((ISupportInitialize)(this.gridCustomers)).BeginInit();
@@ -366,15 +366,15 @@ namespace BankApp.UI.Forms
             // ============================================
             
             // Card 1: Toplam Varlık (Mavi)
-            this.cardTotalAssets.Appearance.BackColor = Color.FromArgb(33, 150, 243);
-            this.cardTotalAssets.Appearance.Options.UseBackColor = true;
-            this.cardTotalAssets.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            this.cardTotalAssets.Size = new Size(280, 100);
-            this.cardTotalAssets.Name = "cardTotalAssets";
-            this.cardTotalAssets.Padding = new Padding(15);
+            this.pnlTotalAssets.Appearance.BackColor = Color.FromArgb(33, 150, 243);
+            this.pnlTotalAssets.Appearance.Options.UseBackColor = true;
+            this.pnlTotalAssets.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+            this.pnlTotalAssets.Size = new Size(280, 100);
+            this.pnlTotalAssets.Name = "pnlTotalAssets";
+            this.pnlTotalAssets.Padding = new Padding(15);
             
             this.lblTotalAssetsTitle.Appearance.ForeColor = Color.White;
-            this.lblTotalAssetsTitle.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
+            this.lblTotalAssetsTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
             this.lblTotalAssetsTitle.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblTotalAssetsTitle.Size = new Size(250, 25);
             this.lblTotalAssetsTitle.Location = new Point(15, 15);
@@ -382,25 +382,25 @@ namespace BankApp.UI.Forms
             this.lblTotalAssetsTitle.Name = "lblTotalAssetsTitle";
             
             this.lblTotalAssetsValue.Appearance.ForeColor = Color.White;
-            this.lblTotalAssetsValue.Appearance.Font = new Font("Segoe UI", 24F, FontStyle.Bold);
+            this.lblTotalAssetsValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
             this.lblTotalAssetsValue.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblTotalAssetsValue.Size = new Size(250, 45);
             this.lblTotalAssetsValue.Location = new Point(15, 45);
             this.lblTotalAssetsValue.Text = "121.325,38";
             this.lblTotalAssetsValue.Name = "lblTotalAssetsValue";
             
-            this.cardTotalAssets.Controls.Add(this.lblTotalAssetsTitle);
-            this.cardTotalAssets.Controls.Add(this.lblTotalAssetsValue);
+            this.pnlTotalAssets.Controls.Add(this.lblTotalAssetsTitle);
+            this.pnlTotalAssets.Controls.Add(this.lblTotalAssetsValue);
 
             // Card 2: Günlük İşlem (Kırmızı)
-            this.cardDailyTransactions.Appearance.BackColor = Color.FromArgb(244, 67, 54);
-            this.cardDailyTransactions.Appearance.Options.UseBackColor = true;
-            this.cardDailyTransactions.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            this.cardDailyTransactions.Size = new Size(280, 100);
-            this.cardDailyTransactions.Name = "cardDailyTransactions";
+            this.pnlDailyTransactions.Appearance.BackColor = Color.FromArgb(244, 67, 54);
+            this.pnlDailyTransactions.Appearance.Options.UseBackColor = true;
+            this.pnlDailyTransactions.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+            this.pnlDailyTransactions.Size = new Size(280, 100);
+            this.pnlDailyTransactions.Name = "pnlDailyTransactions";
             
             this.lblDailyTransactionsTitle.Appearance.ForeColor = Color.White;
-            this.lblDailyTransactionsTitle.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
+            this.lblDailyTransactionsTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
             this.lblDailyTransactionsTitle.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblDailyTransactionsTitle.Size = new Size(250, 25);
             this.lblDailyTransactionsTitle.Location = new Point(15, 15);
@@ -408,25 +408,25 @@ namespace BankApp.UI.Forms
             this.lblDailyTransactionsTitle.Name = "lblDailyTransactionsTitle";
             
             this.lblDailyTransactionsValue.Appearance.ForeColor = Color.White;
-            this.lblDailyTransactionsValue.Appearance.Font = new Font("Segoe UI", 24F, FontStyle.Bold);
+            this.lblDailyTransactionsValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
             this.lblDailyTransactionsValue.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblDailyTransactionsValue.Size = new Size(250, 45);
             this.lblDailyTransactionsValue.Location = new Point(15, 45);
             this.lblDailyTransactionsValue.Text = "163";
             this.lblDailyTransactionsValue.Name = "lblDailyTransactionsValue";
             
-            this.cardDailyTransactions.Controls.Add(this.lblDailyTransactionsTitle);
-            this.cardDailyTransactions.Controls.Add(this.lblDailyTransactionsValue);
+            this.pnlDailyTransactions.Controls.Add(this.lblDailyTransactionsTitle);
+            this.pnlDailyTransactions.Controls.Add(this.lblDailyTransactionsValue);
 
             // Card 3: Aktif Müşteri (Yeşil)
-            this.cardActiveCustomers.Appearance.BackColor = Color.FromArgb(76, 175, 80);
-            this.cardActiveCustomers.Appearance.Options.UseBackColor = true;
-            this.cardActiveCustomers.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            this.cardActiveCustomers.Size = new Size(280, 100);
-            this.cardActiveCustomers.Name = "cardActiveCustomers";
+            this.pnlActiveCustomers.Appearance.BackColor = Color.FromArgb(76, 175, 80);
+            this.pnlActiveCustomers.Appearance.Options.UseBackColor = true;
+            this.pnlActiveCustomers.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+            this.pnlActiveCustomers.Size = new Size(280, 100);
+            this.pnlActiveCustomers.Name = "pnlActiveCustomers";
             
             this.lblActiveCustomersTitle.Appearance.ForeColor = Color.White;
-            this.lblActiveCustomersTitle.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
+            this.lblActiveCustomersTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
             this.lblActiveCustomersTitle.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblActiveCustomersTitle.Size = new Size(250, 25);
             this.lblActiveCustomersTitle.Location = new Point(15, 15);
@@ -434,25 +434,25 @@ namespace BankApp.UI.Forms
             this.lblActiveCustomersTitle.Name = "lblActiveCustomersTitle";
             
             this.lblActiveCustomersValue.Appearance.ForeColor = Color.White;
-            this.lblActiveCustomersValue.Appearance.Font = new Font("Segoe UI", 24F, FontStyle.Bold);
+            this.lblActiveCustomersValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
             this.lblActiveCustomersValue.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblActiveCustomersValue.Size = new Size(250, 45);
             this.lblActiveCustomersValue.Location = new Point(15, 45);
             this.lblActiveCustomersValue.Text = "130";
             this.lblActiveCustomersValue.Name = "lblActiveCustomersValue";
             
-            this.cardActiveCustomers.Controls.Add(this.lblActiveCustomersTitle);
-            this.cardActiveCustomers.Controls.Add(this.lblActiveCustomersValue);
+            this.pnlActiveCustomers.Controls.Add(this.lblActiveCustomersTitle);
+            this.pnlActiveCustomers.Controls.Add(this.lblActiveCustomersValue);
 
             // Card 4: Döviz Kuru (Mor)
-            this.cardExchangeRate.Appearance.BackColor = Color.FromArgb(156, 39, 176);
-            this.cardExchangeRate.Appearance.Options.UseBackColor = true;
-            this.cardExchangeRate.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            this.cardExchangeRate.Size = new Size(280, 100);
-            this.cardExchangeRate.Name = "cardExchangeRate";
+            this.pnlExchangeRate.Appearance.BackColor = Color.FromArgb(156, 39, 176);
+            this.pnlExchangeRate.Appearance.Options.UseBackColor = true;
+            this.pnlExchangeRate.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+            this.pnlExchangeRate.Size = new Size(280, 100);
+            this.pnlExchangeRate.Name = "pnlExchangeRate";
             
             this.lblExchangeRateTitle.Appearance.ForeColor = Color.White;
-            this.lblExchangeRateTitle.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
+            this.lblExchangeRateTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
             this.lblExchangeRateTitle.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblExchangeRateTitle.Size = new Size(250, 25);
             this.lblExchangeRateTitle.Location = new Point(15, 15);
@@ -460,15 +460,15 @@ namespace BankApp.UI.Forms
             this.lblExchangeRateTitle.Name = "lblExchangeRateTitle";
             
             this.lblExchangeRateValue.Appearance.ForeColor = Color.White;
-            this.lblExchangeRateValue.Appearance.Font = new Font("Segoe UI", 24F, FontStyle.Bold);
+            this.lblExchangeRateValue.Appearance.Font = new Font("Tahoma", 20F, FontStyle.Bold);
             this.lblExchangeRateValue.AutoSizeMode = LabelAutoSizeMode.None;
             this.lblExchangeRateValue.Size = new Size(250, 45);
             this.lblExchangeRateValue.Location = new Point(15, 45);
             this.lblExchangeRateValue.Text = "0,377%";
             this.lblExchangeRateValue.Name = "lblExchangeRateValue";
             
-            this.cardExchangeRate.Controls.Add(this.lblExchangeRateTitle);
-            this.cardExchangeRate.Controls.Add(this.lblExchangeRateValue);
+            this.pnlExchangeRate.Controls.Add(this.lblExchangeRateTitle);
+            this.pnlExchangeRate.Controls.Add(this.lblExchangeRateValue);
 
             // ============================================
             // CHARTS
@@ -491,30 +491,30 @@ namespace BankApp.UI.Forms
             this.layoutDashboard.Dock = DockStyle.Fill;
             this.layoutDashboard.Name = "layoutDashboard";
             this.layoutDashboard.Root = this.layoutGroupRoot;
-            this.layoutDashboard.Controls.Add(this.cardTotalAssets);
-            this.layoutDashboard.Controls.Add(this.cardDailyTransactions);
-            this.layoutDashboard.Controls.Add(this.cardActiveCustomers);
-            this.layoutDashboard.Controls.Add(this.cardExchangeRate);
+            this.layoutDashboard.Controls.Add(this.pnlTotalAssets);
+            this.layoutDashboard.Controls.Add(this.pnlDailyTransactions);
+            this.layoutDashboard.Controls.Add(this.pnlActiveCustomers);
+            this.layoutDashboard.Controls.Add(this.pnlExchangeRate);
             this.layoutDashboard.Controls.Add(this.chartCurrency);
             this.layoutDashboard.Controls.Add(this.chartTransactions);
             
             // Layout Items
-            var layoutCard1 = new LayoutControlItem(this.layoutDashboard, this.cardTotalAssets);
+            var layoutCard1 = new LayoutControlItem(this.layoutDashboard, this.pnlTotalAssets);
             layoutCard1.TextVisible = false;
             layoutCard1.SizeConstraintsType = SizeConstraintsType.Custom;
             layoutCard1.MinSize = new Size(280, 100);
             
-            var layoutCard2 = new LayoutControlItem(this.layoutDashboard, this.cardDailyTransactions);
+            var layoutCard2 = new LayoutControlItem(this.layoutDashboard, this.pnlDailyTransactions);
             layoutCard2.TextVisible = false;
             layoutCard2.SizeConstraintsType = SizeConstraintsType.Custom;
             layoutCard2.MinSize = new Size(280, 100);
             
-            var layoutCard3 = new LayoutControlItem(this.layoutDashboard, this.cardActiveCustomers);
+            var layoutCard3 = new LayoutControlItem(this.layoutDashboard, this.pnlActiveCustomers);
             layoutCard3.TextVisible = false;
             layoutCard3.SizeConstraintsType = SizeConstraintsType.Custom;
             layoutCard3.MinSize = new Size(280, 100);
             
-            var layoutCard4 = new LayoutControlItem(this.layoutDashboard, this.cardExchangeRate);
+            var layoutCard4 = new LayoutControlItem(this.layoutDashboard, this.pnlExchangeRate);
             layoutCard4.TextVisible = false;
             layoutCard4.SizeConstraintsType = SizeConstraintsType.Custom;
             layoutCard4.MinSize = new Size(280, 100);
@@ -582,10 +582,10 @@ namespace BankApp.UI.Forms
             ((ISupportInitialize)(this.pnlDashboard)).EndInit();
             ((ISupportInitialize)(this.layoutDashboard)).EndInit();
             ((ISupportInitialize)(this.layoutGroupRoot)).EndInit();
-            ((ISupportInitialize)(this.cardTotalAssets)).EndInit();
-            ((ISupportInitialize)(this.cardDailyTransactions)).EndInit();
-            ((ISupportInitialize)(this.cardActiveCustomers)).EndInit();
-            ((ISupportInitialize)(this.cardExchangeRate)).EndInit();
+            ((ISupportInitialize)(this.pnlTotalAssets)).EndInit();
+            ((ISupportInitialize)(this.pnlDailyTransactions)).EndInit();
+            ((ISupportInitialize)(this.pnlActiveCustomers)).EndInit();
+            ((ISupportInitialize)(this.pnlExchangeRate)).EndInit();
             ((ISupportInitialize)(this.chartCurrency)).EndInit();
             ((ISupportInitialize)(this.chartTransactions)).EndInit();
             ((ISupportInitialize)(this.gridCustomers)).EndInit();

@@ -76,9 +76,12 @@ namespace BankApp.UI.Forms
 
             try
             {
-                bool success = await _authService.LoginAsync(username, password);
-                if (success)
+                // AuthService artık string döndürüyor: null = başarılı, string = hata mesajı
+                string loginResult = await _authService.LoginAsync(username, password);
+                
+                if (loginResult == null)
                 {
+                    // Başarılı giriş
                     var user = await _userRepository.GetByUsernameAsync(username);
                     if (user != null)
                     {
@@ -94,12 +97,13 @@ namespace BankApp.UI.Forms
                 }
                 else
                 {
-                    XtraMessageBox.Show("Kullanıcı adı veya şifre hatalı.", "Giriş Başarısız", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    // Hata mesajı döndü
+                    XtraMessageBox.Show(loginResult, "Giriş Başarısız", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
             {
-                XtraMessageBox.Show($"Giriş hatası: {ex.Message}\n\nDetay: {ex.InnerException?.Message ?? "Yok"}", "Sistem Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                XtraMessageBox.Show($"Giriş hatası: {ex.Message}", "Sistem Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
