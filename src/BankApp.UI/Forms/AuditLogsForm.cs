@@ -1,13 +1,21 @@
 using System;
+using System.Windows.Forms;
 using DevExpress.XtraEditors;
 using BankApp.Infrastructure.Data;
 
 namespace BankApp.UI.Forms
 {
+    /// <summary>
+    /// Denetim logları formu - Sistem olaylarını listeler
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public partial class AuditLogsForm : XtraForm
     {
         private readonly AuditRepository _repository;
 
+        /// <summary>
+        /// Form yapıcı metodu
+        /// </summary>
         public AuditLogsForm()
         {
             InitializeComponent();
@@ -16,10 +24,12 @@ namespace BankApp.UI.Forms
             LoadLogs();
         }
 
+        /// <summary>
+        /// Logları veritabanından yükler
+        /// </summary>
         private async void LoadLogs()
         {
-            // SORUN DÜZELTİLDİ: Null kontrolü eklendi
-            if (gridLogs == null || _repository == null)
+            if (grdLoglar == null || _repository == null)
             {
                 return;
             }
@@ -27,7 +37,7 @@ namespace BankApp.UI.Forms
             try
             {
                 var logs = await _repository.GetAllLogsAsync();
-                gridLogs.DataSource = logs ?? new System.Collections.Generic.List<BankApp.Core.Entities.AuditLog>();
+                grdLoglar.DataSource = logs ?? new System.Collections.Generic.List<BankApp.Core.Entities.AuditLog>();
             }
             catch (Exception ex)
             {

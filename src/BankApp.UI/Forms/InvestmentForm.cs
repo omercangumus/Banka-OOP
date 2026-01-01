@@ -3,28 +3,27 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using DevExpress.XtraEditors;
-using DevExpress.XtraGrid;
 using DevExpress.XtraGrid.Views.Grid;
-using DevExpress.XtraGrid.Views.Grid.ViewInfo;
-using DevExpress.XtraLayout;
-using DevExpress.LookAndFeel;
 using BankApp.Infrastructure.Services;
 using BankApp.Infrastructure.Data;
 
 namespace BankApp.UI.Forms
 {
     /// <summary>
-    /// Yatırım Portföyü Formu - Robinhood Tarzı Modern Tasarım
+    /// Yatırım Portföyü Formu - Yatırım ve borsa işlemleri
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
     /// </summary>
     public partial class InvestmentForm : XtraForm
     {
         private MarketSimulatorService _marketSimulator;
         private InvestmentService _investmentService;
-        private int _customerId = 1; // Demo için
+        private int _customerId = 1; // Demo için varsayılan
         private string _selectedCurrency = "TRY";
         private decimal _usdRate = 32.50m;
-        private decimal _eurRate = 35.20m;
-
+        
+        /// <summary>
+        /// Form yapıcı metodu
+        /// </summary>
         public InvestmentForm()
         {
             InitializeComponent();
@@ -33,6 +32,9 @@ namespace BankApp.UI.Forms
             LoadPortfolio();
         }
 
+        /// <summary>
+        /// Servisleri başlatır
+        /// </summary>
         private void InitializeServices()
         {
             var context = new DapperContext();
@@ -47,6 +49,9 @@ namespace BankApp.UI.Forms
             _marketSimulator.Start();
         }
 
+        /// <summary>
+        /// Fiyat değiştiğinde tetiklenir
+        /// </summary>
         private void OnPriceChanged(object? sender, StockPriceChangedEventArgs e)
         {
             // UI thread'e geç
@@ -59,23 +64,32 @@ namespace BankApp.UI.Forms
             // Grid'leri güncelle
             try
             {
-                gridViewStocks?.RefreshData();
-                gridViewPortfolio?.RefreshData();
+                if(grdwHisseler != null) grdwHisseler.RefreshData();
+                if(grdwPortfoy != null) grdwPortfoy.RefreshData();
             }
             catch { }
         }
 
+        /// <summary>
+        /// Hisseleri yükler
+        /// </summary>
         private void LoadStocks()
         {
-            gridStocks.DataSource = _marketSimulator.GetAllStocks();
-            gridViewStocks.RefreshData();
+            if (grdHisseler == null) return;
+            grdHisseler.DataSource = _marketSimulator.GetAllStocks();
+            grdwHisseler.RefreshData();
         }
 
+        /// <summary>
+        /// Portföyü yükler
+        /// </summary>
         private void LoadPortfolio()
         {
+            if (grdPortfoy == null || lblPortfoyDegeri == null) return;
+
             var portfolio = _investmentService.GetPortfolio(_customerId);
-            gridPortfolio.DataSource = portfolio;
-            gridViewPortfolio.RefreshData();
+            grdPortfoy.DataSource = portfolio;
+            grdwPortfoy.RefreshData();
             
             // Toplam portföy değerini hesapla
             decimal total = 0;
@@ -85,33 +99,40 @@ namespace BankApp.UI.Forms
             }
             
             decimal displayValue = ConvertCurrency(total);
-            lblPortfolioValue.Text = $"{GetCurrencySymbol()} {displayValue:N2}";
+            lblPortfoyDegeri.Text = $"{GetCurrencySymbol()} {displayValue:N2}";
         }
 
+        /// <summary>
+        /// Para birimini dönüştürür
+        /// </summary>
         private decimal ConvertCurrency(decimal tlValue)
         {
             return _selectedCurrency switch
             {
                 "USD" => tlValue / _usdRate,
-                "EUR" => tlValue / _eurRate,
                 _ => tlValue
             };
         }
 
+        /// <summary>
+        /// Para birimi sembolünü getirir
+        /// </summary>
         private string GetCurrencySymbol()
         {
             return _selectedCurrency switch
             {
                 "USD" => "$",
-                "EUR" => "€",
                 _ => "₺"
             };
         }
 
-        private void btnBuyStock_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Hisse al butonu tıklama olayı
+        /// </summary>
+        private void btnHisseAl_Click(object sender, EventArgs e)
         {
             // Seçili hisseyi al
-            var rowHandle = gridViewStocks.FocusedRowHandle;
+            var rowHandle = grdwHisseler.FocusedRowHandle;
             if (rowHandle < 0)
             {
                 XtraMessageBox.Show("Lütfen bir hisse seçin!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -130,9 +151,12 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private void btnSellStock_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Hisse sat butonu tıklama olayı
+        /// </summary>
+        private void btnHisseSat_Click(object sender, EventArgs e)
         {
-            var rowHandle = gridViewPortfolio.FocusedRowHandle;
+            var rowHandle = grdwPortfoy.FocusedRowHandle;
             if (rowHandle < 0)
             {
                 XtraMessageBox.Show("Satmak için portföyden bir hisse seçin!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -153,22 +177,27 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private void toggleCurrency_Toggled(object sender, EventArgs e)
+        /// <summary>
+        /// Para birimi değiştirme olayı
+        /// </summary>
+        private void tglParaBirimi_Toggled(object sender, EventArgs e)
         {
-            // Para birimi değiştir
-            int index = Array.IndexOf(new[] { "TRY", "USD", "EUR" }, _selectedCurrency);
-            index = (index + 1) % 3;
-            _selectedCurrency = new[] { "TRY", "USD", "EUR" }[index];
+            if (tglParaBirimi.IsOn)
+                _selectedCurrency = "USD";
+            else
+                _selectedCurrency = "TRY";
             
-            toggleCurrency.Text = _selectedCurrency;
             LoadPortfolio();
         }
 
-        private void gridViewPortfolio_RowCellStyle(object sender, RowCellStyleEventArgs e)
+        /// <summary>
+        /// Portföy grid satır stili ayarlama
+        /// </summary>
+        private void grdwPortfoy_RowCellStyle(object sender, RowCellStyleEventArgs e)
         {
             if (e.Column.FieldName == "ProfitLoss" || e.Column.FieldName == "ProfitLossPercent")
             {
-                var value = gridViewPortfolio.GetRowCellValue(e.RowHandle, "ProfitLoss");
+                var value = grdwPortfoy.GetRowCellValue(e.RowHandle, "ProfitLoss");
                 if (value != null && value is decimal profitLoss)
                 {
                     if (profitLoss > 0)
@@ -185,11 +214,14 @@ namespace BankApp.UI.Forms
             }
         }
 
-        private void gridViewStocks_RowCellStyle(object sender, RowCellStyleEventArgs e)
+        /// <summary>
+        /// Hisse grid satır stili ayarlama
+        /// </summary>
+        private void grdwHisseler_RowCellStyle(object sender, RowCellStyleEventArgs e)
         {
             if (e.Column.FieldName == "ChangePercent")
             {
-                var value = gridViewStocks.GetRowCellValue(e.RowHandle, "ChangePercent");
+                var value = grdwHisseler.GetRowCellValue(e.RowHandle, "ChangePercent");
                 if (value != null && value is decimal change)
                 {
                     if (change > 0)
@@ -204,6 +236,9 @@ namespace BankApp.UI.Forms
             }
         }
 
+        /// <summary>
+        /// Form kapanırken kaynakları temizler
+        /// </summary>
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             _marketSimulator.Stop();

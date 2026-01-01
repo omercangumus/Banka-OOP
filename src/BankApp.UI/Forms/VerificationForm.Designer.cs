@@ -5,14 +5,18 @@ using DevExpress.XtraEditors;
 
 namespace BankApp.UI.Forms
 {
+    /// <summary>
+    /// Doğrulama formu tasarımcı kodu
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public partial class VerificationForm
     {
         private IContainer components = null;
         private Panel pnlGradient;
-        private LabelControl lblTitle;
-        private LabelControl lblInfo;
-        private TextEdit txtCode;
-        private SimpleButton btnVerify;
+        private LabelControl lblBaslik;
+        private LabelControl lblAciklama;
+        private TextEdit txtKod;
+        private SimpleButton btnDogrula;
 
         protected override void Dispose(bool disposing)
         {
@@ -26,59 +30,59 @@ namespace BankApp.UI.Forms
         private void InitializeComponent()
         {
             this.pnlGradient = new Panel();
-            this.lblTitle = new LabelControl();
-            this.lblInfo = new LabelControl();
-            this.txtCode = new TextEdit();
-            this.btnVerify = new SimpleButton();
+            this.lblBaslik = new LabelControl();
+            this.lblAciklama = new LabelControl();
+            this.txtKod = new TextEdit();
+            this.btnDogrula = new SimpleButton();
 
-            ((ISupportInitialize)(this.txtCode.Properties)).BeginInit();
+            ((ISupportInitialize)(this.txtKod.Properties)).BeginInit();
             this.SuspendLayout();
 
             // pnlGradient
             this.pnlGradient.BackColor = Color.FromArgb(26, 54, 93);
             this.pnlGradient.Dock = DockStyle.Fill;
-            this.pnlGradient.Controls.Add(this.btnVerify);
-            this.pnlGradient.Controls.Add(this.txtCode);
-            this.pnlGradient.Controls.Add(this.lblInfo);
-            this.pnlGradient.Controls.Add(this.lblTitle);
+            this.pnlGradient.Controls.Add(this.btnDogrula);
+            this.pnlGradient.Controls.Add(this.txtKod);
+            this.pnlGradient.Controls.Add(this.lblAciklama);
+            this.pnlGradient.Controls.Add(this.lblBaslik);
 
-            // lblTitle
-            this.lblTitle.Location = new Point(110, 30);
-            this.lblTitle.Name = "lblTitle";
-            this.lblTitle.Text = "HESAP DOĞRULAMA";
-            this.lblTitle.Appearance.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
-            this.lblTitle.Appearance.ForeColor = Color.FromArgb(212, 175, 55);
+            // lblBaslik (Fırat Standardı: Tahoma font)
+            this.lblBaslik.Location = new Point(110, 30);
+            this.lblBaslik.Name = "lblBaslik";
+            this.lblBaslik.Text = "HESAP DOĞRULAMA";
+            this.lblBaslik.Appearance.Font = new Font("Tahoma", 16F, FontStyle.Bold);
+            this.lblBaslik.Appearance.ForeColor = Color.FromArgb(212, 175, 55);
 
-            // lblInfo
-            this.lblInfo.Location = new Point(80, 80);
-            this.lblInfo.Name = "lblInfo";
-            this.lblInfo.Text = "E-posta adresinize gönderilen 6 haneli kodu giriniz.";
-            this.lblInfo.Appearance.Font = new Font("Segoe UI", 10F);
-            this.lblInfo.Appearance.ForeColor = Color.White;
+            // lblAciklama (Fırat Standardı: Tahoma font)
+            this.lblAciklama.Location = new Point(80, 80);
+            this.lblAciklama.Name = "lblAciklama";
+            this.lblAciklama.Text = "E-posta adresinize gönderilen 6 haneli kodu giriniz.";
+            this.lblAciklama.Appearance.Font = new Font("Tahoma", 9F);
+            this.lblAciklama.Appearance.ForeColor = Color.White;
 
-            // txtCode
-            this.txtCode.Location = new Point(100, 130);
-            this.txtCode.Name = "txtCode";
-            this.txtCode.Properties.NullValuePrompt = "000000";
-            this.txtCode.Properties.NullValuePromptShowForEmptyValue = true;
-            this.txtCode.Properties.MaxLength = 6;
-            this.txtCode.Size = new Size(200, 40);
-            this.txtCode.Properties.Appearance.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
-            this.txtCode.Properties.Appearance.Options.UseTextOptions = true;
-            this.txtCode.Properties.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
+            // txtKod (Fırat Standardı: txt prefix, Tahoma font)
+            this.txtKod.Location = new Point(100, 130);
+            this.txtKod.Name = "txtKod";
+            this.txtKod.Properties.NullValuePrompt = "000000";
+            this.txtKod.Properties.NullValuePromptShowForEmptyValue = true;
+            this.txtKod.Properties.MaxLength = 6;
+            this.txtKod.Size = new Size(200, 40);
+            this.txtKod.Properties.Appearance.Font = new Font("Tahoma", 14F, FontStyle.Bold);
+            this.txtKod.Properties.Appearance.Options.UseTextOptions = true;
+            this.txtKod.Properties.Appearance.TextOptions.HAlignment = DevExpress.Utils.HorzAlignment.Center;
 
-            // btnVerify
-            this.btnVerify.Location = new Point(100, 190);
-            this.btnVerify.Name = "btnVerify";
-            this.btnVerify.Size = new Size(200, 45);
-            this.btnVerify.Text = "DOĞRULA";
-            this.btnVerify.Appearance.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
-            this.btnVerify.Appearance.BackColor = Color.FromArgb(212, 175, 55);
-            this.btnVerify.Appearance.ForeColor = Color.FromArgb(26, 54, 93);
-            this.btnVerify.Appearance.Options.UseBackColor = true;
-            this.btnVerify.Appearance.Options.UseForeColor = true;
-            this.btnVerify.Appearance.Options.UseFont = true;
-            this.btnVerify.Click += new System.EventHandler(this.btnVerify_Click);
+            // btnDogrula (Fırat Standardı: btn prefix, Tahoma font)
+            this.btnDogrula.Location = new Point(100, 190);
+            this.btnDogrula.Name = "btnDogrula";
+            this.btnDogrula.Size = new Size(200, 45);
+            this.btnDogrula.Text = "DOĞRULA";
+            this.btnDogrula.Appearance.Font = new Font("Tahoma", 11F, FontStyle.Bold);
+            this.btnDogrula.Appearance.BackColor = Color.FromArgb(212, 175, 55);
+            this.btnDogrula.Appearance.ForeColor = Color.FromArgb(26, 54, 93);
+            this.btnDogrula.Appearance.Options.UseBackColor = true;
+            this.btnDogrula.Appearance.Options.UseForeColor = true;
+            this.btnDogrula.Appearance.Options.UseFont = true;
+            this.btnDogrula.Click += new System.EventHandler(this.btnDogrula_Click);
             
             // VerificationForm
             this.AutoScaleDimensions = new SizeF(7F, 15F);
@@ -91,9 +95,8 @@ namespace BankApp.UI.Forms
             this.Text = "NovaBank - Doğrulama";
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            ((ISupportInitialize)(this.txtCode.Properties)).EndInit();
+            ((ISupportInitialize)(this.txtKod.Properties)).EndInit();
             this.ResumeLayout(false);
         }
     }
 }
-

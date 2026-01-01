@@ -1,16 +1,22 @@
 using System.ComponentModel;
+using System.Drawing;
+using System.Windows.Forms;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid;
 using DevExpress.XtraGrid.Views.Grid;
 
 namespace BankApp.UI.Forms
 {
+    /// <summary>
+    /// Denetim logları formu tasarımcı kodu
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
+    /// </summary>
     public partial class AuditLogsForm
     {
         private IContainer components = null;
-        private GridControl gridLogs;
-        private GridView gridViewLogs;
-        private SimpleButton btnExport;
+        private GridControl grdLoglar;
+        private GridView grdwLoglar;
+        private SimpleButton btnExcelAktar;
 
         protected override void Dispose(bool disposing)
         {
@@ -20,51 +26,55 @@ namespace BankApp.UI.Forms
 
         private void InitializeComponent()
         {
-            this.gridLogs = new GridControl();
-            this.gridViewLogs = new GridView();
-            this.btnExport = new SimpleButton();
+            this.grdLoglar = new GridControl();
+            this.grdwLoglar = new GridView();
+            this.btnExcelAktar = new SimpleButton();
 
-            ((ISupportInitialize)(this.gridLogs)).BeginInit();
-            ((ISupportInitialize)(this.gridViewLogs)).BeginInit();
+            ((ISupportInitialize)(this.grdLoglar)).BeginInit();
+            ((ISupportInitialize)(this.grdwLoglar)).BeginInit();
             this.SuspendLayout();
 
-            // btnExport
-            this.btnExport.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.btnExport.Height = 40;
-            this.btnExport.Text = "Logları Excel'e Aktar";
-            this.btnExport.Click += (s, e) =>
+            // btnExcelAktar (Fırat Standardı: btn prefix, Tahoma font)
+            this.btnExcelAktar.Dock = DockStyle.Bottom;
+            this.btnExcelAktar.Height = 40;
+            this.btnExcelAktar.Name = "btnExcelAktar";
+            this.btnExcelAktar.Text = "Logları Excel'e Aktar";
+            this.btnExcelAktar.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
+            this.btnExcelAktar.Click += (s, e) =>
             {
                 try { 
-                    gridLogs.ExportToXlsx("SistemLoglari.xlsx");
+                    grdLoglar.ExportToXlsx("SistemLoglari.xlsx");
                     System.Diagnostics.Process.Start("SistemLoglari.xlsx");
                 } catch {}
             };
 
-            // gridLogs
-            this.gridLogs.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.gridLogs.MainView = this.gridViewLogs;
-            this.gridLogs.Name = "gridLogs";
-            this.gridLogs.ViewCollection.AddRange(new DevExpress.XtraGrid.Views.Base.BaseView[] {
-            this.gridViewLogs});
+            // grdLoglar (Fırat Standardı: grd prefix for GridControl)
+            this.grdLoglar.Dock = DockStyle.Fill;
+            this.grdLoglar.MainView = this.grdwLoglar;
+            this.grdLoglar.Name = "grdLoglar";
+            this.grdLoglar.ViewCollection.AddRange(new DevExpress.XtraGrid.Views.Base.BaseView[] {
+            this.grdwLoglar});
 
-            // gridViewLogs
-            this.gridViewLogs.GridControl = this.gridLogs;
-            this.gridViewLogs.Name = "gridViewLogs";
-            this.gridViewLogs.OptionsBehavior.Editable = false;
-            this.gridViewLogs.OptionsView.ShowAutoFilterRow = true;
+            // grdwLoglar (Fırat Standardı: grdw prefix for GridView)
+            this.grdwLoglar.GridControl = this.grdLoglar;
+            this.grdwLoglar.Name = "grdwLoglar";
+            this.grdwLoglar.OptionsBehavior.Editable = false;
+            this.grdwLoglar.OptionsView.ShowAutoFilterRow = true;
+            this.grdwLoglar.Appearance.Row.Font = new Font("Tahoma", 8.25F);
+            this.grdwLoglar.Appearance.HeaderPanel.Font = new Font("Tahoma", 8.25F, FontStyle.Bold);
 
             // AuditLogsForm
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(900, 600);
-            this.Controls.Add(this.gridLogs);
-            this.Controls.Add(this.btnExport);
+            this.AutoScaleDimensions = new SizeF(6F, 13F);
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new Size(900, 600);
+            this.Controls.Add(this.grdLoglar);
+            this.Controls.Add(this.btnExcelAktar);
             this.Name = "AuditLogsForm";
             this.Text = "Sistem ve Güvenlik Logları";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.StartPosition = FormStartPosition.CenterParent;
 
-            ((ISupportInitialize)(this.gridLogs)).EndInit();
-            ((ISupportInitialize)(this.gridViewLogs)).EndInit();
+            ((ISupportInitialize)(this.grdLoglar)).EndInit();
+            ((ISupportInitialize)(this.grdwLoglar)).EndInit();
             this.ResumeLayout(false);
         }
     }

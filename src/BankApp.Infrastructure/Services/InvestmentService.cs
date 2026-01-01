@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using BankApp.Core.Entities;
 using BankApp.Infrastructure.Data;
@@ -8,7 +9,8 @@ using BankApp.Infrastructure.Data;
 namespace BankApp.Infrastructure.Services
 {
     /// <summary>
-    /// Yatırım işlemleri servisi - Hisse alım/satım
+    /// Yatırım işlemleri servisi - Hisse alım/satım yönetimi
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
     /// </summary>
     public class InvestmentService
     {
@@ -16,9 +18,15 @@ namespace BankApp.Infrastructure.Services
         private readonly AccountRepository _accountRepo;
         private readonly AuditRepository _auditRepo;
         
-        // In-memory portfolio (gerçek uygulamada DB'de olur)
+        // In-memory portfolio simulasyonu
         private static readonly List<CustomerPortfolio> _portfolios = new List<CustomerPortfolio>();
 
+        /// <summary>
+        /// Servis yapıcı metodu
+        /// </summary>
+        /// <param name="marketSimulator">Piyasa simülatörü</param>
+        /// <param name="accountRepo">Hesap repository</param>
+        /// <param name="auditRepo">Denetim repository</param>
         public InvestmentService(MarketSimulatorService marketSimulator, AccountRepository accountRepo, AuditRepository auditRepo)
         {
             _marketSimulator = marketSimulator;
@@ -27,37 +35,47 @@ namespace BankApp.Infrastructure.Services
         }
 
         /// <summary>
-        /// Hisse satın al
+        /// Hisse satın alma işlemi
         /// </summary>
-        public async Task<(bool Success, string Message)> BuyStockAsync(int customerId, int accountId, string symbol, decimal quantity)
+        /// <param name="customerId">Müşteri ID</param>
+        /// <param name="accountId">Kullanılacak hesap ID</param>
+        /// <param name="symbol">Hisse sembolü</param>
+        /// <param name="quantity">Adet</param>
+        /// <returns>Başarılı ise null, hata varsa hata mesajı</returns>
+        public async Task<string?> BuyStockAsync(int customerId, int accountId, string symbol, decimal quantity)
         {
             try
             {
-                // Hisseyi bul
                 var stock = _marketSimulator.GetStock(symbol);
                 if (stock == null)
-                    return (false, $"Hisse bulunamadı: {symbol}");
+                    return $"Hisse bulunamadı: {symbol}";
 
                 decimal totalCost = stock.CurrentPrice * quantity;
 
-                // Hesap bakiyesini kontrol et
                 var account = await _accountRepo.GetByIdAsync(accountId);
                 if (account == null)
-                    return (false, "Hesap bulunamadı");
+                    return "Hesap bulunamadı";
 
                 if (account.Balance < totalCost)
-                    return (false, $"Yetersiz bakiye. Gereken: {totalCost:N2} TL, Mevcut: {account.Balance:N2} TL");
+                {
+                    var sb = new StringBuilder();
+                    sb.Append("Yetersiz bakiye. Gereken: ");
+                    sb.Append(totalCost.ToString("N2"));
+                    sb.Append(" TL, Mevcut: ");
+                    sb.Append(account.Balance.ToString("N2"));
+                    sb.Append(" TL");
+                    return sb.ToString();
+                }
 
                 // Bakiyeden düş
                 account.Balance -= totalCost;
                 await _accountRepo.UpdateAsync(account);
 
-                // Portföye ekle veya güncelle
+                // Portföye ekle
                 var existingPortfolio = _portfolios.FirstOrDefault(p => p.CustomerId == customerId && p.StockSymbol == symbol);
                 
                 if (existingPortfolio != null)
                 {
-                    // Ortalama maliyeti güncelle
                     var totalQuantity = existingPortfolio.Quantity + quantity;
                     existingPortfolio.AverageCost = 
                         ((existingPortfolio.Quantity * existingPortfolio.AverageCost) + (quantity * stock.CurrentPrice)) / totalQuantity;
@@ -76,7 +94,6 @@ namespace BankApp.Infrastructure.Services
                     });
                 }
 
-                // Audit log
                 await _auditRepo.AddLogAsync(new AuditLog
                 {
                     UserId = customerId,
@@ -85,46 +102,47 @@ namespace BankApp.Infrastructure.Services
                     IpAddress = "127.0.0.1"
                 });
 
-                return (true, $"{quantity} adet {symbol} başarıyla alındı!");
+                return null; // Başarılı
             }
             catch (Exception ex)
             {
-                return (false, $"Hata: {ex.Message}");
+                return "İşlem sırasında bir hata oluştu: " + ex.Message;
             }
         }
 
         /// <summary>
-        /// Hisse sat
+        /// Hisse satış işlemi
         /// </summary>
-        public async Task<(bool Success, string Message)> SellStockAsync(int customerId, int accountId, string symbol, decimal quantity)
+        /// <param name="customerId">Müşteri ID</param>
+        /// <param name="accountId">Yatırılacak hesap ID</param>
+        /// <param name="symbol">Hisse sembolü</param>
+        /// <param name="quantity">Adet</param>
+        /// <returns>Başarılı ise null, hata varsa hata mesajı</returns>
+        public async Task<string?> SellStockAsync(int customerId, int accountId, string symbol, decimal quantity)
         {
             try
             {
-                // Portföyü kontrol et
                 var portfolio = _portfolios.FirstOrDefault(p => p.CustomerId == customerId && p.StockSymbol == symbol);
                 if (portfolio == null || portfolio.Quantity < quantity)
-                    return (false, "Yeterli hisse yok");
+                    return "Satılacak yeterli hisse adedi bulunamadı.";
 
                 var stock = _marketSimulator.GetStock(symbol);
                 if (stock == null)
-                    return (false, $"Hisse bulunamadı: {symbol}");
+                    return $"Hisse piyasada bulunamadı: {symbol}";
 
                 decimal totalValue = stock.CurrentPrice * quantity;
 
-                // Hesaba ekle
                 var account = await _accountRepo.GetByIdAsync(accountId);
                 if (account == null)
-                    return (false, "Hesap bulunamadı");
+                    return "Hedef hesap bulunamadı.";
 
                 account.Balance += totalValue;
                 await _accountRepo.UpdateAsync(account);
 
-                // Portföyden düş
                 portfolio.Quantity -= quantity;
                 if (portfolio.Quantity <= 0)
                     _portfolios.Remove(portfolio);
 
-                // Audit log
                 await _auditRepo.AddLogAsync(new AuditLog
                 {
                     UserId = customerId,
@@ -133,17 +151,19 @@ namespace BankApp.Infrastructure.Services
                     IpAddress = "127.0.0.1"
                 });
 
-                return (true, $"{quantity} adet {symbol} satıldı! {totalValue:N2} TL hesaba eklendi.");
+                return null; // Başarılı
             }
             catch (Exception ex)
             {
-                return (false, $"Hata: {ex.Message}");
+                return "Satış işlemi başarısız: " + ex.Message;
             }
         }
 
         /// <summary>
-        /// Müşterinin portföyünü getir
+        /// Müşteri portföyünü listeler
         /// </summary>
+        /// <param name="customerId">Müşteri ID</param>
+        /// <returns>Portföy listesi</returns>
         public List<PortfolioItem> GetPortfolio(int customerId)
         {
             var result = new List<PortfolioItem>();
@@ -157,7 +177,20 @@ namespace BankApp.Infrastructure.Services
                     var currentValue = p.Quantity * stock.CurrentPrice;
                     var totalCost = p.Quantity * p.AverageCost;
                     var profitLoss = currentValue - totalCost;
-                    var profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) * 100 : 0;
+                    var profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) : 0; // Yüzdeyi 100 ile çarpmadım, format string halleder (örn: P2) ama UI manual format kullanıyor. UI'daki format +0.00% şeklinde, bu yüzden raw değer (0.15 gibi) mi yoksa 15.0 mi bekliyor?
+                    // UI Format string: "+0.00%;-0.00%;0.00%"
+                    // Eğer 0.15 gelirse ve format % ise, 15% yazar. Eğer format numerikse 0.15 yazar. 
+                    // Eski kod: (profitLoss / totalCost) * 100 yapıyordu.
+                    // Sanırım UI numerik değer bekliyor, yüzdelik değil. Eski koda sadık kalalım.
+                    
+                    // DÜZELTME: Eski kod * 100 yapıyordu. UI Column display format: "+0.00%;-0.00%;0.00%"
+                    // Standard DevExpress display format "%" sembolünü otomatik eklemez eğer format string içinde literal yoksa.
+                    // Format string "+0.00%" literal % içeriyor. Bu durumda değer 15 gelirse 15.00% yazar. 
+                    // 0.15 gelirse 0.15% yazar.
+                    // Yani değerin 100 ile çarpılmış olması lazım. Eski kod doğruydu.
+                    
+                    if (totalCost > 0)
+                         profitLossPercent = (profitLoss / totalCost) * 100;
 
                     result.Add(new PortfolioItem
                     {

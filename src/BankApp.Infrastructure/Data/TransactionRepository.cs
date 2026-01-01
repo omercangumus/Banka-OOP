@@ -55,6 +55,21 @@ namespace BankApp.Infrastructure.Data
         }
 
         /// <summary>
+        /// Hesap ID'ye göre işlemleri getirir
+        /// </summary>
+        /// <param name="accountId">Hesap ID</param>
+        /// <returns>İşlem listesi</returns>
+        public async Task<IEnumerable<Transaction>> GetByAccountIdAsync(int accountId)
+        {
+            using (var connection = _context.CreateConnection())
+            {
+                connection.Open();
+                var query = "SELECT * FROM \"Transactions\" WHERE \"AccountId\" = @AccountId ORDER BY \"TransactionDate\" DESC";
+                return await connection.QueryAsync<Transaction>(query, new { AccountId = accountId });
+            }
+        }
+
+        /// <summary>
         /// Yeni işlem ekler
         /// </summary>
         /// <param name="entity">İşlem nesnesi</param>

@@ -24,7 +24,7 @@ namespace BankApp.Tests
         }
 
         [Fact]
-        public async Task LoginAsync_ShouldReturnTrue_WhenCredentialsAreCorrect()
+        public async Task LoginAsync_ShouldReturnNull_WhenCredentialsAreCorrect()
         {
             // Arrange
             var username = "testuser";
@@ -39,12 +39,12 @@ namespace BankApp.Tests
             var result = await _authService.LoginAsync(username, password);
 
             // Assert
-            result.Should().BeTrue();
+            result.Should().BeNull(); // Success
             _auditRepositoryMock.Verify(x => x.AddLogAsync(It.Is<AuditLog>(l => l.Action == "LoginSuccess")), Times.Once);
         }
 
         [Fact]
-        public async Task LoginAsync_ShouldReturnFalse_WhenUserNotFound()
+        public async Task LoginAsync_ShouldReturnError_WhenUserNotFound()
         {
             // Arrange
             var username = "nonexistent";
@@ -57,12 +57,12 @@ namespace BankApp.Tests
             var result = await _authService.LoginAsync(username, password);
 
             // Assert
-            result.Should().BeFalse();
+            result.Should().NotBeNullOrEmpty();
             _auditRepositoryMock.Verify(x => x.AddLogAsync(It.Is<AuditLog>(l => l.Action == "LoginFailed")), Times.Once);
         }
 
         [Fact]
-        public async Task LoginAsync_ShouldReturnFalse_WhenPasswordIsIncorrect()
+        public async Task LoginAsync_ShouldReturnError_WhenPasswordIsIncorrect()
         {
             // Arrange
             var username = "testuser";
@@ -76,7 +76,7 @@ namespace BankApp.Tests
             var result = await _authService.LoginAsync(username, password);
 
             // Assert
-            result.Should().BeFalse();
+            result.Should().NotBeNullOrEmpty();
             _auditRepositoryMock.Verify(x => x.AddLogAsync(It.Is<AuditLog>(l => l.Action == "LoginFailed")), Times.Once);
         }
     }

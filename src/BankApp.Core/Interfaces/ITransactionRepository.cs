@@ -1,10 +1,11 @@
-#nullable enable
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using BankApp.Core.Entities;
 
 namespace BankApp.Core.Interfaces
 {
     public interface ITransactionRepository : IGenericRepository<Transaction>
     {
-        // Custom transaction specific methods if needed
+        Task<IEnumerable<Transaction>> GetByAccountIdAsync(int accountId);
     }
 }
