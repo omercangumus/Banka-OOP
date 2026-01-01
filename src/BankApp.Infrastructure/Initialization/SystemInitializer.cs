@@ -1,113 +1,55 @@
 using System;
 using System.Linq;
-using System.Text;
+using System.Threading;
+using System.Data;
 using System.ServiceProcess;
 using Npgsql;
-using BankApp.Infrastructure.Data;
 
 namespace BankApp.Infrastructure.Initialization
 {
-    /// <summary>
-    /// Sistem başlatıcı - PostgreSQL servisi ve veritabanı kontrolü
-    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
-    /// </summary>
     public class SystemInitializer
     {
         private const string ConnectionStringPostgres = "Server=127.0.0.1;Port=5432;User Id=postgres;Password=1;Database=postgres;";
-        private readonly DbInitializer _dbInitializer;
 
-        public SystemInitializer()
-        {
-            _dbInitializer = new DbInitializer();
-        }
-
-        /// <summary>
-        /// PostgreSQL servisini başlatır
-        /// </summary>
-        /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
-        public string StartPostgresService()
+        public void StartPostgresService()
         {
             try
             {
-                var sb = new StringBuilder();
-                sb.Append("PostgreSQL servisi kontrol ediliyor...");
-                Console.WriteLine(sb.ToString());
+                Console.WriteLine("PostgreSQL servisi taranıyor...");
+                var services = ServiceController.GetServices();
+                var postgresService = services.FirstOrDefault(s => s.ServiceName.ToLower().Contains("postgresql"));
 
-                ServiceController postgresService = null;
-                
-                try
+                if (postgresService != null)
                 {
-                    var allServices = ServiceController.GetServices();
-                    postgresService = allServices.FirstOrDefault(s => 
-                        s.ServiceName.ToLower().StartsWith("postgresql"));
-                }
-                catch (Exception ex)
-                {
-                    var sbError = new StringBuilder();
-                    sbError.Append("Servis listesi alınamadı: ");
-                    sbError.Append(ex.Message);
-                    return sbError.ToString();
-                }
-
-                if (postgresService == null)
-                {
-                    return "PostgreSQL servisi bulunamadı. Lütfen PostgreSQL'in yüklü olduğundan emin olun.";
-                }
-
-                var sbInfo = new StringBuilder();
-                sbInfo.Append("PostgreSQL servisi bulundu: ");
-                sbInfo.Append(postgresService.ServiceName);
-                Console.WriteLine(sbInfo.ToString());
-
-                if (postgresService.Status != ServiceControllerStatus.Running)
-                {
-                    var sbStart = new StringBuilder();
-                    sbStart.Append("Servis durumu: ");
-                    sbStart.Append(postgresService.Status.ToString());
-                    sbStart.Append(". Başlatılıyor...");
-                    Console.WriteLine(sbStart.ToString());
-
-                    try
+                    if (postgresService.Status != ServiceControllerStatus.Running)
                     {
+                        Console.WriteLine("Servis başlatılıyor...");
                         postgresService.Start();
                         postgresService.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(30));
                         Console.WriteLine("PostgreSQL servisi başarıyla başlatıldı.");
                     }
-                    catch (InvalidOperationException)
+                    else
                     {
-                        return "PostgreSQL servisi başlatılamadı. Uygulamayı Yönetici olarak çalıştırın.";
-                    }
-                    catch (System.ServiceProcess.TimeoutException)
-                    {
-                        return "PostgreSQL servisi başlatma zaman aşımına uğradı.";
+                        Console.WriteLine("Servis zaten çalışıyor.");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("PostgreSQL servisi zaten çalışıyor.");
+                    Console.WriteLine("UYARI: 'postgresql' servisi bulunamadı.");
                 }
-
-                return null; // Başarılı
             }
             catch (Exception ex)
             {
-                var sbError = new StringBuilder();
-                sbError.Append("PostgreSQL servis kontrolü hatası: ");
-                sbError.Append(ex.Message);
-                return sbError.ToString();
+                Console.WriteLine($"Servis hatası: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Veritabanını oluşturur (yoksa)
-        /// </summary>
-        /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
-        public string CreateDatabaseIfNotExists()
+        public void CreateDatabaseIfNotExists()
         {
             try
             {
+                StartPostgresService();
                 Console.WriteLine("Veritabanı kontrol ediliyor...");
-                
                 using (var conn = new NpgsqlConnection(ConnectionStringPostgres))
                 {
                     conn.Open();
@@ -117,59 +59,19 @@ namespace BankApp.Infrastructure.Initialization
 
                     if (!exists)
                     {
-                        Console.WriteLine("NovaBankDb bulunamadı. Oluşturuluyor...");
+                        Console.WriteLine("NovaBankDb oluşturuluyor...");
                         var createCmd = conn.CreateCommand();
                         createCmd.CommandText = "CREATE DATABASE \"NovaBankDb\"";
                         createCmd.ExecuteNonQuery();
-                        Console.WriteLine("NovaBankDb başarıyla oluşturuldu.");
-
-                        // Veritabanı yeni oluşturulduysa SeedData çalıştır
-                        Console.WriteLine("Veritabanı ilklendiriliyor (Tablolar ve Örnek Veriler)...");
-                        _dbInitializer.Initialize();
-                    }
-                    else
-                    {
-                        Console.WriteLine("NovaBankDb zaten mevcut.");
-                        // Mevcut olsa bile tabloları ve eksik verileri kontrol et
-                         _dbInitializer.Initialize();
+                        Console.WriteLine("Oluşturuldu.");
                     }
                 }
-
-                return null; // Başarılı
             }
             catch (Exception ex)
             {
-                var sbError = new StringBuilder();
-                sbError.Append("Veritabanı oluşturma hatası: ");
-                sbError.Append(ex.Message);
-                return sbError.ToString();
+                Console.WriteLine($"DB Hatası: {ex.Message}");
+                throw;
             }
-        }
-
-        /// <summary>
-        /// Sistemi tam olarak başlatır (Servis + DB + Tablolar)
-        /// </summary>
-        /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
-        public string InitializeSystem()
-        {
-            // 1. PostgreSQL servisini başlat
-            string serviceResult = StartPostgresService();
-            if (serviceResult != null)
-            {
-                // Servis hatası kritik olmayabilir (container vs), loglayıp devam edilebilir 
-                // ancak Fırat standartlarında servis kontrolü istenmiş.
-                return serviceResult;
-            }
-
-            // 2. Veritabanını oluştur ve ilklendir (Seed dahil)
-            string dbResult = CreateDatabaseIfNotExists();
-            if (dbResult != null)
-            {
-                return dbResult;
-            }
-
-            Console.WriteLine("Sistem başarıyla başlatıldı.");
-            return null; // Tüm işlemler başarılı
         }
     }
 }
