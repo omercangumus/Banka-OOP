@@ -14,6 +14,12 @@ namespace BankApp.Infrastructure.Initialization
     public class SystemInitializer
     {
         private const string ConnectionStringPostgres = "Server=127.0.0.1;Port=5432;User Id=postgres;Password=1;Database=postgres;";
+        private readonly DbInitializer _dbInitializer;
+
+        public SystemInitializer()
+        {
+            _dbInitializer = new DbInitializer();
+        }
 
         /// <summary>
         /// PostgreSQL servisini başlatır
@@ -27,7 +33,6 @@ namespace BankApp.Infrastructure.Initialization
                 sb.Append("PostgreSQL servisi kontrol ediliyor...");
                 Console.WriteLine(sb.ToString());
 
-                // Tüm servisleri tara, postgresql ile başlayanı bul
                 ServiceController postgresService = null;
                 
                 try
@@ -54,7 +59,6 @@ namespace BankApp.Infrastructure.Initialization
                 sbInfo.Append(postgresService.ServiceName);
                 Console.WriteLine(sbInfo.ToString());
 
-                // Servis durumu kontrolü
                 if (postgresService.Status != ServiceControllerStatus.Running)
                 {
                     var sbStart = new StringBuilder();
@@ -65,12 +69,8 @@ namespace BankApp.Infrastructure.Initialization
 
                     try
                     {
-                        // Servisi başlat
                         postgresService.Start();
-                        
-                        // Başlamasını bekle (max 30 saniye)
                         postgresService.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(30));
-                        
                         Console.WriteLine("PostgreSQL servisi başarıyla başlatıldı.");
                     }
                     catch (InvalidOperationException)
@@ -122,10 +122,16 @@ namespace BankApp.Infrastructure.Initialization
                         createCmd.CommandText = "CREATE DATABASE \"NovaBankDb\"";
                         createCmd.ExecuteNonQuery();
                         Console.WriteLine("NovaBankDb başarıyla oluşturuldu.");
+
+                        // Veritabanı yeni oluşturulduysa SeedData çalıştır
+                        Console.WriteLine("Veritabanı ilklendiriliyor (Tablolar ve Örnek Veriler)...");
+                        _dbInitializer.Initialize();
                     }
                     else
                     {
                         Console.WriteLine("NovaBankDb zaten mevcut.");
+                        // Mevcut olsa bile tabloları ve eksik verileri kontrol et
+                         _dbInitializer.Initialize();
                     }
                 }
 
@@ -141,33 +147,6 @@ namespace BankApp.Infrastructure.Initialization
         }
 
         /// <summary>
-        /// Tabloları oluşturur (EnsureCreated ile)
-        /// </summary>
-        /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
-        public string EnsureTablesCreated()
-        {
-            try
-            {
-                Console.WriteLine("Tablolar kontrol ediliyor...");
-                
-                using (var context = new BankDbContext())
-                {
-                    context.Database.EnsureCreated();
-                    Console.WriteLine("Tablolar başarıyla oluşturuldu/kontrol edildi.");
-                }
-
-                return null; // Başarılı
-            }
-            catch (Exception ex)
-            {
-                var sbError = new StringBuilder();
-                sbError.Append("Tablo oluşturma hatası: ");
-                sbError.Append(ex.Message);
-                return sbError.ToString();
-            }
-        }
-
-        /// <summary>
         /// Sistemi tam olarak başlatır (Servis + DB + Tablolar)
         /// </summary>
         /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
@@ -177,21 +156,16 @@ namespace BankApp.Infrastructure.Initialization
             string serviceResult = StartPostgresService();
             if (serviceResult != null)
             {
+                // Servis hatası kritik olmayabilir (container vs), loglayıp devam edilebilir 
+                // ancak Fırat standartlarında servis kontrolü istenmiş.
                 return serviceResult;
             }
 
-            // 2. Veritabanını oluştur
+            // 2. Veritabanını oluştur ve ilklendir (Seed dahil)
             string dbResult = CreateDatabaseIfNotExists();
             if (dbResult != null)
             {
                 return dbResult;
-            }
-
-            // 3. Tabloları oluştur
-            string tableResult = EnsureTablesCreated();
-            if (tableResult != null)
-            {
-                return tableResult;
             }
 
             Console.WriteLine("Sistem başarıyla başlatıldı.");
