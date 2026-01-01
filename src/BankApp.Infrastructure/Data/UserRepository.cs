@@ -130,7 +130,7 @@ namespace BankApp.Infrastructure.Data
             {
                 connection.Open();
                 var query = "SELECT * FROM \"Users\" WHERE \"Username\" = @Username";
-                return await connection.QuerySingleOrDefaultAsync<User>(query, new { Username = username });
+                return await connection.QueryFirstOrDefaultAsync<User>(query, new { Username = username });
             }
         }
 
