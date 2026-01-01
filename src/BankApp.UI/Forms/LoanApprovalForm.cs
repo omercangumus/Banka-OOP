@@ -183,16 +183,17 @@ namespace BankApp.UI.Forms
             
             if (confirm == DialogResult.Yes)
             {
-                var result = await _loanService.ApproveLoanAsync(loanId, AppEvents.CurrentSession.UserId);
+                // LoanService artık string döndürüyor: null = başarılı, string = hata mesajı
+                string result = await _loanService.ApproveLoanAsync(loanId, AppEvents.CurrentSession.UserId);
                 
-                if (result.Success)
+                if (result == null)
                 {
-                    XtraMessageBox.Show(result.Message, "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    XtraMessageBox.Show("Kredi onaylandı!", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     LoadPendingLoans();
                 }
                 else
                 {
-                    XtraMessageBox.Show(result.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    XtraMessageBox.Show(result, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
@@ -212,16 +213,17 @@ namespace BankApp.UI.Forms
             
             if (!string.IsNullOrEmpty(reason))
             {
-                var result = await _loanService.RejectLoanAsync(loanId, AppEvents.CurrentSession.UserId, reason);
+                // LoanService artık string döndürüyor: null = başarılı, string = hata mesajı
+                string result = await _loanService.RejectLoanAsync(loanId, AppEvents.CurrentSession.UserId, reason);
                 
-                if (result.Success)
+                if (result == null)
                 {
-                    XtraMessageBox.Show(result.Message, "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    XtraMessageBox.Show("Kredi başvurusu reddedildi.", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     LoadPendingLoans();
                 }
                 else
                 {
-                    XtraMessageBox.Show(result.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    XtraMessageBox.Show(result, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }

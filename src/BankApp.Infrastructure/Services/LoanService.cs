@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using BankApp.Core.Entities;
 using BankApp.Infrastructure.Data;
@@ -9,6 +10,7 @@ namespace BankApp.Infrastructure.Services
 {
     /// <summary>
     /// Kredi işlemleri servisi
+    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
     /// </summary>
     public class LoanService
     {
@@ -19,6 +21,11 @@ namespace BankApp.Infrastructure.Services
         private static readonly List<Loan> _loans = new List<Loan>();
         private static int _nextId = 1;
 
+        /// <summary>
+        /// LoanService yapıcı metodu
+        /// </summary>
+        /// <param name="accountRepo">Hesap repository</param>
+        /// <param name="auditRepo">Denetim logu repository</param>
         public LoanService(AccountRepository accountRepo, AuditRepository auditRepo)
         {
             _accountRepo = accountRepo;
@@ -28,15 +35,25 @@ namespace BankApp.Infrastructure.Services
         /// <summary>
         /// Kredi başvurusu yap
         /// </summary>
-        public async Task<(bool Success, string Message)> ApplyForLoanAsync(int userId, int customerId, decimal amount, int termMonths, string? notes = null)
+        /// <param name="userId">Kullanıcı ID</param>
+        /// <param name="customerId">Müşteri ID</param>
+        /// <param name="amount">Kredi tutarı</param>
+        /// <param name="termMonths">Vade (ay)</param>
+        /// <param name="notes">Notlar</param>
+        /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
+        public async Task<string> ApplyForLoanAsync(int userId, int customerId, decimal amount, int termMonths, string? notes = null)
         {
             try
             {
                 if (amount < 1000)
-                    return (false, "Minimum kredi tutarı 1.000 TL'dir");
+                {
+                    return "Minimum kredi tutarı 1.000 TL'dir";
+                }
 
                 if (termMonths < 3 || termMonths > 60)
-                    return (false, "Vade 3-60 ay arasında olmalıdır");
+                {
+                    return "Vade 3-60 ay arasında olmalıdır";
+                }
 
                 // Faiz oranı hesapla (vadeye göre)
                 decimal interestRate = termMonths switch
@@ -63,28 +80,39 @@ namespace BankApp.Infrastructure.Services
                 _loans.Add(loan);
 
                 // Audit log
+                var sbAudit = new StringBuilder();
+                sbAudit.Append("Kredi başvurusu: ");
+                sbAudit.Append(amount.ToString("N2"));
+                sbAudit.Append(" TL, ");
+                sbAudit.Append(termMonths);
+                sbAudit.Append(" ay vade");
+                
                 await _auditRepo.AddLogAsync(new AuditLog
                 {
                     UserId = userId,
                     Action = "LoanApplication",
-                    Details = $"Kredi başvurusu: {amount:N2} TL, {termMonths} ay vade",
+                    Details = sbAudit.ToString(),
                     IpAddress = "127.0.0.1"
                 });
 
                 // Event fırlat
                 AppEvents.NotifyDataChanged("Loan", "Application");
 
-                return (true, $"Kredi başvurunuz alındı! Aylık taksit: {loan.MonthlyPayment:N2} TL");
+                return null; // Başarılı
             }
             catch (Exception ex)
             {
-                return (false, $"Hata: {ex.Message}");
+                var sbError = new StringBuilder();
+                sbError.Append("Kredi başvurusu hatası: ");
+                sbError.Append(ex.Message);
+                return sbError.ToString();
             }
         }
 
         /// <summary>
         /// Bekleyen kredileri getir (Admin için)
         /// </summary>
+        /// <returns>Bekleyen kredi listesi</returns>
         public List<Loan> GetPendingLoans()
         {
             return _loans.Where(l => l.Status == "Pending").OrderBy(l => l.ApplicationDate).ToList();
@@ -93,6 +121,7 @@ namespace BankApp.Infrastructure.Services
         /// <summary>
         /// Tüm kredileri getir
         /// </summary>
+        /// <returns>Tüm kredi listesi</returns>
         public List<Loan> GetAllLoans()
         {
             return _loans.OrderByDescending(l => l.ApplicationDate).ToList();
@@ -101,6 +130,8 @@ namespace BankApp.Infrastructure.Services
         /// <summary>
         /// Kullanıcının kredilerini getir
         /// </summary>
+        /// <param name="userId">Kullanıcı ID</param>
+        /// <returns>Kullanıcının kredi listesi</returns>
         public List<Loan> GetUserLoans(int userId)
         {
             return _loans.Where(l => l.UserId == userId).OrderByDescending(l => l.ApplicationDate).ToList();
@@ -109,16 +140,23 @@ namespace BankApp.Infrastructure.Services
         /// <summary>
         /// Krediyi onayla (Admin)
         /// </summary>
-        public async Task<(bool Success, string Message)> ApproveLoanAsync(int loanId, int adminId)
+        /// <param name="loanId">Kredi ID</param>
+        /// <param name="adminId">Onaylayan admin ID</param>
+        /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
+        public async Task<string> ApproveLoanAsync(int loanId, int adminId)
         {
             try
             {
                 var loan = _loans.FirstOrDefault(l => l.Id == loanId);
                 if (loan == null)
-                    return (false, "Kredi bulunamadı");
+                {
+                    return "Kredi bulunamadı";
+                }
 
                 if (loan.Status != "Pending")
-                    return (false, "Bu kredi zaten işlenmiş");
+                {
+                    return "Bu kredi zaten işlenmiş";
+                }
 
                 // Müşterinin hesabını bul ve kredi tutarını ekle
                 var accounts = await _accountRepo.GetByCustomerIdAsync(loan.CustomerId);
@@ -135,38 +173,56 @@ namespace BankApp.Infrastructure.Services
                 loan.ApprovedById = adminId;
 
                 // Audit log
+                var sbAudit = new StringBuilder();
+                sbAudit.Append("Kredi onaylandı: ");
+                sbAudit.Append(loan.Amount.ToString("N2"));
+                sbAudit.Append(" TL (ID: ");
+                sbAudit.Append(loanId);
+                sbAudit.Append(")");
+                
                 await _auditRepo.AddLogAsync(new AuditLog
                 {
                     UserId = adminId,
                     Action = "LoanApproval",
-                    Details = $"Kredi onaylandı: {loan.Amount:N2} TL (ID: {loanId})",
+                    Details = sbAudit.ToString(),
                     IpAddress = "127.0.0.1"
                 });
 
                 // Event fırlat
                 AppEvents.NotifyDataChanged("Loan", "Approved");
 
-                return (true, $"Kredi onaylandı! {loan.Amount:N2} TL müşteri hesabına eklendi.");
+                return null; // Başarılı
             }
             catch (Exception ex)
             {
-                return (false, $"Hata: {ex.Message}");
+                var sbError = new StringBuilder();
+                sbError.Append("Kredi onaylama hatası: ");
+                sbError.Append(ex.Message);
+                return sbError.ToString();
             }
         }
 
         /// <summary>
         /// Krediyi reddet (Admin)
         /// </summary>
-        public async Task<(bool Success, string Message)> RejectLoanAsync(int loanId, int adminId, string reason)
+        /// <param name="loanId">Kredi ID</param>
+        /// <param name="adminId">Reddeden admin ID</param>
+        /// <param name="reason">Red sebebi</param>
+        /// <returns>Başarılıysa null, hata varsa hata mesajı</returns>
+        public async Task<string> RejectLoanAsync(int loanId, int adminId, string reason)
         {
             try
             {
                 var loan = _loans.FirstOrDefault(l => l.Id == loanId);
                 if (loan == null)
-                    return (false, "Kredi bulunamadı");
+                {
+                    return "Kredi bulunamadı";
+                }
 
                 if (loan.Status != "Pending")
-                    return (false, "Bu kredi zaten işlenmiş");
+                {
+                    return "Bu kredi zaten işlenmiş";
+                }
 
                 loan.Status = "Rejected";
                 loan.DecisionDate = DateTime.Now;
@@ -174,22 +230,31 @@ namespace BankApp.Infrastructure.Services
                 loan.RejectionReason = reason;
 
                 // Audit log
+                var sbAudit = new StringBuilder();
+                sbAudit.Append("Kredi reddedildi (ID: ");
+                sbAudit.Append(loanId);
+                sbAudit.Append("). Sebep: ");
+                sbAudit.Append(reason);
+                
                 await _auditRepo.AddLogAsync(new AuditLog
                 {
                     UserId = adminId,
                     Action = "LoanRejection",
-                    Details = $"Kredi reddedildi (ID: {loanId}). Sebep: {reason}",
+                    Details = sbAudit.ToString(),
                     IpAddress = "127.0.0.1"
                 });
 
                 // Event fırlat
                 AppEvents.NotifyDataChanged("Loan", "Rejected");
 
-                return (true, "Kredi başvurusu reddedildi.");
+                return null; // Başarılı
             }
             catch (Exception ex)
             {
-                return (false, $"Hata: {ex.Message}");
+                var sbError = new StringBuilder();
+                sbError.Append("Kredi reddetme hatası: ");
+                sbError.Append(ex.Message);
+                return sbError.ToString();
             }
         }
 
@@ -203,7 +268,7 @@ namespace BankApp.Infrastructure.Services
                 _loans.Add(new Loan
                 {
                     Id = _nextId++,
-                    UserId = 2, // musteri
+                    UserId = 2,
                     CustomerId = 1,
                     Amount = 25000,
                     TermMonths = 12,

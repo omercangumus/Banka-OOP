@@ -104,9 +104,18 @@ namespace BankApp.UI.Forms
 
             try
             {
-                await _transactionService.TransferMoneyAsync(fromAccountId, targetIban, amount, desc);
-                XtraMessageBox.Show("Transfer Başarılı!", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                this.Close();
+                // TransactionService artık string döndürüyor: null = başarılı, string = hata mesajı
+                string transferResult = await _transactionService.TransferMoneyAsync(fromAccountId, targetIban, amount, desc);
+                
+                if (transferResult == null)
+                {
+                    XtraMessageBox.Show("Transfer Başarılı!", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.Close();
+                }
+                else
+                {
+                    XtraMessageBox.Show(transferResult, "Transfer Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
             catch (Exception ex)
             {
