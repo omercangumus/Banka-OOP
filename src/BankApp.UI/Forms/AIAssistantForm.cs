@@ -26,8 +26,8 @@ namespace BankApp.UI.Forms
 
         public AIAssistantForm()
         {
-            // API Key - OpenRouter
-            string apiKey = "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";
+            // API Key - Groq
+            string apiKey = "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";
             _aiService = new OpenRouterAIService(apiKey);
             
             InitializeComponent();

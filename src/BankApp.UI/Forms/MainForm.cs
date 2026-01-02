@@ -512,10 +512,26 @@ namespace BankApp.UI.Forms
         // Rol bazlı menü güncelleme
         private void UpdateMenuForRole()
         {
-            // Admin değilse kredi onay butonunu gizle
+            bool isAdmin = AppEvents.CurrentSession.IsAdmin;
+            
+            // Müşteriler sekmesi - SADECE Admin görebilir
+            if (pageCustomers != null)
+            {
+                pageCustomers.Visible = isAdmin;
+            }
+            
+            // Kredi Onay butonu - SADECE Admin görebilir
             if (btnLoanApproval != null)
             {
-                btnLoanApproval.Visibility = AppEvents.CurrentSession.IsAdmin 
+                btnLoanApproval.Visibility = isAdmin 
+                    ? DevExpress.XtraBars.BarItemVisibility.Always 
+                    : DevExpress.XtraBars.BarItemVisibility.Never;
+            }
+            
+            // Kredi Başvuru butonu - SADECE Customer görebilir
+            if (btnLoanApplication != null)
+            {
+                btnLoanApplication.Visibility = !isAdmin 
                     ? DevExpress.XtraBars.BarItemVisibility.Always 
                     : DevExpress.XtraBars.BarItemVisibility.Never;
             }
