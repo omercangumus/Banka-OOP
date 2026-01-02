@@ -7,6 +7,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Threading.Tasks;
 using BankApp.Core.Interfaces;
 using BankApp.Infrastructure.Services;
 using BankApp.UI.Controls;
@@ -214,7 +215,7 @@ namespace BankApp.UI.Forms
                         s.Points.Add(new SeriesPoint("Bills", 850));
                         s.Points.Add(new SeriesPoint("Clothing", 450));
                         s.Points.Add(new SeriesPoint("Fun", 600));
-                        ((DoughnutSeriesView)s.View).HoleRadiusPercent = 40;
+                        // ((DoughnutSeriesView)s.View).HoleRadiusPercent = 40;
                         s.Label.TextPattern = "{A}: {VP:P0}";
                         chart.Series.Add(s);
                         chart.Titles.Add(new ChartTitle { Text = "Harcama Dağılımı", TextColor = Color.White });
@@ -244,8 +245,8 @@ namespace BankApp.UI.Forms
                         s.Points.Add(new SeriesPoint("Apr", 95000));
                         s.Points.Add(new SeriesPoint("May", 110000));
                         s.Points.Add(new SeriesPoint("Jun", 121325));
-                        ((SplineSeriesView)s.View).Color = Color.FromArgb(76, 175, 80);
-                        ((SplineSeriesView)s.View).MarkerVisibility = DevExpress.Utils.DefaultBoolean.True;
+                        // ((SplineSeriesView)s.View).Color = Color.FromArgb(76, 175, 80);
+                        // ((SplineSeriesView)s.View).MarkerVisibility = DevExpress.Utils.DefaultBoolean.True;
                         chart.Series.Add(s);
                         chart.Titles.Add(new ChartTitle { Text = "Varlık Gelişimi", TextColor = Color.White });
                     }

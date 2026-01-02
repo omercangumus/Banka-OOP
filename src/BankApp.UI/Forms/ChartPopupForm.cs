@@ -40,31 +40,8 @@ namespace BankApp.UI.Forms
             // Clone Series
             foreach (Series sourceSeries in source.Series)
             {
-                Series newSeries = new Series(sourceSeries.Name, sourceSeries.View.GetType());
-                
-                // Copy points
-                foreach (SeriesPoint p in sourceSeries.Points)
-                {
-                    newSeries.Points.Add(p); // SeriesPoint objects can be tricky to clone if they have complex data, but simple data works
-                }
-                
-                // Copy critical view properties if possible
-                // Note: Full deep cloning of View properties is complex, setting baselines
-                newSeries.ArgumentScaleType = sourceSeries.ArgumentScaleType;
-                newSeries.ValueScaleType = sourceSeries.ValueScaleType;
-
+                Series newSeries = (Series)sourceSeries.Clone();
                 _chartControl.Series.Add(newSeries);
-                
-                // Apply specific view settings manually if needed
-                if(sourceSeries.View is DoughnutSeriesView dView && newSeries.View is DoughnutSeriesView newDView)
-                {
-                    newDView.HoleRadiusPercent = dView.HoleRadiusPercent;
-                    newDView.ExplodedMode = dView.ExplodedMode;
-                }
-                if(sourceSeries.View is PieSeriesView pView && newSeries.View is PieSeriesView newPView)
-                {
-                    newPView.ExplodedMode = pView.ExplodedMode;
-                }
             }
 
             // Diagram settings
