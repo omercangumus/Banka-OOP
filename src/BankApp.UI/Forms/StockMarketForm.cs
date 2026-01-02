@@ -1,517 +1,351 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using DevExpress.XtraEditors;
-using DevExpress.XtraGrid;
-using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraCharts;
-using DevExpress.LookAndFeel;
-using BankApp.Infrastructure.Services;
 
 namespace BankApp.UI.Forms
 {
     public partial class StockMarketForm : XtraForm
     {
-        private GridControl gridStocks;
-        private GridView gridViewStocks;
-        private ChartControl chartStock;
-        private PanelControl pnlOrderEntry;
-        private LabelControl lblTitle;
-        private LabelControl lblSelectedStock;
-        private LabelControl lblCurrentPrice;
-        
-        // Order Entry Controls
-        private TextEdit txtSymbol;
-        private SpinEdit numQuantity;
-        private CheckEdit chkStopLoss;
-        private SpinEdit numStopLoss;
-        private CheckEdit chkTakeProfit;
-        private SpinEdit numTakeProfit;
-        private SimpleButton btnBuy;
-        private SimpleButton btnSell;
-        private SimpleButton btnRefresh;
-        
-        private readonly StockService _stockService;
-        private StockLiveData _currentStock;
-
         public StockMarketForm()
         {
-            _stockService = new StockService();
             InitializeComponent();
-            LoadStockData();
+            SetupChartVisuals(); // Grafik ayarlarını yap
+            InitializeContextMenu(); // Sağ tık menüsünü yükle
+            LoadMockStocks();    // Sol listeyi doldur
         }
 
-        private void InitializeComponent()
+        // 1. Grafik Genel Görünüm Ayarları (TradingView Stili)
+        private void SetupChartVisuals()
         {
-            UserLookAndFeel.Default.SetSkinStyle("Office 2019 Black");
+            chartStock.BackColor = Color.FromArgb(30, 30, 30);
+            chartStock.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
             
-            this.gridStocks = new GridControl();
-            this.gridViewStocks = new GridView();
-            this.chartStock = new ChartControl();
-            this.pnlOrderEntry = new PanelControl();
-            this.lblTitle = new LabelControl();
-            this.lblSelectedStock = new LabelControl();
-            this.lblCurrentPrice = new LabelControl();
-            
-            // Order entry controls
-            this.txtSymbol = new TextEdit();
-            this.numQuantity = new SpinEdit();
-            this.chkStopLoss = new CheckEdit();
-            this.numStopLoss = new SpinEdit();
-            this.chkTakeProfit = new CheckEdit();
-            this.numTakeProfit = new SpinEdit();
-            this.btnBuy = new SimpleButton();
-            this.btnSell = new SimpleButton();
-            this.btnRefresh = new SimpleButton();
+            // Crosshair (Detay Göstergesi)
+            chartStock.CrosshairEnabled = DevExpress.Utils.DefaultBoolean.True;
+            chartStock.CrosshairOptions.ShowArgumentLine = true;
+            chartStock.CrosshairOptions.ShowValueLine = true;
+            chartStock.CrosshairOptions.ShowValueLabels = true;
+            chartStock.CrosshairOptions.ArgumentLineColor = Color.Gold;
+            chartStock.CrosshairOptions.ValueLineColor = Color.Gold;
 
-            ((System.ComponentModel.ISupportInitialize)(this.gridStocks)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.gridViewStocks)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.chartStock)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pnlOrderEntry)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.txtSymbol.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numQuantity.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numStopLoss.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numTakeProfit.Properties)).BeginInit();
-            this.pnlOrderEntry.SuspendLayout();
-            this.SuspendLayout();
-
-            // ======= TITLE =======
-            this.lblTitle.Appearance.Font = new Font("Tahoma", 14F, FontStyle.Bold);
-            this.lblTitle.Appearance.ForeColor = Color.White;
-            this.lblTitle.Location = new Point(20, 15);
-            this.lblTitle.Text = "📈 Profesyonel Borsa Platformu";
-            this.lblTitle.Name = "lblTitle";
-
-            // ======= GRID STOCKS - Sol Panel =======
-            this.gridStocks.Location = new Point(20, 55);
-            this.gridStocks.Size = new Size(350, 450);
-            this.gridStocks.MainView = this.gridViewStocks;
-            this.gridStocks.Name = "gridStocks";
-            this.gridStocks.ViewCollection.AddRange(new DevExpress.XtraGrid.Views.Base.BaseView[] { this.gridViewStocks });
-
-            this.gridViewStocks.GridControl = this.gridStocks;
-            this.gridViewStocks.Name = "gridViewStocks";
-            this.gridViewStocks.OptionsView.ShowGroupPanel = false;
-            this.gridViewStocks.OptionsBehavior.Editable = false;
-            this.gridViewStocks.Appearance.Row.Font = new Font("Tahoma", 8.25F);
-            this.gridViewStocks.Appearance.HeaderPanel.Font = new Font("Tahoma", 8.25F, FontStyle.Bold);
-            this.gridViewStocks.FocusedRowChanged += GridViewStocks_FocusedRowChanged;
-            this.gridViewStocks.RowStyle += GridViewStocks_RowStyle;
-
-            // ======= CHART - Orta Panel (Büyük CandleStick) =======
-            this.chartStock.Location = new Point(385, 55);
-            this.chartStock.Size = new Size(620, 450);
-            this.chartStock.Name = "chartStock";
-            this.chartStock.BackColor = Color.FromArgb(30, 30, 30);
-            this.chartStock.AppearanceNameSerializable = "Dark Chameleon";
-
-            // ======= SELECTED STOCK INFO =======
-            this.lblSelectedStock.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
-            this.lblSelectedStock.Appearance.ForeColor = Color.FromArgb(33, 150, 243);
-            this.lblSelectedStock.Location = new Point(385, 515);
-            this.lblSelectedStock.Text = "Seçili Hisse: -";
-            this.lblSelectedStock.Name = "lblSelectedStock";
-            
-            this.lblCurrentPrice.Appearance.Font = new Font("Tahoma", 9F);
-            this.lblCurrentPrice.Appearance.ForeColor = Color.White;
-            this.lblCurrentPrice.Location = new Point(385, 535);
-            this.lblCurrentPrice.Text = "Güncel Fiyat: -";
-            this.lblCurrentPrice.Name = "lblCurrentPrice";
-
-            // ======= ORDER ENTRY PANEL - Sağ Panel =======
-            this.pnlOrderEntry.Location = new Point(1020, 55);
-            this.pnlOrderEntry.Size = new Size(280, 480);
-            this.pnlOrderEntry.Appearance.BackColor = Color.FromArgb(30, 30, 30);
-            this.pnlOrderEntry.Appearance.Options.UseBackColor = true;
-            this.pnlOrderEntry.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
-            this.pnlOrderEntry.Name = "pnlOrderEntry";
-
-            // === Panel Header ===
-            var lblPanelTitle = new LabelControl();
-            lblPanelTitle.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
-            lblPanelTitle.Appearance.ForeColor = Color.White;
-            lblPanelTitle.Location = new Point(15, 10);
-            lblPanelTitle.Text = "📋 Emir Girişi";
-            this.pnlOrderEntry.Controls.Add(lblPanelTitle);
-
-            // === Symbol ===
-            var lblSymbol = new LabelControl();
-            lblSymbol.Appearance.Font = new Font("Tahoma", 8.25F);
-            lblSymbol.Appearance.ForeColor = Color.LightGray;
-            lblSymbol.Location = new Point(15, 45);
-            lblSymbol.Text = "Sembol:";
-            this.pnlOrderEntry.Controls.Add(lblSymbol);
-
-            this.txtSymbol.Location = new Point(15, 65);
-            this.txtSymbol.Size = new Size(250, 20);
-            this.txtSymbol.Properties.Appearance.Font = new Font("Tahoma", 8.25F);
-            this.txtSymbol.Properties.ReadOnly = true;
-            this.txtSymbol.Name = "txtSymbol";
-            this.pnlOrderEntry.Controls.Add(this.txtSymbol);
-
-            // === Quantity ===
-            var lblQuantity = new LabelControl();
-            lblQuantity.Appearance.Font = new Font("Tahoma", 8.25F);
-            lblQuantity.Appearance.ForeColor = Color.LightGray;
-            lblQuantity.Location = new Point(15, 100);
-            lblQuantity.Text = "Adet:";
-            this.pnlOrderEntry.Controls.Add(lblQuantity);
-
-            this.numQuantity.Location = new Point(15, 120);
-            this.numQuantity.Size = new Size(250, 20);
-            this.numQuantity.Properties.Appearance.Font = new Font("Tahoma", 8.25F);
-            this.numQuantity.Properties.MinValue = 1;
-            this.numQuantity.Properties.MaxValue = 100000;
-            this.numQuantity.Value = 1;
-            this.numQuantity.Name = "numQuantity";
-            this.pnlOrderEntry.Controls.Add(this.numQuantity);
-
-            // === Stop-Loss ===
-            this.chkStopLoss.Location = new Point(15, 155);
-            this.chkStopLoss.Size = new Size(250, 20);
-            this.chkStopLoss.Text = "Stop-Loss Aktif";
-            this.chkStopLoss.Properties.Appearance.Font = new Font("Tahoma", 8.25F);
-            this.chkStopLoss.Properties.Appearance.ForeColor = Color.FromArgb(244, 67, 54);
-            this.chkStopLoss.Properties.Appearance.Options.UseFont = true;
-            this.chkStopLoss.Properties.Appearance.Options.UseForeColor = true;
-            this.chkStopLoss.Name = "chkStopLoss";
-            this.chkStopLoss.CheckedChanged += ChkStopLoss_CheckedChanged;
-            this.pnlOrderEntry.Controls.Add(this.chkStopLoss);
-
-            var lblStopLoss = new LabelControl();
-            lblStopLoss.Appearance.Font = new Font("Tahoma", 8.25F);
-            lblStopLoss.Appearance.ForeColor = Color.LightGray;
-            lblStopLoss.Location = new Point(15, 180);
-            lblStopLoss.Text = "Stop Fiyatı:";
-            this.pnlOrderEntry.Controls.Add(lblStopLoss);
-
-            this.numStopLoss.Location = new Point(15, 200);
-            this.numStopLoss.Size = new Size(250, 20);
-            this.numStopLoss.Properties.Appearance.Font = new Font("Tahoma", 8.25F);
-            this.numStopLoss.Properties.MinValue = 0;
-            this.numStopLoss.Properties.MaxValue = 999999;
-            this.numStopLoss.Properties.DisplayFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
-            this.numStopLoss.Properties.DisplayFormat.FormatString = "N2";
-            this.numStopLoss.Properties.EditFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
-            this.numStopLoss.Properties.EditFormat.FormatString = "N2";
-            this.numStopLoss.Enabled = false;
-            this.numStopLoss.Name = "numStopLoss";
-            this.pnlOrderEntry.Controls.Add(this.numStopLoss);
-
-            // === Take-Profit ===
-            this.chkTakeProfit.Location = new Point(15, 235);
-            this.chkTakeProfit.Size = new Size(250, 20);
-            this.chkTakeProfit.Text = "Take-Profit Aktif";
-            this.chkTakeProfit.Properties.Appearance.Font = new Font("Tahoma", 8.25F);
-            this.chkTakeProfit.Properties.Appearance.ForeColor = Color.FromArgb(76, 175, 80);
-            this.chkTakeProfit.Properties.Appearance.Options.UseFont = true;
-            this.chkTakeProfit.Properties.Appearance.Options.UseForeColor = true;
-            this.chkTakeProfit.Name = "chkTakeProfit";
-            this.chkTakeProfit.CheckedChanged += ChkTakeProfit_CheckedChanged;
-            this.pnlOrderEntry.Controls.Add(this.chkTakeProfit);
-
-            var lblTakeProfit = new LabelControl();
-            lblTakeProfit.Appearance.Font = new Font("Tahoma", 8.25F);
-            lblTakeProfit.Appearance.ForeColor = Color.LightGray;
-            lblTakeProfit.Location = new Point(15, 260);
-            lblTakeProfit.Text = "Kâr Al Fiyatı:";
-            this.pnlOrderEntry.Controls.Add(lblTakeProfit);
-
-            this.numTakeProfit.Location = new Point(15, 280);
-            this.numTakeProfit.Size = new Size(250, 20);
-            this.numTakeProfit.Properties.Appearance.Font = new Font("Tahoma", 8.25F);
-            this.numTakeProfit.Properties.MinValue = 0;
-            this.numTakeProfit.Properties.MaxValue = 999999;
-            this.numTakeProfit.Properties.DisplayFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
-            this.numTakeProfit.Properties.DisplayFormat.FormatString = "N2";
-            this.numTakeProfit.Properties.EditFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
-            this.numTakeProfit.Properties.EditFormat.FormatString = "N2";
-            this.numTakeProfit.Enabled = false;
-            this.numTakeProfit.Name = "numTakeProfit";
-            this.pnlOrderEntry.Controls.Add(this.numTakeProfit);
-
-            // === Buy Button ===
-            this.btnBuy.Location = new Point(15, 330);
-            this.btnBuy.Size = new Size(250, 40);
-            this.btnBuy.Text = "AL (BUY)";
-            this.btnBuy.Appearance.BackColor = Color.FromArgb(76, 175, 80);
-            this.btnBuy.Appearance.ForeColor = Color.White;
-            this.btnBuy.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
-            this.btnBuy.Appearance.Options.UseBackColor = true;
-            this.btnBuy.Appearance.Options.UseForeColor = true;
-            this.btnBuy.Appearance.Options.UseFont = true;
-            this.btnBuy.Name = "btnBuy";
-            this.btnBuy.Click += BtnBuy_Click;
-            this.pnlOrderEntry.Controls.Add(this.btnBuy);
-
-            // === Sell Button ===
-            this.btnSell.Location = new Point(15, 380);
-            this.btnSell.Size = new Size(250, 40);
-            this.btnSell.Text = "SAT (SELL)";
-            this.btnSell.Appearance.BackColor = Color.FromArgb(244, 67, 54);
-            this.btnSell.Appearance.ForeColor = Color.White;
-            this.btnSell.Appearance.Font = new Font("Tahoma", 10F, FontStyle.Bold);
-            this.btnSell.Appearance.Options.UseBackColor = true;
-            this.btnSell.Appearance.Options.UseForeColor = true;
-            this.btnSell.Appearance.Options.UseFont = true;
-            this.btnSell.Name = "btnSell";
-            this.btnSell.Click += BtnSell_Click;
-            this.pnlOrderEntry.Controls.Add(this.btnSell);
-
-            // === Refresh Button ===
-            this.btnRefresh.Location = new Point(15, 435);
-            this.btnRefresh.Size = new Size(250, 30);
-            this.btnRefresh.Text = "🔄 Yenile";
-            this.btnRefresh.Appearance.BackColor = Color.FromArgb(60, 60, 60);
-            this.btnRefresh.Appearance.ForeColor = Color.White;
-            this.btnRefresh.Appearance.Font = new Font("Tahoma", 8.25F);
-            this.btnRefresh.Appearance.Options.UseBackColor = true;
-            this.btnRefresh.Appearance.Options.UseForeColor = true;
-            this.btnRefresh.Appearance.Options.UseFont = true;
-            this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Click += BtnRefresh_Click;
-            this.pnlOrderEntry.Controls.Add(this.btnRefresh);
-
-            // ======= FORM =======
-            this.ClientSize = new Size(1320, 560);
-            this.Controls.Add(this.lblTitle);
-            this.Controls.Add(this.gridStocks);
-            this.Controls.Add(this.chartStock);
-            this.Controls.Add(this.lblSelectedStock);
-            this.Controls.Add(this.lblCurrentPrice);
-            this.Controls.Add(this.pnlOrderEntry);
-            this.Name = "StockMarketForm";
-            this.Text = "Profesyonel Borsa Platformu - NovaBank";
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.BackColor = Color.FromArgb(20, 20, 20);
-
-            ((System.ComponentModel.ISupportInitialize)(this.gridStocks)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.gridViewStocks)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.chartStock)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pnlOrderEntry)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.txtSymbol.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numQuantity.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numStopLoss.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numTakeProfit.Properties)).EndInit();
-            this.pnlOrderEntry.ResumeLayout(false);
-            this.ResumeLayout(false);
-            this.PerformLayout();
-        }
-
-        private void LoadStockData()
-        {
-            var stocks = new List<StockData>
+            // Diagram Ayarları (Zoom/Scroll)
+            if (chartStock.Diagram is XYDiagram diagram)
             {
-                new StockData { Symbol = "THYAO.IS", Name = "Türk Hava Yolları", Price = 285.50m, Change = 2.35m, Volume = 125000000 },
-                new StockData { Symbol = "GARAN.IS", Name = "Garanti Bankası", Price = 95.20m, Change = -1.15m, Volume = 98000000 },
-                new StockData { Symbol = "ASELS.IS", Name = "Aselsan", Price = 52.80m, Change = 4.20m, Volume = 45000000 },
-                new StockData { Symbol = "SISE.IS", Name = "Şişecam", Price = 48.90m, Change = -0.85m, Volume = 32000000 },
-                new StockData { Symbol = "EREGL.IS", Name = "Ereğli Demir Çelik", Price = 56.40m, Change = 1.50m, Volume = 78000000 },
-                new StockData { Symbol = "KCHOL.IS", Name = "Koç Holding", Price = 175.60m, Change = 0.95m, Volume = 55000000 },
-                new StockData { Symbol = "AKBNK.IS", Name = "Akbank", Price = 48.75m, Change = -2.10m, Volume = 88000000 },
-                new StockData { Symbol = "TUPRS.IS", Name = "Tüpraş", Price = 165.30m, Change = 3.45m, Volume = 42000000 },
-                new StockData { Symbol = "SAHOL.IS", Name = "Sabancı Holding", Price = 78.90m, Change = 1.25m, Volume = 61000000 },
-                new StockData { Symbol = "BIMAS.IS", Name = "BİM", Price = 395.00m, Change = -0.50m, Volume = 28000000 }
+                diagram.DefaultPane.BackColor = Color.FromArgb(35, 35, 35);
+                diagram.DefaultPane.BorderVisible = false;
+                
+                // Grid çizgilerini şeffaflaştır
+                diagram.AxisX.GridLines.Visible = true;
+                diagram.AxisX.GridLines.Color = Color.FromArgb(50, 255, 255, 255);
+                diagram.AxisY.GridLines.Visible = true;
+                diagram.AxisY.GridLines.Color = Color.FromArgb(50, 255, 255, 255);
+
+                // Yazı renkleri
+                diagram.AxisX.Label.TextColor = Color.White;
+                diagram.AxisY.Label.TextColor = Color.White;
+
+                // ZOOM VE SCROLL AKTİF!
+                diagram.EnableAxisXScrolling = true;
+                diagram.EnableAxisXZooming = true;
+                diagram.EnableAxisYScrolling = true;
+                diagram.EnableAxisYZooming = true;
+                
+                // Mouse tekerleği ile zoom
+                diagram.ZoomingOptions.UseMouseWheel = true;
+            }
+        }
+
+        private void LoadMockStocks()
+        {
+            // Basit liste
+            var stocks = new List<StockInfo>
+            {
+                new StockInfo { Symbol = "THYAO", Name = "Türk Hava Yolları", Price = 285.50m },
+                new StockInfo { Symbol = "GARAN", Name = "Garanti BBVA", Price = 105.20m },
+                new StockInfo { Symbol = "ASELS", Name = "Aselsan", Price = 62.10m },
+                new StockInfo { Symbol = "SASA", Name = "Sasa Polyester", Price = 42.80m },
+                new StockInfo { Symbol = "EREGL", Name = "Ereğli Demir Çelik", Price = 48.90m },
+                new StockInfo { Symbol = "BTCUSD", Name = "Bitcoin", Price = 95000m }
             };
-
-            gridStocks.DataSource = stocks;
             
-            // İlk hisseyi seç
-            if (stocks.Count > 0)
+            // ListBox'a ekle (GridControl yerine ListBox kullanıyoruz - Designer uyumu için)
+            lstStocks.Items.Clear();
+            foreach(var stock in stocks)
             {
-                LoadCandleStickChart(stocks[0].Symbol);
+                lstStocks.Items.Add(stock);
             }
         }
 
-        private async void GridViewStocks_FocusedRowChanged(object sender, DevExpress.XtraGrid.Views.Base.FocusedRowChangedEventArgs e)
+        // Listeden hisse seçilince çalışır
+        private void lstStocks_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var row = gridViewStocks.GetFocusedRow() as StockData;
-            if (row != null)
+            if (lstStocks.SelectedItem is StockInfo stock)
             {
-                // Canlı veri çek
-                _currentStock = await _stockService.GetLiveStockDataAsync(row.Symbol);
-                
-                lblSelectedStock.Text = $"Seçili Hisse: {row.Symbol} - {row.Name}";
-                lblCurrentPrice.Text = $"Güncel Fiyat: {_currentStock.Price:N2} TL | Değişim: {_currentStock.ChangePercentDisplay} ({(_currentStock.IsLive ? "CANLI" : "SİMÜLASYON")})";
-                lblCurrentPrice.Appearance.ForeColor = _currentStock.Change >= 0 ? Color.FromArgb(76, 175, 80) : Color.FromArgb(244, 67, 54);
-                
-                txtSymbol.Text = row.Symbol;
-                LoadCandleStickChart(row.Symbol);
+                if(lblSymbol != null) lblSymbol.Text = $"{stock.Symbol}";
+                GenerateCandleChart(stock.Symbol, stock.Price);
             }
         }
 
-        private void GridViewStocks_RowStyle(object sender, DevExpress.XtraGrid.Views.Grid.RowStyleEventArgs e)
-        {
-            if (e.RowHandle >= 0)
-            {
-                var row = gridViewStocks.GetRow(e.RowHandle) as StockData;
-                if (row != null)
-                {
-                    if (row.Change > 0)
-                        e.Appearance.ForeColor = Color.FromArgb(76, 175, 80);
-                    else if (row.Change < 0)
-                        e.Appearance.ForeColor = Color.FromArgb(244, 67, 54);
-                }
-            }
-        }
-
-        private void LoadCandleStickChart(string symbol)
+        // 2. MUM GRAFİĞİ VE İNDİKATÖRLERİ OLUŞTURAN MOTOR
+        private void GenerateCandleChart(string symbol, decimal startPrice)
         {
             chartStock.Series.Clear();
-            
-            // CandleStick verisi
-            var random = new Random(symbol.GetHashCode());
-            var seriesCandle = new Series(symbol, ViewType.CandleStick);
-            
-            var basePrice = random.Next(50, 200);
-            DateTime startDate = DateTime.Now.AddDays(-60);
-            
-            var priceData = new List<double>();
-            
-            for (int i = 0; i < 60; i++)
+
+            // Seri Oluştur (Mum Tipi)
+            Series series = new Series(symbol, ViewType.CandleStick);
+            series.ArgumentScaleType = ScaleType.DateTime;
+
+            // Rastgele Mum Verisi Üret (Son 100 Gün)
+            Random rnd = new Random(symbol.GetHashCode());
+            double price = (double)startPrice * 0.8; // Biraz geriden başlasın
+            DateTime date = DateTime.Now.AddDays(-100);
+
+            for (int i = 0; i < 100; i++)
             {
-                var open = basePrice + (random.NextDouble() * 10 - 5);
-                var high = open + random.NextDouble() * 5;
-                var low = open - random.NextDouble() * 5;
-                var close = low + random.NextDouble() * (high - low);
+                double changePercent = (rnd.NextDouble() * 0.04) - 0.02; // %2 değişim
+                double open = price;
+                double close = price * (1 + changePercent);
                 
-                seriesCandle.Points.Add(new SeriesPoint(startDate.AddDays(i), new double[] { high, low, open, close }));
-                priceData.Add(close);
-                basePrice = (int)close;
+                double high = Math.Max(open, close) * (1 + (rnd.NextDouble() * 0.01));
+                double low = Math.Min(open, close) * (1 - (rnd.NextDouble() * 0.01));
+
+                // DevExpress: Date, Low, High, Open, Close
+                series.Points.Add(new SeriesPoint(date.AddDays(i), low, high, open, close));
+                
+                price = close; 
             }
-
-            var candleView = (CandleStickSeriesView)seriesCandle.View;
-            candleView.Color = Color.FromArgb(76, 175, 80);
-            candleView.ReductionOptions.Color = Color.FromArgb(244, 67, 54);
-            candleView.ReductionOptions.Visible = true;
-            candleView.LineThickness = 2;
-
-            chartStock.Series.Add(seriesCandle);
             
-            // SMA (20 günlük basit hareketli ortalama) ekle
-            var seriesSMA = new Series("SMA (20)", ViewType.Line);
-            for (int i = 19; i < 60; i++)
+            // Mevcut fiyatı güncelle
+            if(lblPrice != null) lblPrice.Text = $"{price:N2} TL";
+
+            // GÖRSEL AYARLAR (Yeşil/Kırmızı Mumlar)
+            if(series.View is CandleStickSeriesView view)
             {
-                double sma = 0;
-                for (int j = i - 19; j <= i; j++)
-                {
-                    sma += priceData[j];
-                }
-                sma /= 20;
-                seriesSMA.Points.Add(new SeriesPoint(startDate.AddDays(i), sma));
+                view.Color = Color.FromArgb(0, 255, 0); // Yükseliş (Yeşil)
+                view.ReductionOptions.Color = Color.FromArgb(255, 0, 0); // Düşüş (Kırmızı)
+                view.ReductionOptions.Visible = true;
+                view.LineThickness = 1;
+                view.LevelLineLength = 0.3;
+
+                // 3. İNDİKATÖRLERİ EKLE (PRO ÖZELLİK)
+                
+                // A) Bollinger Bantları
+                BollingerBands bb = new BollingerBands();
+                bb.ValueLevel = ValueLevel.Close;
+                bb.Color = Color.FromArgb(50, 255, 255, 255); // Hafif şeffaf beyaz
+                bb.LineStyle.Thickness = 1;
+                view.Indicators.Add(bb);
+
+                // B) SMA (Trend Çizgisi)
+                SimpleMovingAverage sma = new SimpleMovingAverage();
+                sma.PointsCount = 20; // 20 Günlük ortalama
+                sma.Color = Color.Orange; // Turuncu çizgi
+                sma.LineStyle.Thickness = 2;
+                sma.LegendText = "SMA (20)";
+                view.Indicators.Add(sma);
             }
+
+            // Grafiğe ekle
+            chartStock.Series.Add(series);
             
-            var lineView = (LineSeriesView)seriesSMA.View;
-            lineView.Color = Color.FromArgb(255, 193, 7);
-            lineView.LineStyle.Thickness = 2;
-            
-            chartStock.Series.Add(seriesSMA);
-            
-            chartStock.Titles.Clear();
-            var title = new ChartTitle() 
-            { 
-                Text = $"{symbol} - Son 60 Gün (CandleStick + SMA)", 
-                TextColor = Color.White,
-                Font = new Font("Tahoma", 10F, FontStyle.Bold)
+            // Ekrana sığdır (Zoom reset)
+            if (chartStock.Diagram is XYDiagram diag)
+            {
+                diag.AxisX.WholeRange.SideMarginsValue = 1; 
+                diag.AxisX.DateTimeScaleOptions.MeasureUnit = DateTimeMeasureUnit.Day;
+            }
+        }
+
+        private void InitializeContextMenu()
+        {
+            _contextMenu = new ContextMenuStrip();
+            _contextMenu.Renderer = new ToolStripProfessionalRenderer(new CustomColorTable()); // Dark Theme Menu
+
+            var itemNote = _contextMenu.Items.Add("📌 Not Ekle");
+            itemNote.ForeColor = Color.White;
+            itemNote.Click += (s, e) => AddNote();
+
+            var itemSupport = _contextMenu.Items.Add("🟢 Destek Çizgisi (Support)");
+            itemSupport.ForeColor = Color.LightGreen;
+            itemSupport.Click += (s, e) => AddSupportResistance(true);
+
+            var itemResistance = _contextMenu.Items.Add("🔴 Direnç Çizgisi (Resistance)");
+            itemResistance.ForeColor = Color.LightCoral;
+            itemResistance.Click += (s, e) => AddSupportResistance(false);
+
+            _contextMenu.Items.Add(new ToolStripSeparator());
+
+            var itemFib = _contextMenu.Items.Add("📐 Otomatik Fibonacci (Auto)");
+            itemFib.ForeColor = Color.Gold;
+            itemFib.Click += (s, e) => AddFibonacciLevels();
+
+            _contextMenu.Items.Add(new ToolStripSeparator());
+
+            var itemClear = _contextMenu.Items.Add("🗑️ Çizimleri Temizle");
+            itemClear.ForeColor = Color.White;
+            itemClear.Click += (s, e) => ClearAnnotations();
+
+            // Chart MouseUp Event
+            chartStock.MouseUp += (s, e) => {
+                if (e.Button == MouseButtons.Right)
+                    _contextMenu.Show(chartStock, e.Location);
             };
-            chartStock.Titles.Add(title);
         }
 
-        private void ChkStopLoss_CheckedChanged(object sender, EventArgs e)
+        // Custom Color Table for Dark Menu
+        public class CustomColorTable : ProfessionalColorTable
         {
-            numStopLoss.Enabled = chkStopLoss.Checked;
+            public override Color MenuItemSelected => Color.FromArgb(60, 60, 60);
+            public override Color MenuItemBorder => Color.Gray;
+            public override Color MenuBorder => Color.Black;
+            public override Color MenuItemSelectedGradientBegin => Color.FromArgb(60, 60, 60);
+            public override Color MenuItemSelectedGradientEnd => Color.FromArgb(60, 60, 60);
+            public override Color MenuItemPressedGradientBegin => Color.FromArgb(40, 40, 40);
+            public override Color MenuItemPressedGradientEnd => Color.FromArgb(40, 40, 40);
+            public override Color ToolStripDropDownBackground => Color.FromArgb(30, 30, 30);
+            public override Color ImageMarginGradientBegin => Color.FromArgb(30, 30, 30);
+            public override Color ImageMarginGradientMiddle => Color.FromArgb(30, 30, 30);
+            public override Color ImageMarginGradientEnd => Color.FromArgb(30, 30, 30);
         }
 
-        private void ChkTakeProfit_CheckedChanged(object sender, EventArgs e)
+        private void AddNote()
         {
-            numTakeProfit.Enabled = chkTakeProfit.Checked;
+            string note = ShowInputBox("Notunuzu girin:", "Not Ekle");
+            if (string.IsNullOrWhiteSpace(note)) return;
+
+            TextAnnotation annotation = new TextAnnotation("Note_" + Guid.NewGuid().ToString(), note);
+            annotation.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+            annotation.TextColor = Color.White;
+            annotation.BackColor = Color.FromArgb(200, 40, 40, 40);
+            annotation.Border.Color = Color.Gold;
+            
+            annotation.ShapePosition = new RelativePosition(0.5, 0.5);
+            annotation.RuntimeMoving = true;
+            annotation.RuntimeResizing = true;
+
+            chartStock.AnnotationRepository.Add(annotation);
         }
 
-        private async void BtnRefresh_Click(object sender, EventArgs e)
+        private void AddSupportResistance(bool isSupport)
         {
-            if (_currentStock != null)
+            if (chartStock.Diagram is XYDiagram diagram)
             {
-                _currentStock = await _stockService.GetLiveStockDataAsync(_currentStock.Symbol);
-                lblCurrentPrice.Text = $"Güncel Fiyat: {_currentStock.Price:N2} TL | Değişim: {_currentStock.ChangePercentDisplay} ({(_currentStock.IsLive ? "CANLI" : "SİMÜLASYON")})";
-                lblCurrentPrice.Appearance.ForeColor = _currentStock.Change >= 0 ? Color.FromArgb(76, 175, 80) : Color.FromArgb(244, 67, 54);
-                XtraMessageBox.Show("Veriler güncellendi!", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                decimal defaultPrice = 100;
+                if (lstStocks.SelectedItem is StockInfo stock) defaultPrice = stock.Price;
+
+                string valStr = ShowInputBox($"{(isSupport ? "Destek" : "Direnç")} Seviyesi:", "Seviye Belirle", defaultPrice.ToString());
+                if(decimal.TryParse(valStr, out decimal val))
+                {
+                    // Optional: Label
+                    string label = ShowInputBox("Etiket (Opsiyonel):", "Başlık", isSupport ? "Güçlü Alım Bölgesi" : "Satış Baskısı");
+
+                    ConstantLine line = new ConstantLine(string.IsNullOrWhiteSpace(label) ? $"{(isSupport ? "Destek" : "Direnç")} : {val:N2}" : $"{label} : {val:N2}");
+                    line.AxisValue = val;
+                    line.Color = isSupport ? Color.FromArgb(0, 255, 127) : Color.FromArgb(255, 69, 0); // SpringGreen vs OrangeRed
+                    line.LineStyle.Thickness = 2;
+                    line.LineStyle.DashStyle = DashStyle.Dash;
+                    line.ShowInLegend = false;
+                    line.Title.Alignment = ConstantLineTitleAlignment.Far;
+                    line.Title.TextColor = line.Color;
+                    line.Title.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+
+                    diagram.AxisY.ConstantLines.Add(line);
+                }
             }
         }
 
-        private void BtnBuy_Click(object sender, EventArgs e)
+        private void AddFibonacciLevels()
         {
-            if (_currentStock == null)
+            if (chartStock.Diagram is XYDiagram diagram && chartStock.Series.Count > 0)
             {
-                XtraMessageBox.Show("Lütfen bir hisse seçiniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
+                // Basit bir simülasyon: Ekrandaki mumlardan en yüksek ve en düşüğü bulalım.
+                // Gerçek veride Series.Points üzerinden bulunur.
+                // Burada simüle datayı bildiğimiz için tahmini bir Range üzerinden çizelim.
+                
+                decimal currentPrice = 0;
+                if (lstStocks.SelectedItem is StockInfo stock) currentPrice = stock.Price;
+                else return;
 
-            int quantity = (int)numQuantity.Value;
-            decimal total = _currentStock.Price * quantity;
-            
-            string orderDetails = $"✅ ALIM EMRİ GÖNDERİLDİ\n\n" +
-                $"Hisse: {_currentStock.Symbol}\n" +
-                $"Adet: {quantity}\n" +
-                $"Fiyat: {_currentStock.Price:N2} TL\n" +
-                $"Toplam: {total:N2} TL\n";
-            
-            if (chkStopLoss.Checked)
-            {
-                orderDetails += $"\n🛑 Stop-Loss: {numStopLoss.Value:N2} TL";
-            }
-            
-            if (chkTakeProfit.Checked)
-            {
-                orderDetails += $"\n💰 Take-Profit: {numTakeProfit.Value:N2} TL";
-            }
+                decimal high = currentPrice * 1.1m;
+                decimal low = currentPrice * 0.9m;
+                decimal diff = high - low;
 
-            XtraMessageBox.Show(orderDetails, "Alım Emri", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Fib Levels: 0, 0.236, 0.382, 0.5, 0.618, 1
+                decimal[] fibs = { 0m, 0.236m, 0.382m, 0.5m, 0.618m, 1.0m };
+
+                foreach (var f in fibs)
+                {
+                    decimal levelPrice = low + (diff * f);
+                    ConstantLine line = new ConstantLine($"Fib {f:P1}");
+                    line.AxisValue = levelPrice;
+                    line.Color = Color.FromArgb(100, 255, 215, 0); // Transparent Gold
+                    line.LineStyle.Thickness = 1;
+                    line.LineStyle.DashStyle = DashStyle.Solid;
+                    line.ShowInLegend = false;
+                    line.Title.ShowInLegend = false;
+                    line.Title.Alignment = ConstantLineTitleAlignment.Near;
+                    line.Title.TextColor = Color.Gold;
+                    
+                    diagram.AxisY.ConstantLines.Add(line);
+                }
+                
+                XtraMessageBox.Show("Fibonacci Seviyeleri (Simüle) Eklendi!", "Analiz Tamamlandı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
-        private void BtnSell_Click(object sender, EventArgs e)
+        private void ClearAnnotations()
         {
-            if (_currentStock == null)
+            chartStock.AnnotationRepository.Clear();
+            if (chartStock.Diagram is XYDiagram diagram)
             {
-                XtraMessageBox.Show("Lütfen bir hisse seçiniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                diagram.AxisY.ConstantLines.Clear();
             }
-
-            int quantity = (int)numQuantity.Value;
-            decimal total = _currentStock.Price * quantity;
-            
-            string orderDetails = $"✅ SATIM EMRİ GÖNDERİLDİ\n\n" +
-                $"Hisse: {_currentStock.Symbol}\n" +
-                $"Adet: {quantity}\n" +
-                $"Fiyat: {_currentStock.Price:N2} TL\n" +
-                $"Toplam: {total:N2} TL\n";
-            
-            if (chkStopLoss.Checked)
-            {
-                orderDetails += $"\n🛑 Stop-Loss: {numStopLoss.Value:N2} TL";
-            }
-            
-            if (chkTakeProfit.Checked)
-            {
-                orderDetails += $"\n💰 Take-Profit: {numTakeProfit.Value:N2} TL";
-            }
-
-            XtraMessageBox.Show(orderDetails, "Satım Emri", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
+
+        // Helper InputBox (Styled for Dark Theme)
+        private string ShowInputBox(string prompt, string title, string defaultValue = "")
+        {
+            Form inputForm = new Form();
+            inputForm.Size = new Size(350, 180);
+            inputForm.Text = title;
+            inputForm.StartPosition = FormStartPosition.CenterParent;
+            inputForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+            inputForm.MaximizeBox = false;
+            inputForm.MinimizeBox = false;
+            inputForm.BackColor = Color.FromArgb(35, 35, 35);
+            inputForm.ForeColor = Color.White;
+
+            Label lbl = new Label() { Left = 20, Top = 20, Text = prompt, AutoSize = true, ForeColor = Color.White, Font = new Font("Segoe UI", 10) };
+            TextBox txt = new TextBox() { Left = 20, Top = 50, Width = 290, Text = defaultValue, BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10) };
+            
+            Button btnOk = new Button() { Text = "Tamam", Left = 210, Top = 90, Width = 100, Height = 35, DialogResult = DialogResult.OK, BackColor = Color.FromArgb(0, 122, 204), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnOk.FlatAppearance.BorderSize = 0;
+            
+            inputForm.Controls.Add(lbl);
+            inputForm.Controls.Add(txt);
+            inputForm.Controls.Add(btnOk);
+            inputForm.AcceptButton = btnOk;
+
+            return inputForm.ShowDialog() == DialogResult.OK ? txt.Text : "";
+        }
+
+        // Alım Satım Butonları
+        private void btnBuy_Click(object sender, EventArgs e) => XtraMessageBox.Show("Alım Emri İletildi! (Piyasa Emri)", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        private void btnSell_Click(object sender, EventArgs e) => XtraMessageBox.Show("Satış Emri İletildi! (Stop-Loss Devrede)", "Broker", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
-    // Stock Data Model
-    public class StockData
-    {
-        public string Symbol { get; set; }
-        public string Name { get; set; }
-        public decimal Price { get; set; }
-        public decimal Change { get; set; }
-        public long Volume { get; set; }
+    public class StockInfo 
+    { 
+        public string Symbol { get; set; } 
+        public string Name { get; set; } 
+        public decimal Price { get; set; } 
         
-        public string ChangeDisplay => Change >= 0 ? $"+{Change:N2}%" : $"{Change:N2}%";
+        public override string ToString()
+        {
+            return $"{Symbol} - {Name}";
+        }
     }
 }

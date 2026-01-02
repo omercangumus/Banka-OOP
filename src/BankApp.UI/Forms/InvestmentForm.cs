@@ -1,249 +1,102 @@
-#nullable enable
 using System;
+using System.Linq;
 using System.Drawing;
 using System.Windows.Forms;
 using DevExpress.XtraEditors;
-using DevExpress.XtraGrid.Views.Grid;
 using BankApp.Infrastructure.Services;
-using BankApp.Infrastructure.Data;
+using BankApp.Core.Entities;
+using System.Collections.Generic;
 
 namespace BankApp.UI.Forms
 {
-    /// <summary>
-    /// Yatırım Portföyü Formu - Yatırım ve borsa işlemleri
-    /// Created by Fırat Üniversitesi Standartları, 01/01/2026
-    /// </summary>
     public partial class InvestmentForm : XtraForm
     {
-        private MarketSimulatorService _marketSimulator;
-        private InvestmentService _investmentService;
-        private int _customerId = 1; // Demo için varsayılan
-        private string _selectedCurrency = "TRY";
-        private decimal _usdRate = 32.50m;
-        
-        /// <summary>
-        /// Form yapıcı metodu
-        /// </summary>
+        private readonly StockService _stockService;
+        private readonly CommodityService _commodityService;
+
         public InvestmentForm()
         {
             InitializeComponent();
-            InitializeServices();
-            LoadStocks();
-            LoadPortfolio();
-        }
-
-        /// <summary>
-        /// Servisleri başlatır
-        /// </summary>
-        private void InitializeServices()
-        {
-            var context = new DapperContext();
-            var accountRepo = new AccountRepository(context);
-            var auditRepo = new AuditRepository(context);
-
-            _marketSimulator = new MarketSimulatorService();
-            _investmentService = new InvestmentService(_marketSimulator, accountRepo, auditRepo);
+            _stockService = new StockService();
+            _commodityService = new CommodityService();
             
-            // Fiyat değişimlerini dinle
-            _marketSimulator.PriceChanged += OnPriceChanged;
-            _marketSimulator.Start();
+            PopulateTiles();
+            PopulatePortfolio();
         }
 
-        /// <summary>
-        /// Fiyat değiştiğinde tetiklenir
-        /// </summary>
-        private void OnPriceChanged(object? sender, StockPriceChangedEventArgs e)
+        private void PopulateTiles()
         {
-            // UI thread'e geç
-            if (this.InvokeRequired)
+            tileGroup1.Items.Clear();
+            var markets = _commodityService.GetAllMarkets();
+
+            foreach(var m in markets)
             {
-                this.BeginInvoke(new Action(() => OnPriceChanged(sender, e)));
-                return;
+                TileItem item = new TileItem();
+                item.ItemSize = TileItemSize.Wide; // Geniş kutular
+                
+                // Renk Ayarı
+                Color backColor = Color.FromArgb(45, 45, 48); // Koyu Gri
+                if (m.Name.Contains("Altın")) backColor = Color.FromArgb(255, 193, 7); // Amber
+                if (m.Name.Contains("Dolar")) backColor = Color.FromArgb(76, 175, 80); // Green
+                if (m.Name.Contains("Hisse")) backColor = Color.FromArgb(33, 150, 243); // Blue
+                if (m.Name.Contains("Bitcoin")) backColor = Color.FromArgb(255, 87, 34); // Orange
+
+                item.AppearanceItem.Normal.BackColor = backColor;
+                item.AppearanceItem.Normal.BorderColor = Color.Transparent;
+
+                // İçerik (Elements)
+                // 1. İsim (Sol Üst)
+                TileItemElement elName = new TileItemElement();
+                elName.Text = m.Name.ToUpper();
+                elName.TextAlignment = TileItemContentAlignment.TopLeft;
+                elName.Appearance.Normal.FontSizeDelta = 2;
+                elName.Appearance.Normal.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+
+                // 2. Fiyat (Orta Büyük)
+                TileItemElement elPrice = new TileItemElement();
+                elPrice.Text = $"{m.Price:N2}";
+                elPrice.TextAlignment = TileItemContentAlignment.MiddleCenter;
+                elPrice.Appearance.Normal.FontSizeDelta = 12;
+                elPrice.Appearance.Normal.Font = new Font("Segoe UI", 24, FontStyle.Bold);
+
+                // 3. Değişim (Sağ Alt)
+                TileItemElement elChange = new TileItemElement();
+                string arrow = m.ChangePercent >= 0 ? "▲" : "▼";
+                elChange.Text = $"{arrow} %{Math.Abs(m.ChangePercent):N2}";
+                elChange.TextAlignment = TileItemContentAlignment.BottomRight;
+                elChange.Appearance.Normal.FontSizeDelta = 4;
+                elChange.Appearance.Normal.ForeColor = Color.White; // Arka plan renkli zaten
+                
+                item.Elements.Add(elName);
+                item.Elements.Add(elPrice);
+                item.Elements.Add(elChange);
+                
+                tileGroup1.Items.Add(item);
+                
+                // Click Effect
+                item.ItemClick += (s, e) => {
+                    // Tıklanınca detay veya işlem açılabilir
+                    StockMarketForm frm = new StockMarketForm();
+                    frm.ShowDialog();
+                };
             }
-
-            // Grid'leri güncelle
-            try
-            {
-                if(grdwHisseler != null) grdwHisseler.RefreshData();
-                if(grdwPortfoy != null) grdwPortfoy.RefreshData();
-            }
-            catch { }
         }
 
-        /// <summary>
-        /// Hisseleri yükler
-        /// </summary>
-        private void LoadStocks()
+        private void PopulatePortfolio()
         {
-            if (grdHisseler == null) return;
-            grdHisseler.DataSource = _marketSimulator.GetAllStocks();
-            grdwHisseler.RefreshData();
-        }
-
-        /// <summary>
-        /// Portföyü yükler
-        /// </summary>
-        private void LoadPortfolio()
-        {
-            if (grdPortfoy == null || lblPortfoyDegeri == null) return;
-
-            var portfolio = _investmentService.GetPortfolio(_customerId);
-            grdPortfoy.DataSource = portfolio;
-            grdwPortfoy.RefreshData();
-            
-            // Toplam portföy değerini hesapla
-            decimal total = 0;
-            foreach (var item in portfolio)
+            // Dummy Portfolio Data for the Grid
+            var list = new List<dynamic>
             {
-                total += item.CurrentValue;
-            }
-            
-            decimal displayValue = ConvertCurrency(total);
-            lblPortfoyDegeri.Text = $"{GetCurrencySymbol()} {displayValue:N2}";
-        }
-
-        /// <summary>
-        /// Para birimini dönüştürür
-        /// </summary>
-        private decimal ConvertCurrency(decimal tlValue)
-        {
-            return _selectedCurrency switch
-            {
-                "USD" => tlValue / _usdRate,
-                _ => tlValue
+                new { Symbol = "BIST 100", Type = "Endeks", Amount = 1, Cost = 9100m, Current = 9450m, PL = "+350 TL", Pct = "%3.8" },
+                new { Symbol = "THYAO", Type = "Hisse", Amount = 500, Cost = 250.40m, Current = 285.10m, PL = "+17,350 TL", Pct = "%13.8" },
+                new { Symbol = "USD/TRY", Type = "Döviz", Amount = 1000, Cost = 32.50m, Current = 42.50m, PL = "+10,000 TL", Pct = "%30.7" },
+                new { Symbol = "Gram Altın", Type = "Emtia", Amount = 50, Cost = 2100m, Current = 2800m, PL = "+35,000 TL", Pct = "%33.3" }
             };
+            grdPortfoy.DataSource = list;
         }
 
-        /// <summary>
-        /// Para birimi sembolünü getirir
-        /// </summary>
-        private string GetCurrencySymbol()
-        {
-            return _selectedCurrency switch
-            {
-                "USD" => "$",
-                _ => "₺"
-            };
-        }
-
-        /// <summary>
-        /// Hisse al butonu tıklama olayı
-        /// </summary>
-        private void btnHisseAl_Click(object sender, EventArgs e)
-        {
-            // Seçili hisseyi al
-            var rowHandle = grdwHisseler.FocusedRowHandle;
-            if (rowHandle < 0)
-            {
-                XtraMessageBox.Show("Lütfen bir hisse seçin!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            var stock = _marketSimulator.GetAllStocks()[rowHandle];
-            
-            // Alım popup'ı aç
-            using (var buyForm = new StockBuyPopup(stock, _investmentService, _customerId))
-            {
-                if (buyForm.ShowDialog() == DialogResult.OK)
-                {
-                    LoadPortfolio();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Hisse sat butonu tıklama olayı
-        /// </summary>
-        private void btnHisseSat_Click(object sender, EventArgs e)
-        {
-            var rowHandle = grdwPortfoy.FocusedRowHandle;
-            if (rowHandle < 0)
-            {
-                XtraMessageBox.Show("Satmak için portföyden bir hisse seçin!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            var portfolio = _investmentService.GetPortfolio(_customerId);
-            if (rowHandle >= portfolio.Count) return;
-
-            var item = portfolio[rowHandle];
-            
-            using (var sellForm = new StockSellPopup(item, _investmentService, _customerId))
-            {
-                if (sellForm.ShowDialog() == DialogResult.OK)
-                {
-                    LoadPortfolio();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Para birimi değiştirme olayı
-        /// </summary>
-        private void tglParaBirimi_Toggled(object sender, EventArgs e)
-        {
-            if (tglParaBirimi.IsOn)
-                _selectedCurrency = "USD";
-            else
-                _selectedCurrency = "TRY";
-            
-            LoadPortfolio();
-        }
-
-        /// <summary>
-        /// Portföy grid satır stili ayarlama
-        /// </summary>
-        private void grdwPortfoy_RowCellStyle(object sender, RowCellStyleEventArgs e)
-        {
-            if (e.Column.FieldName == "ProfitLoss" || e.Column.FieldName == "ProfitLossPercent")
-            {
-                var value = grdwPortfoy.GetRowCellValue(e.RowHandle, "ProfitLoss");
-                if (value != null && value is decimal profitLoss)
-                {
-                    if (profitLoss > 0)
-                    {
-                        e.Appearance.BackColor = Color.FromArgb(40, 76, 175, 80); // Yeşil
-                        e.Appearance.ForeColor = Color.FromArgb(76, 175, 80);
-                    }
-                    else if (profitLoss < 0)
-                    {
-                        e.Appearance.BackColor = Color.FromArgb(40, 244, 67, 54); // Kırmızı
-                        e.Appearance.ForeColor = Color.FromArgb(244, 67, 54);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Hisse grid satır stili ayarlama
-        /// </summary>
-        private void grdwHisseler_RowCellStyle(object sender, RowCellStyleEventArgs e)
-        {
-            if (e.Column.FieldName == "ChangePercent")
-            {
-                var value = grdwHisseler.GetRowCellValue(e.RowHandle, "ChangePercent");
-                if (value != null && value is decimal change)
-                {
-                    if (change > 0)
-                    {
-                        e.Appearance.ForeColor = Color.FromArgb(76, 175, 80);
-                    }
-                    else if (change < 0)
-                    {
-                        e.Appearance.ForeColor = Color.FromArgb(244, 67, 54);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Form kapanırken kaynakları temizler
-        /// </summary>
-        protected override void OnFormClosing(FormClosingEventArgs e)
-        {
-            _marketSimulator.Stop();
-            _marketSimulator.Dispose();
-            base.OnFormClosing(e);
-        }
+        private void btnYenile_Click(object sender, EventArgs e) => PopulateTiles();
+        private void btnHisseAl_Click(object sender, EventArgs e) { new StockMarketForm().ShowDialog(); }
+        private void btnHisseSat_Click(object sender, EventArgs e) { new StockMarketForm().ShowDialog(); }
     }
 }

@@ -14,84 +14,85 @@ namespace BankApp.UI
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        static async System.Threading.Tasks.Task Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
             // DevExpress Skins
-            // DevExpress.UserSkins.BonusSkins.Register();
             DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle("Office 2019 Black");
-
-            // Subscribe to email simulation events (for development mode)
-            SmtpEmailService.OnEmailSimulated += (to, subject, body) =>
-            {
-                // Extract verification code from body if present
-                string message = $"Email Simülasyonu (Geliştirme Modu)\n\nAlıcı: {to}\nKonu: {subject}\n\n";
-                
-                // Try to extract code from HTML body
-                if (body.Contains("<b>") && body.Contains("</b>"))
-                {
-                    int start = body.IndexOf("<b>") + 3;
-                    int end = body.IndexOf("</b>");
-                    if (end > start)
-                    {
-                        string code = body.Substring(start, end - start);
-                        message += $"Doğrulama Kodu: {code}\n\n";
-                    }
-                }
-                
-                message += "Dikkat: Gerçek email için appsettings.json'u yapılandırın.";
-                
-                DevExpress.XtraEditors.XtraMessageBox.Show(message, "Email Simülasyonu", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-            };
 
             try
             {
-                // 1. System Level Initialization (Service & Raw DB)
+                // 1. System Level Initialization
                 var sysInit = new BankApp.Infrastructure.Initialization.SystemInitializer();
                 sysInit.StartPostgresService();
                 sysInit.CreateDatabaseIfNotExists();
 
-                // 2. EF Core Code-First Initialization (Tables)
+                // 2. EF Core Code-First Initialization
                 using (var context = new BankApp.Infrastructure.Data.BankDbContext())
                 {
                     context.Database.EnsureCreated();
                 }
 
-                // 3. Existing Seeding Logic (Optional: Keep DbInitializer for data seeding if EnsureCreated doesn't seed)
-                // If DbInitializer uses Dapper, it's fine to run it after Tables are created by EF, 
-                // just so it ensures Data exists.
+                // 3. Existing Seeding Logic
                 var dataInit = new BankApp.Infrastructure.Data.DbInitializer();
-                dataInit.Initialize(); // Check logic inside to avoid duplicate errors
+                dataInit.Initialize(); 
+                
+                // 4. ENSURE ADMIN USER EXISTS (Fix Login Issue)
+                try 
+                {
+                    var dapperContext = new Infrastructure.Data.DapperContext();
+                    var userRepo = new Infrastructure.Data.UserRepository(dapperContext);
+                    
+                    var adminUser = await userRepo.GetByUsernameAsync("admin");
+                    if (adminUser == null)
+                    {
+                        var auditRepo = new Infrastructure.Data.AuditRepository(dapperContext);
+                        var emailService = new Infrastructure.Services.SmtpEmailService();
+                        var authService = new Infrastructure.Services.AuthService(userRepo, emailService, auditRepo);
+                        
+                        var newUser = new BankApp.Core.Entities.User 
+                        { 
+                            Username = "admin", 
+                            Email = "admin@novabank.com", 
+                            FullName = "System Administrator", 
+                            Role = "Admin" 
+                        };
+                        
+                        // Register (Hashes password 'admin123')
+                        await authService.RegisterAsync(newUser, "admin123");
+                        
+                        // Auto Verify
+                        var createdAdmin = await userRepo.GetByUsernameAsync("admin");
+                        if (createdAdmin != null)
+                        {
+                            createdAdmin.IsVerified = true;
+                            createdAdmin.IsActive = true;
+                            await userRepo.UpdateAsync(createdAdmin);
+                        }
+                    }
+                }
+                catch (Exception seedEx)
+                {
+                    System.Diagnostics.Debug.WriteLine("Admin Seeding Failed: " + seedEx.Message);
+                }
             }
             catch (Exception ex)
             {
-                // SORUN DÜZELTİLDİ: Hata mesajı daha detaylı ve açıklayıcı hale getirildi
                 string errorMessage = $"Kritik Başlangıç Hatası:\n\n{ex.Message}";
                 
                 if (ex.Message.Contains("Failed to connect") || ex.Message.Contains("5432"))
                 {
-                    errorMessage += "\n\n🔴 PostgreSQL servisi çalışmıyor olabilir!\n\n";
-                    errorMessage += "Çözüm adımları:\n";
-                    errorMessage += "1. PostgreSQL servisini başlatın:\n";
-                    errorMessage += "   - Windows'ta: Services.msc açın ve 'postgresql' servisini başlatın\n";
-                    errorMessage += "   - Veya PowerShell'de: Start-Service postgresql*\n";
-                    errorMessage += "2. PostgreSQL'in Port 5432'de çalıştığını kontrol edin\n";
-                    errorMessage += "3. Connection string'i kontrol edin (appsettings.json)\n\n";
-                    errorMessage += "Bağlantı: Server=127.0.0.1;Port=5432;User Id=postgres;Password=1";
-                }
-                else
-                {
-                    errorMessage += "\n\nLütfen PostgreSQL şifresini kontrol edin (Default: 1).";
+                    errorMessage += "\n\n🔴 PostgreSQL servisi çalışmıyor olabilir!\n";
+                    errorMessage += "Çözüm: Services.msc -> postgresql başlatın.";
                 }
                 
                 DevExpress.XtraEditors.XtraMessageBox.Show(errorMessage, "Sistem Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return; // Stop app
+                return; 
             }
 
-            // 4. Run UI
+            // 5. Run UI
             Application.Run(new LoginForm());
         }
     }
