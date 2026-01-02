@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -173,6 +174,123 @@ namespace BankApp.Infrastructure.Services
             var random = new Random();
             return (decimal)((random.NextDouble() * 4) - 2); // -2% ile +2% arası
         }
+        
+        /// <summary>
+        /// Yahoo Finance CSV endpoint'inden tarihsel hisse verilerini çeker (OHLC - Candlestick için)
+        /// </summary>
+        public async Task<List<StockCandle>> GetStockHistoryAsync(string symbol, int days = 60)
+        {
+            try
+            {
+                // Unix timestamp hesapla
+                long period2 = DateTimeOffset.Now.ToUnixTimeSeconds();
+                long period1 = DateTimeOffset.Now.AddDays(-days).ToUnixTimeSeconds();
+                
+                // Yahoo Finance CSV URL
+                string url = $"https://query1.finance.yahoo.com/v7/finance/download/{symbol}.IS?period1={period1}&period2={period2}&interval=1d&events=history";
+                
+                var response = await _httpClient.GetAsync(url);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Yahoo Finance CSV download failed for {symbol}: {response.StatusCode}");
+                    return GenerateDummyCandleData(symbol, days);
+                }
+                
+                string csv = await response.Content.ReadAsStringAsync();
+                return ParseCsvToCandles(csv);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Stock history error: {ex.Message}");
+                return GenerateDummyCandleData(symbol, days);
+            }
+        }
+        
+        /// <summary>
+        /// CSV verisini StockCandle listesine çevirir
+        /// </summary>
+        private List<StockCandle> ParseCsvToCandles(string csv)
+        {
+            var candles = new List<StockCandle>();
+            var lines = csv.Split('\n');
+            
+            // İlk satır header (Date,Open,High,Low,Close,Adj Close,Volume)
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var line = lines[i].Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+                
+                var parts = line.Split(',');
+                if (parts.Length < 6) continue;
+                
+                try
+                {
+                    candles.Add(new StockCandle
+                    {
+                        Date = DateTime.Parse(parts[0]),
+                        Open = decimal.Parse(parts[1], CultureInfo.InvariantCulture),
+                        High = decimal.Parse(parts[2], CultureInfo.InvariantCulture),
+                        Low = decimal.Parse(parts[3], CultureInfo.InvariantCulture),
+                        Close = decimal.Parse(parts[4], CultureInfo.InvariantCulture),
+                        Volume = parts.Length > 6 ? long.Parse(parts[6], CultureInfo.InvariantCulture) : 0
+                    });
+                }
+                catch
+                {
+                    // Hatalı satırı atla
+                    continue;
+                }
+            }
+            
+            return candles;
+        }
+        
+        /// <summary>
+        /// Yahoo Finance'e erişim başarısız olursa dummy veri üret
+        /// </summary>
+        private List<StockCandle> GenerateDummyCandleData(string symbol, int days)
+        {
+            var candles = new List<StockCandle>();
+            var random = new Random(symbol.GetHashCode());
+            decimal basePrice = GetRandomPrice(symbol);
+            DateTime startDate = DateTime.Now.AddDays(-days);
+            
+            for (int i = 0; i < days; i++)
+            {
+                decimal open = basePrice + (decimal)(random.NextDouble() * 10 - 5);
+                decimal high = open + (decimal)(random.NextDouble() * 5);
+                decimal low = open - (decimal)(random.NextDouble() * 5);
+                decimal close = low + (decimal)(random.NextDouble() * (double)(high - low));
+                
+                candles.Add(new StockCandle
+                {
+                    Date = startDate.AddDays(i),
+                    Open = open,
+                    High = high,
+                    Low = low,
+                    Close = close,
+                    Volume = random.Next(1000000, 10000000)
+                });
+                
+                basePrice = close; // Sonraki günün base fiyatı
+            }
+            
+            return candles;
+        }
+    }
+    
+    /// <summary>
+    /// Candlestick (Mum) grafiği için OHLC verisi
+    /// </summary>
+    public class StockCandle
+    {
+        public DateTime Date { get; set; }
+        public decimal Open { get; set; }
+        public decimal High { get; set; }
+        public decimal Low { get; set; }
+        public decimal Close { get; set; }
+        public long Volume { get; set; }
     }
     
     /// <summary>

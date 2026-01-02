@@ -238,6 +238,9 @@ namespace BankApp.UI.Forms
             // Grafik güncelle
             var series = chartProjection.Series[0];
             series.Points.Clear();
+            var pointView = (PointSeriesView)series.View;
+            // Marker property is not accessible in this DevExpress version
+            // pointView.Marker.Kind = MarkerKind.Circle;
             foreach (var (year, value) in chartData)
             {
                 series.Points.Add(new SeriesPoint(year, (double)value));
