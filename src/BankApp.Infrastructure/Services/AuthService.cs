@@ -90,6 +90,16 @@ namespace BankApp.Infrastructure.Services
 
         public bool VerifyPassword(string input, string hash) => HashPassword(input) == hash;
         
+        /// <summary>
+        /// 6 haneli OTP (One-Time Password) kodu üretir
+        /// </summary>
+        /// <returns>6 haneli sayısal kod</returns>
+        public string GenerateOTP()
+        {
+            var random = new Random();
+            return random.Next(100000, 999999).ToString();
+        }
+        
         // Mevcut kodların yapısını koruyarak string dönüşü (veya orijinal) mantığı:
         public async Task SendForgotPasswordEmailAsync(string email, string code) 
         { 
