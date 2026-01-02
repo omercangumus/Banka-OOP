@@ -42,9 +42,9 @@ namespace BankApp.UI.Controls
         private SimpleButton btnBuy, btnSell;
         private LabelControl lblCurrentPrice, lblFee, lblAvailBalance;
         
-        // Bottom tabs
+        // Bottom tabs - Sadece Açık Emirler (Son İşlemler Dashboard'da)
         private XtraTabControl tabBottom;
-        private GridControl gridOrders, gridHistory;
+        private GridControl gridOrders;
         
         private ChartControl chartMain;
         private LabelControl lblChartLoading;
@@ -664,13 +664,15 @@ namespace BankApp.UI.Controls
         
         private void CreateBottomTabs()
         {
+            // B1: Son İşlemler Dashboard'da tek kaynak - burada sadece Açık Emirler
             tabBottom = new XtraTabControl();
             tabBottom.Dock = DockStyle.Fill;
             tabBottom.LookAndFeel.SkinName = "Office 2019 Black";
             tabBottom.LookAndFeel.UseDefaultLookAndFeel = false;
             
+            // Açık Emirler Tab
             var tabOrders = new XtraTabPage();
-            tabOrders.Text = "Açık Emirler";
+            tabOrders.Text = "📋 Açık Emirler";
             gridOrders = new GridControl();
             gridOrders.Dock = DockStyle.Fill;
             gridOrders.LookAndFeel.SkinName = "Office 2019 Black";
@@ -678,85 +680,65 @@ namespace BankApp.UI.Controls
             gridOrders.MainView = viewOrders;
             viewOrders.OptionsView.ShowGroupPanel = false;
             viewOrders.OptionsView.ShowIndicator = false;
+            viewOrders.OptionsBehavior.Editable = false;
             tabOrders.Controls.Add(gridOrders);
             tabBottom.TabPages.Add(tabOrders);
             
-            var tabHistory = new XtraTabPage();
-            tabHistory.Text = "İşlem Geçmişi";
-            gridHistory = new GridControl();
-            gridHistory.Dock = DockStyle.Fill;
-            gridHistory.LookAndFeel.SkinName = "Office 2019 Black";
-            var viewHistory = new GridView(gridHistory);
-            gridHistory.MainView = viewHistory;
-            viewHistory.OptionsView.ShowGroupPanel = false;
-            viewHistory.OptionsView.ShowIndicator = false;
-            tabHistory.Controls.Add(gridHistory);
-            tabBottom.TabPages.Add(tabHistory);
+            // Info label - Son İşlemler Dashboard'da
+            var lblInfo = new DevExpress.XtraEditors.LabelControl();
+            lblInfo.Text = "💡 İşlem geçmişi için Dashboard → Son İşlemler bölümüne bakın";
+            lblInfo.Appearance.ForeColor = System.Drawing.Color.FromArgb(150, 150, 150);
+            lblInfo.Appearance.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
+            lblInfo.Dock = DockStyle.Bottom;
+            lblInfo.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.None;
+            lblInfo.Height = 25;
+            lblInfo.Padding = new System.Windows.Forms.Padding(10, 5, 0, 0);
             
             pnlBottom.Controls.Add(tabBottom);
+            pnlBottom.Controls.Add(lblInfo);
+            lblInfo.BringToFront();
             
-            // Son işlemleri yükle
-            LoadRecentTransactions();
+            // Açık emirleri yükle
+            LoadOpenOrders();
         }
         
-        private async void LoadRecentTransactions()
+        private void LoadOpenOrders()
         {
             try
             {
-                using var conn = new BankApp.Infrastructure.Data.DapperContext().CreateConnection();
+                System.Diagnostics.Debug.WriteLine($"[DATA] OpenOrders loading for userId={AppEvents.CurrentSession.UserId}");
                 
-                // Son 20 transaction
-                var transactions = await conn.QueryAsync<dynamic>(@"
-                    SELECT 
-                        t.""Id"",
-                        t.""TransactionDate"" as Date,
-                        t.""TransactionType"" as Type,
-                        t.""Amount"",
-                        t.""Description"",
-                        a.""AccountNumber""
-                    FROM ""Transactions"" t
-                    INNER JOIN ""Accounts"" a ON t.""AccountId"" = a.""Id""
-                    WHERE a.""CustomerId"" IN (
-                        SELECT ""Id"" FROM ""Customers"" WHERE ""UserId"" = @UserId
-                    )
-                    ORDER BY t.""TransactionDate"" DESC
-                    LIMIT 20",
-                    new { UserId = AppEvents.CurrentSession.UserId });
-                
-                // DataTable oluştur
+                // Açık emirler için placeholder - gerçek Orders tablosu yoksa boş göster
                 var dt = new System.Data.DataTable();
+                dt.Columns.Add("Sembol", typeof(string));
+                dt.Columns.Add("Tip", typeof(string));
+                dt.Columns.Add("Miktar", typeof(decimal));
+                dt.Columns.Add("Fiyat", typeof(decimal));
+                dt.Columns.Add("Durum", typeof(string));
                 dt.Columns.Add("Tarih", typeof(DateTime));
-                dt.Columns.Add("Tür", typeof(string));
-                dt.Columns.Add("Açıklama", typeof(string));
-                dt.Columns.Add("Tutar", typeof(decimal));
-                dt.Columns.Add("Hesap", typeof(string));
                 
-                foreach (var tx in transactions)
+                // TODO: Gerçek Orders tablosu eklenince buradan çekilecek
+                // Şimdilik "Market" emirler anlık işleniyor, açık emir yok
+                
+                gridOrders.DataSource = dt;
+                
+                if (gridOrders.MainView is GridView view)
                 {
-                    dt.Rows.Add(
-                        tx.Date,
-                        tx.Type?.ToString() ?? "",
-                        tx.Description?.ToString() ?? "",
-                        (decimal)tx.Amount,
-                        tx.AccountNumber?.ToString() ?? ""
-                    );
-                }
-                
-                gridHistory.DataSource = dt;
-                
-                // Grid görünümünü ayarla
-                if (gridHistory.MainView is GridView view)
-                {
-                    view.Columns["Tarih"].DisplayFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
-                    view.Columns["Tarih"].DisplayFormat.FormatString = "dd.MM.yyyy HH:mm";
-                    view.Columns["Tutar"].DisplayFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
-                    view.Columns["Tutar"].DisplayFormat.FormatString = "₺{0:N2}";
                     view.BestFitColumns();
+                    
+                    // Boş grid mesajı
+                    if (dt.Rows.Count == 0)
+                    {
+                        view.ViewCaption = "📥 Açık emir bulunmuyor. Market emirler anlık işlenir.";
+                        view.OptionsView.ShowViewCaption = true;
+                    }
                 }
+                
+                System.Diagnostics.Debug.WriteLine($"[DATA] OpenOrders loaded count=0 (no pending orders table yet)");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[GRID] LoadRecentTransactions error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ERR] LoadOpenOrders error: {ex.Message}");
             }
         }
         
