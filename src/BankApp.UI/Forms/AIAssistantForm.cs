@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Threading.Tasks;
+using System.Linq;
 using System.Text.Json;
 using BankApp.Infrastructure.Services;
 using BankApp.Infrastructure.Data;
@@ -39,7 +40,8 @@ namespace BankApp.UI.Forms
             var context = new DapperContext();
             _accountRepository = new AccountRepository(context);
             var transactionRepo = new TransactionRepository(context);
-            _transactionService = new TransactionService(transactionRepo, _accountRepository);
+            var auditRepo = new AuditRepository(context);
+            _transactionService = new TransactionService(_accountRepository, transactionRepo, auditRepo);
             
             InitializeComponent();
             SetupModernChatUI();
@@ -535,25 +537,32 @@ namespace BankApp.UI.Forms
                     int userId = AppEvents.CurrentSession.UserId;
                     
                     // Kullanıcının ilk hesabını al (basitleştirme için)
-                    var accounts = await _accountRepository.GetAccountsByUserIdAsync(userId);
-                    if (accounts.Count == 0)
+                    var accounts = await _accountRepository.GetByCustomerIdAsync(userId);
+                    var accountsList = accounts.ToList();
+                    if (accountsList.Count == 0)
                     {
                         AddChatBubble("❌ Hesap bulunamadı.", false);
                         return;
                     }
                     
-                    var fromAccount = accounts[0];
+                    var fromAccount = accountsList[0];
                     
                     // Transfer yap
-                    await _transactionService.CreateTransactionAsync(
+                    var transferResult = await _transactionService.TransferMoneyAsync(
                         fromAccount.Id,
+                        iban,
                         amount,
-                        "Withdraw",
-                        description,
-                        iban
+                        description
                     );
-                    
-                    AddChatBubble($"✅ {amount:N2} TL başarıyla {iban} IBAN'a transfer edildi!", false);
+
+                    if (transferResult == null)
+                    {
+                        AddChatBubble($"✅ {amount:N2} TL başarıyla {iban} IBAN'a transfer edildi!", false);
+                    }
+                    else
+                    {
+                        AddChatBubble($"❌ Transfer başarısız: {transferResult}", false);
+                    }
                 }
                 else
                 {
@@ -594,14 +603,16 @@ namespace BankApp.UI.Forms
                     
                     var account = new Account
                     {
-                        UserId = userId,
-                        AccountType = accountType,
-                        Currency = currency,
+                        CustomerId = userId,
+                        AccountNumber = $"AC{DateTime.Now.Ticks}",
+                        IBAN = $"TR{new Random().Next(10000000, 99999999)}{new Random().Next(10000000, 99999999)}",
+                        CurrencyCode = currency,
                         Balance = 0,
-                        CreatedDate = DateTime.Now
+                        OpenedDate = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
                     };
                     
-                    await _accountRepository.CreateAccountAsync(account);
+                    await _accountRepository.AddAsync(account);
                     
                     AddChatBubble($"✅ {currency} cinsinden {accountType} hesabı başarıyla açıldı!", false);
                 }
