@@ -125,7 +125,7 @@ namespace BankApp.UI.Forms
             // txtSearch
             // 
             this.txtSearch.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.txtSearch.Properties.NullText = "🔍 Search stocks...";
+            this.txtSearch.Properties.NullText = "🔍 Varlık ara...";
             this.txtSearch.Properties.Appearance.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             this.txtSearch.Properties.Appearance.ForeColor = System.Drawing.Color.White;
             this.txtSearch.EditValueChanged += new System.EventHandler(this.txtSearch_TextChanged);
@@ -157,31 +157,31 @@ namespace BankApp.UI.Forms
 
             // Kaldıraç Ayarı
             this.lblLevTitle.Text = "Kaldıraç Oranı:";
-            this.lblLevTitle.Location = new System.Drawing.Point(15, 100);
+            this.lblLevTitle.Location = new System.Drawing.Point(15, 125);
             
             this.cmbLeverage.Properties.Items.AddRange(new object[] { "x1", "x5", "x10", "x20", "x50", "x100" });
             this.cmbLeverage.SelectedIndex = 0; // x1
-            this.cmbLeverage.Location = new System.Drawing.Point(15, 120);
+            this.cmbLeverage.Location = new System.Drawing.Point(15, 145);
 
-            // Diğer Kontrollerin Yerleşimi (Basitleştirildi)
-            this.lblSymbol.Location = new System.Drawing.Point(15, 30);
+            // Diğer Kontrollerin Yerleşimi (Başlık kısmına yapışmaması için Y koordinatları artırıldı)
+            this.lblSymbol.Location = new System.Drawing.Point(15, 65);
             this.lblSymbol.Appearance.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold);
             
-            this.lblPrice.Location = new System.Drawing.Point(15, 60);
+            this.lblPrice.Location = new System.Drawing.Point(15, 95);
             this.lblPrice.Appearance.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Bold);
             this.lblPrice.Appearance.ForeColor = System.Drawing.Color.Gold;
 
             this.txtQuantity.Properties.NullText = "Adet";
-            this.txtQuantity.Location = new System.Drawing.Point(15, 160);
+            this.txtQuantity.Location = new System.Drawing.Point(15, 200);
 
             this.btnBuy.Text = "AL";
             this.btnBuy.Appearance.BackColor = System.Drawing.Color.Green;
-            this.btnBuy.Location = new System.Drawing.Point(15, 250);
+            this.btnBuy.Location = new System.Drawing.Point(15, 300);
             this.btnBuy.Click += new System.EventHandler(this.btnBuy_Click);
             
             this.btnSell.Text = "SAT";
             this.btnSell.Appearance.BackColor = System.Drawing.Color.Red;
-            this.btnSell.Location = new System.Drawing.Point(110, 250);
+            this.btnSell.Location = new System.Drawing.Point(110, 300);
             this.btnSell.Click += new System.EventHandler(this.btnSell_Click);
 
             // 

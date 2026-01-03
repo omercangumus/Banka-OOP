@@ -1,12 +1,9 @@
-#nullable enable
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using DevExpress.XtraEditors;
 using DevExpress.XtraCharts;
-using DevExpress.LookAndFeel;
-using BankApp.Infrastructure.Services;
+using DevExpress.Utils;
 
 namespace BankApp.UI.Forms
 {
@@ -30,130 +27,184 @@ namespace BankApp.UI.Forms
 
         private void InitializeComponent()
         {
-            UserLookAndFeel.Default.SetSkinStyle("Office 2019 Black");
-            
-            var lblTitle = new LabelControl();
-            lblTitle.Text = "BES BASVURU MERKEZİ";
-            lblTitle.Location = new Point(30, 20);
-            lblTitle.Appearance.Font = new Font("Segoe UI", 24F, FontStyle.Bold);
-            lblTitle.Appearance.ForeColor = Color.Gold;
-
-            this.txtMonthlyPayment = new CalcEdit();
-            this.txtMonthlyPayment.Location = new Point(30, 160);
-            this.txtMonthlyPayment.Size = new Size(250, 50);
-            this.txtMonthlyPayment.Value = 2500;
-            this.txtMonthlyPayment.EditValueChanged += (s, e) => UpdateCalculation();
-
-            this.spinYears = new SpinEdit();
-            this.spinYears.Location = new Point(300, 160);
-            this.spinYears.Size = new Size(120, 50);
-            this.spinYears.Value = 10;
-            this.spinYears.EditValueChanged += (s, e) => UpdateCalculation();
-
-            this.trackContributionRate = new TrackBarControl();
-            this.trackContributionRate.Location = new Point(30, 270);
-            this.trackContributionRate.Size = new Size(390, 45);
-            this.trackContributionRate.Properties.Minimum = 5;
-            this.trackContributionRate.Properties.Maximum = 50;
-            this.trackContributionRate.Value = 15;
-            this.trackContributionRate.EditValueChanged += (s, e) => UpdateCalculation();
-
-            this.lblContributionRate = new LabelControl { Text = "Getiri: %15", Location = new Point(30, 240) };
-            this.lblTotalContribution = new LabelControl { Text = "Odeme: 0", Location = new Point(30, 350) };
-            this.lblStateContribution = new LabelControl { Text = "Devlet: 0", Location = new Point(30, 380) };
-            this.lblEstimatedTotal = new LabelControl { Text = "0", Location = new Point(30, 420) };
-            
-            chartProjection = new ChartControl();
-            chartProjection.Location = new Point(450, 100);
-            chartProjection.Size = new Size(500, 440);
-            
-            XYDiagram diag = new XYDiagram();
-            diag.AxisX.Visibility = DevExpress.Utils.DefaultBoolean.True;
-            diag.AxisY.Visibility = DevExpress.Utils.DefaultBoolean.True;
-            chartProjection.Diagram = diag;
-            
-            btnStart = new SimpleButton();
-            btnStart.Text = "HESAP AÇ";
-            btnStart.Location = new Point(30, 500);
-            btnStart.Size = new Size(390, 60);
-            btnStart.Click += BtnStart_Click;
-
-            this.Controls.Add(lblTitle);
-            this.Controls.Add(txtMonthlyPayment);
-            this.Controls.Add(spinYears);
-            this.Controls.Add(trackContributionRate);
-            this.Controls.Add(lblContributionRate);
-            this.Controls.Add(lblTotalContribution);
-            this.Controls.Add(lblStateContribution);
-            this.Controls.Add(lblEstimatedTotal);
-            this.Controls.Add(chartProjection);
-            this.Controls.Add(btnStart);
-            
+            // Form Settings
             this.ClientSize = new Size(1000, 650);
-            this.Text = "BES Basvuru";
+            this.Text = "Bireysel Emeklilik Sistemi (BES) Başvurusu";
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.BackColor = Color.FromArgb(15, 23, 42); // Theme Background
+            this.ForeColor = Color.White;
+
+            // Title
+            var lblTitle = new LabelControl();
+            lblTitle.Text = "BES Simülasyonu ve Başvuru";
+            lblTitle.Location = new Point(30, 20);
+            lblTitle.Appearance.Font = new Font("Segoe UI", 20F, FontStyle.Bold);
+            lblTitle.Appearance.ForeColor = Color.FromArgb(59, 130, 246); // Blue
+            this.Controls.Add(lblTitle);
+
+            // Controls Group (Left)
+            var pnlControls = new PanelControl();
+            pnlControls.Location = new Point(30, 80);
+            pnlControls.Size = new Size(400, 450);
+            pnlControls.Appearance.BackColor = Color.FromArgb(30, 41, 59); // Panel background
+            pnlControls.Appearance.Options.UseBackColor = true;
+            pnlControls.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+            this.Controls.Add(pnlControls);
+
+            // Input: Monthly Payment
+            var lblMonthly = new LabelControl { Text = "Aylık Katkı Payı (TL):", Location = new Point(20, 20), Parent = pnlControls };
+            lblMonthly.Appearance.Font = new Font("Segoe UI", 10F);
+            lblMonthly.Appearance.ForeColor = Color.White;
+
+            txtMonthlyPayment = new CalcEdit();
+            txtMonthlyPayment.Location = new Point(20, 50);
+            txtMonthlyPayment.Size = new Size(360, 40);
+            txtMonthlyPayment.Properties.Appearance.Font = new Font("Segoe UI", 12F);
+            txtMonthlyPayment.Value = 2500;
+            txtMonthlyPayment.EditValueChanged += (s, e) => UpdateCalculation();
+            pnlControls.Controls.Add(txtMonthlyPayment);
+
+            // Input: Investment Duration (Years)
+            var lblYears = new LabelControl { Text = "Yatırım Süresi (Yıl):", Location = new Point(20, 110), Parent = pnlControls };
+            lblYears.Appearance.Font = new Font("Segoe UI", 10F);
+            lblYears.Appearance.ForeColor = Color.White;
+
+            spinYears = new SpinEdit();
+            spinYears.Location = new Point(20, 140);
+            spinYears.Size = new Size(360, 40);
+            spinYears.Properties.Appearance.Font = new Font("Segoe UI", 12F);
+            spinYears.Properties.MinValue = 5;
+            spinYears.Properties.MaxValue = 40;
+            spinYears.Value = 10;
+            spinYears.EditValueChanged += (s, e) => UpdateCalculation();
+            pnlControls.Controls.Add(spinYears);
+
+            // Input: Expected Return Rate
+            lblContributionRate = new LabelControl { Text = "Tahmini Yıllık Fon Getirisi: %15", Location = new Point(20, 200), Parent = pnlControls };
+            lblContributionRate.Appearance.Font = new Font("Segoe UI", 10F);
+            lblContributionRate.Appearance.ForeColor = Color.White;
+
+            trackContributionRate = new TrackBarControl();
+            trackContributionRate.Location = new Point(20, 230);
+            trackContributionRate.Size = new Size(360, 45);
+            trackContributionRate.Properties.Minimum = 5;
+            trackContributionRate.Properties.Maximum = 60;
+            trackContributionRate.Value = 15;
+            trackContributionRate.LookAndFeel.UseDefaultLookAndFeel = false;
+            trackContributionRate.LookAndFeel.SkinName = "Office 2019 Black";
+            trackContributionRate.EditValueChanged += (s, e) => {
+                lblContributionRate.Text = $"Tahmini Yıllık Fon Getirisi: %{trackContributionRate.Value}";
+                UpdateCalculation();
+            };
+            pnlControls.Controls.Add(trackContributionRate);
+
+            // Results Labels
+            lblTotalContribution = new LabelControl { Text = "Toplam Ödemeniz: 0 TL", Location = new Point(20, 300), Parent = pnlControls };
+            lblTotalContribution.Appearance.Font = new Font("Segoe UI", 10F);
+            lblTotalContribution.Appearance.ForeColor = Color.LightGray;
+
+            lblStateContribution = new LabelControl { Text = "+ Devlet Katkısı (%30): 0 TL", Location = new Point(20, 330), Parent = pnlControls };
+            lblStateContribution.Appearance.Font = new Font("Segoe UI", 10F);
+            lblStateContribution.Appearance.ForeColor = Color.FromArgb(74, 222, 128); // Green
+
+            lblEstimatedTotal = new LabelControl { Text = "TAHMİNİ BİRİKİM: 0 TL", Location = new Point(20, 380), Parent = pnlControls };
+            lblEstimatedTotal.Appearance.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
+            lblEstimatedTotal.Appearance.ForeColor = Color.Gold;
+
+            // Apply Button
+            btnStart = new SimpleButton();
+            btnStart.Text = "BAŞVURUYU TAMAMLA";
+            btnStart.Location = new Point(30, 550);
+            btnStart.Size = new Size(400, 60);
+            btnStart.Appearance.BackColor = Color.FromArgb(37, 99, 235); // Blue
+            btnStart.Appearance.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            btnStart.Appearance.ForeColor = Color.White;
+            btnStart.Click += BtnStart_Click;
+            this.Controls.Add(btnStart);
+
+            // Chart (Right)
+            chartProjection = new ChartControl();
+            chartProjection.Location = new Point(460, 80);
+            chartProjection.Size = new Size(510, 530);
+            chartProjection.AppearanceNameSerializable = "Dark Chameleon";
+            chartProjection.BackColor = Color.Transparent;
+            chartProjection.BorderOptions.Visibility = DefaultBoolean.False;
+            
+            if (chartProjection.Diagram is XYDiagram diag)
+            {
+                diag.AxisX.Label.TextColor = Color.LightGray;
+                diag.AxisY.Label.TextColor = Color.LightGray;
+                diag.AxisX.GridLines.Visible = false;
+                diag.AxisY.GridLines.Color = Color.FromArgb(50, 50, 50);
+                diag.DefaultPane.BackColor = Color.Transparent;
+                diag.DefaultPane.BorderVisible = false;
+            }
+            
+            this.Controls.Add(chartProjection);
         }
 
         private void UpdateCalculation()
         {
-            try {
-                if(chartProjection == null) return;
-                
+            try 
+            {
+                if (chartProjection == null) return;
+
                 decimal monthly = txtMonthlyPayment.Value;
                 int years = (int)spinYears.Value;
-                decimal rate = trackContributionRate.Value;
-                
-                lblContributionRate.Text = $"Tahmini Yıllık Getiri: %{rate}";
+                double rate = trackContributionRate.Value;
 
-                decimal balance = 0; // New application starts at 0
+                // Series Setup
                 chartProjection.Series.Clear();
-                Series series = new Series("Birikim", ViewType.Area);
-                
-                // Add start point
-                series.Points.Add(new SeriesPoint(0, 0));
+                Series seriesTotal = new Series("Toplam Birikim", ViewType.Area);
+                Series seriesPrincipal = new Series("Ana Para", ViewType.Line);
 
-                for(int i=1; i<=years; i++)
-                {
-                    decimal yearlyContribution = monthly * 12;
-                    decimal stateMatch = Math.Min(yearlyContribution * 0.30m, 24000m); // 2025 limits: 30% state match
-                    
-                    // Add contributions
-                    balance += yearlyContribution + stateMatch;
-                    
-                    // Apply compound interest
-                    balance *= (1 + rate / 100);
+                decimal currentBalance = 0;
+                decimal totalPrincipal = 0;
+                decimal totalState = 0;
 
-                    series.Points.Add(new SeriesPoint(i, (double)balance));
-                }
-                
-                if (series.View is AreaSeriesView areaView)
+                for (int i = 0; i <= years; i++)
                 {
-                    areaView.Color = Color.FromArgb(251, 191, 36);
-                    areaView.Transparency = 120;
-                    areaView.Border.Color = Color.FromArgb(251, 191, 36);
-                }
-                
-                chartProjection.Series.Add(series);
-                
-                // Style the diagram
-                if(chartProjection.Diagram is XYDiagram diag)
-                {
-                    diag.DefaultPane.BackColor = Color.FromArgb(40, 40, 40);
-                    diag.AxisX.Label.TextColor = Color.White;
-                    diag.AxisY.Label.TextColor = Color.White;
-                    diag.AxisX.GridLines.Color = Color.FromArgb(60, 60, 60);
-                    diag.AxisY.GridLines.Color = Color.FromArgb(60, 60, 60);
+                    seriesTotal.Points.Add(new SeriesPoint("Yıl " + i, (double)currentBalance));
+                    seriesPrincipal.Points.Add(new SeriesPoint("Yıl " + i, (double)totalPrincipal));
+
+                    if (i < years)
+                    {
+                        decimal annualContribution = monthly * 12;
+                        decimal annualState = Math.Min(annualContribution * 0.30m, 24000); // Caps at hypothetical limit
+                        
+                        totalPrincipal += annualContribution;
+                        totalState += annualState;
+                        
+                        // Compound Interest
+                        currentBalance += annualContribution + annualState;
+                        currentBalance += currentBalance * (decimal)(rate / 100);
+                    }
                 }
 
-                lblEstimatedTotal.Text = $"Tahmini: {balance:N0} TL";
-                lblTotalContribution.Text = $"Ödemeniz: {monthly * 12 * years:N0} TL";
-                lblStateContribution.Text = $"Devlet Katkısı: {(monthly * 12 * years * 0.30m):N0} TL (Max)";
-            } catch {}
+                chartProjection.Series.Add(seriesTotal);
+                chartProjection.Series.Add(seriesPrincipal);
+
+                // Styling
+                if(seriesTotal.View is AreaSeriesView areaView)
+                {
+                    areaView.Color = Color.FromArgb(100, 34, 197, 94); // Transparent Green
+                    areaView.Border.Visibility = DefaultBoolean.False;
+                }
+
+                lblTotalContribution.Text = $"Toplam Ödemeniz: {totalPrincipal:N0} TL";
+                lblStateContribution.Text = $"+ Devlet Katkısı (%30): {totalState:N0} TL";
+                lblEstimatedTotal.Text = $"TAHMİNİ BİRİKİM: {currentBalance:N0} TL";
+            } 
+            catch { }
         }
 
-        private void BtnStart_Click(object? sender, EventArgs e)
+        private void BtnStart_Click(object sender, EventArgs e)
         {
-             XtraMessageBox.Show("BES Hesabınız Açıldı!", "Basarili", MessageBoxButtons.OK, MessageBoxIcon.Information);
-             this.Close();
+            XtraMessageBox.Show("BES Başvurunuz başarıyla alınmıştır.\nSözleşmeniz e-posta adresinize gönderilecektir.", 
+                "Başvuru Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            this.Close();
         }
     }
 }

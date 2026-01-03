@@ -135,6 +135,7 @@ namespace BankApp.Infrastructure.Data
         {
             if (string.IsNullOrWhiteSpace(iban))
             {
+                System.Diagnostics.Debug.WriteLine("⚠️ GetByIBANAsync: IBAN boş!");
                 return null;
             }
 
@@ -142,7 +143,10 @@ namespace BankApp.Infrastructure.Data
             {
                 connection.Open();
                 var query = "SELECT * FROM \"Accounts\" WHERE \"IBAN\" = @IBAN";
-                return await connection.QuerySingleOrDefaultAsync<Account>(query, new { IBAN = iban });
+                System.Diagnostics.Debug.WriteLine($"🔍 GetByIBANAsync: Aranan IBAN = {iban}");
+                var result = await connection.QuerySingleOrDefaultAsync<Account>(query, new { IBAN = iban });
+                System.Diagnostics.Debug.WriteLine($"✅ GetByIBANAsync: Sonuç = {(result != null ? "Bulundu (Id: " + result.Id + ")" : "BULUNAMADI!")}");
+                return result;
             }
         }
     }

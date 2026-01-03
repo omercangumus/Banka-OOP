@@ -72,6 +72,10 @@ namespace BankApp.UI.Forms
         private ChartControl chartTransactions;
         private ChartControl chartBalanceHistory;
         private ChartControl chartAssetDistribution;
+        private ChartControl chartFinancialHealth;
+        private ChartControl chartSavingsGoals;
+        private ChartControl chartCreditScore;      // NEW
+        private ChartControl chartBudgetPerformance; // NEW
         
         // Customer Grid
         private GridControl gridCustomers;
@@ -145,6 +149,10 @@ namespace BankApp.UI.Forms
             this.chartTransactions = new ChartControl();
             this.chartBalanceHistory = new ChartControl();
             this.chartAssetDistribution = new ChartControl();
+            this.chartFinancialHealth = new ChartControl();
+            this.chartSavingsGoals = new ChartControl();
+            this.chartCreditScore = new ChartControl();
+            this.chartBudgetPerformance = new ChartControl();
             
             // Grid
             this.gridCustomers = new GridControl();
@@ -162,7 +170,12 @@ namespace BankApp.UI.Forms
             ((ISupportInitialize)(this.chartCurrency)).BeginInit();
             ((ISupportInitialize)(this.chartTransactions)).BeginInit();
             ((ISupportInitialize)(this.chartBalanceHistory)).BeginInit();
+            ((ISupportInitialize)(this.chartBalanceHistory)).BeginInit();
             ((ISupportInitialize)(this.chartAssetDistribution)).BeginInit();
+            ((ISupportInitialize)(this.chartFinancialHealth)).BeginInit();
+            ((ISupportInitialize)(this.chartSavingsGoals)).BeginInit();
+            ((ISupportInitialize)(this.chartCreditScore)).BeginInit();
+            ((ISupportInitialize)(this.chartBudgetPerformance)).BeginInit();
             ((ISupportInitialize)(this.gridCustomers)).BeginInit();
             ((ISupportInitialize)(this.gridViewCustomers)).BeginInit();
             this.pnlDashboard.SuspendLayout();
@@ -507,8 +520,13 @@ namespace BankApp.UI.Forms
             this.layoutDashboard.Controls.Add(this.chartCurrency);
             this.layoutDashboard.Controls.Add(this.chartTransactions);
             this.layoutDashboard.Controls.Add(this.chartBalanceHistory);
+            this.layoutDashboard.Controls.Add(this.chartBalanceHistory);
             this.layoutDashboard.Controls.Add(this.chartAssetDistribution);
-            
+            this.layoutDashboard.Controls.Add(this.chartFinancialHealth);
+            this.layoutDashboard.Controls.Add(this.chartSavingsGoals);
+            this.layoutDashboard.Controls.Add(this.chartCreditScore);
+            this.layoutDashboard.Controls.Add(this.chartBudgetPerformance);
+
             // Chart Settings
             this.chartBalanceHistory.BackColor = Color.FromArgb(30, 30, 30);
             this.chartBalanceHistory.AppearanceNameSerializable = "Dark Chameleon";
@@ -517,6 +535,22 @@ namespace BankApp.UI.Forms
             this.chartAssetDistribution.BackColor = Color.FromArgb(30, 30, 30);
             this.chartAssetDistribution.AppearanceNameSerializable = "Dark Chameleon";
             this.chartAssetDistribution.Name = "chartAssetDistribution";
+
+            this.chartFinancialHealth.BackColor = Color.FromArgb(30, 30, 30);
+            this.chartFinancialHealth.AppearanceNameSerializable = "Dark Chameleon";
+            this.chartFinancialHealth.Name = "chartFinancialHealth";
+
+            this.chartSavingsGoals.BackColor = Color.FromArgb(30, 30, 30);
+            this.chartSavingsGoals.AppearanceNameSerializable = "Dark Chameleon";
+            this.chartSavingsGoals.Name = "chartSavingsGoals";
+
+            this.chartCreditScore.BackColor = Color.FromArgb(30, 30, 30);
+            this.chartCreditScore.AppearanceNameSerializable = "Dark Chameleon";
+            this.chartCreditScore.Name = "chartCreditScore";
+
+            this.chartBudgetPerformance.BackColor = Color.FromArgb(30, 30, 30);
+            this.chartBudgetPerformance.AppearanceNameSerializable = "Dark Chameleon";
+            this.chartBudgetPerformance.Name = "chartBudgetPerformance";
             
             // Layout Items
             var layoutCard1 = new LayoutControlItem(this.layoutDashboard, this.pnlTotalAssets);
@@ -560,6 +594,26 @@ namespace BankApp.UI.Forms
             layoutChartTree.SizeConstraintsType = SizeConstraintsType.Custom;
             layoutChartTree.MinSize = new Size(300, 250);
 
+            var layoutChartRadar = new LayoutControlItem(this.layoutDashboard, this.chartFinancialHealth);
+            layoutChartRadar.TextVisible = false;
+            layoutChartRadar.SizeConstraintsType = SizeConstraintsType.Custom;
+            layoutChartRadar.MinSize = new Size(300, 250);
+
+            var layoutChartFunnel = new LayoutControlItem(this.layoutDashboard, this.chartSavingsGoals);
+            layoutChartFunnel.TextVisible = false;
+            layoutChartFunnel.SizeConstraintsType = SizeConstraintsType.Custom;
+            layoutChartFunnel.MinSize = new Size(300, 250);
+
+            var layoutChartGauge = new LayoutControlItem(this.layoutDashboard, this.chartCreditScore);
+            layoutChartGauge.TextVisible = false;
+            layoutChartGauge.SizeConstraintsType = SizeConstraintsType.Custom;
+            layoutChartGauge.MinSize = new Size(300, 250);
+
+            var layoutChartBudget = new LayoutControlItem(this.layoutDashboard, this.chartBudgetPerformance);
+            layoutChartBudget.TextVisible = false;
+            layoutChartBudget.SizeConstraintsType = SizeConstraintsType.Custom;
+            layoutChartBudget.MinSize = new Size(300, 250);
+
             // Layout Grouping (2x2 Grid for Charts)
             // Row 1 Charts: Currency + Transactions
             var groupChartsRow1 = this.layoutGroupRoot.AddGroup();
@@ -592,6 +646,38 @@ namespace BankApp.UI.Forms
             groupChartsRow2.AddItem(layoutChartTree);
             layoutChartTree.OptionsTableLayoutItem.RowIndex = 0;
             layoutChartTree.OptionsTableLayoutItem.ColumnIndex = 1;
+
+            // Row 3 Charts: Financial Health + Savings Goals
+            var groupChartsRow3 = this.layoutGroupRoot.AddGroup();
+            groupChartsRow3.GroupBordersVisible = false;
+            groupChartsRow3.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+            groupChartsRow3.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+            groupChartsRow3.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+            groupChartsRow3.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
+
+            groupChartsRow3.AddItem(layoutChartRadar);
+            layoutChartRadar.OptionsTableLayoutItem.RowIndex = 0;
+            layoutChartRadar.OptionsTableLayoutItem.ColumnIndex = 0;
+
+            groupChartsRow3.AddItem(layoutChartFunnel);
+            layoutChartFunnel.OptionsTableLayoutItem.RowIndex = 0;
+            layoutChartFunnel.OptionsTableLayoutItem.ColumnIndex = 1;
+
+            // Row 4: Credit Score + Budget
+            var groupChartsRow4 = this.layoutGroupRoot.AddGroup();
+            groupChartsRow4.GroupBordersVisible = false;
+            groupChartsRow4.LayoutMode = DevExpress.XtraLayout.Utils.LayoutMode.Table;
+            groupChartsRow4.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+            groupChartsRow4.OptionsTableLayoutGroup.ColumnDefinitions.Add(new ColumnDefinition { SizeType = SizeType.Percent, Width = 50 });
+            groupChartsRow4.OptionsTableLayoutGroup.RowDefinitions.Add(new RowDefinition { SizeType = SizeType.Percent, Height = 100 });
+
+            groupChartsRow4.AddItem(layoutChartGauge);
+            layoutChartGauge.OptionsTableLayoutItem.RowIndex = 0;
+            layoutChartGauge.OptionsTableLayoutItem.ColumnIndex = 0;
+
+            groupChartsRow4.AddItem(layoutChartBudget);
+            layoutChartBudget.OptionsTableLayoutItem.RowIndex = 0;
+            layoutChartBudget.OptionsTableLayoutItem.ColumnIndex = 1;
             
             this.layoutGroupRoot.Name = "layoutGroupRoot";
             this.layoutGroupRoot.EnableIndentsWithoutBorders = DevExpress.Utils.DefaultBoolean.True;
@@ -654,6 +740,11 @@ namespace BankApp.UI.Forms
             ((ISupportInitialize)(this.pnlExchangeRate)).EndInit();
             ((ISupportInitialize)(this.chartCurrency)).EndInit();
             ((ISupportInitialize)(this.chartTransactions)).EndInit();
+            ((ISupportInitialize)(this.chartFinancialHealth)).EndInit();
+            ((ISupportInitialize)(this.chartSavingsGoals)).EndInit();
+            ((ISupportInitialize)(this.chartCreditScore)).EndInit();
+            ((ISupportInitialize)(this.chartBudgetPerformance)).EndInit();
+            ((ISupportInitialize)(this.chartBalanceHistory)).EndInit();
             ((ISupportInitialize)(this.gridCustomers)).EndInit();
             ((ISupportInitialize)(this.gridViewCustomers)).EndInit();
             this.pnlDashboard.ResumeLayout(false);
