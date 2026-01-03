@@ -32,8 +32,8 @@ namespace BankApp.UI.Forms
 
         public AIAssistantForm()
         {
-            // API Key - Groq (via OpenRouter/Groq direct)
-            string apiKey = "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"; 
+            // API Key - Groq (via OpenRouter/Groq direct) - Use environment variable
+            string apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? "your-api-key-here"; 
             _aiService = new OpenRouterAIService(apiKey);
             
             // Initialize services for action execution
