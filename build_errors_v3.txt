@@ -1,0 +1,12 @@
+﻿  Geri y├╝klenecek projeler belirleniyor...
+  Geri y├╝kleme i├ğin t├╝m projeler g├╝ncel.
+  BankApp.Core -> C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Core\bin\Debug\net8.0\BankApp.Core.dll
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Infrastructure\Services\LiveFinancialService.cs(73,18): error CS0101: 'BankApp.Infrastructure.Services' ad alan─▒ 'MarketData' i├ğin zaten bir tan─▒m i├ğeriyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Infrastructure\BankApp.Infrastructure.csproj]
+
+Olu┼şturma BA┼ŞARISIZ OLDU.
+
+C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Infrastructure\Services\LiveFinancialService.cs(73,18): error CS0101: 'BankApp.Infrastructure.Services' ad alan─▒ 'MarketData' i├ğin zaten bir tan─▒m i├ğeriyor [C:\Users\omerc\Desktop\BankaBenim\src\BankApp.Infrastructure\BankApp.Infrastructure.csproj]
+    0 Uyar─▒
+    1 Hata
+
+Ge├ğen S├╝re 00:00:03.30

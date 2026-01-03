@@ -68,8 +68,8 @@ namespace BankApp.UI.Forms
             chartProjection.Size = new Size(500, 440);
             
             XYDiagram diag = new XYDiagram();
-            diag.AxisX.Visible = true;
-            diag.AxisY.Visible = true;
+            diag.AxisX.Visibility = DevExpress.Utils.DefaultBoolean.True;
+            diag.AxisY.Visibility = DevExpress.Utils.DefaultBoolean.True;
             chartProjection.Diagram = diag;
             
             btnStart = new SimpleButton();
@@ -104,22 +104,49 @@ namespace BankApp.UI.Forms
                 
                 lblContributionRate.Text = $"Tahmini Yıllık Getiri: %{rate}";
 
-                decimal balance = 0;
+                decimal balance = 0; // New application starts at 0
                 chartProjection.Series.Clear();
                 Series series = new Series("Birikim", ViewType.Area);
                 
+                // Add start point
+                series.Points.Add(new SeriesPoint(0, 0));
+
                 for(int i=1; i<=years; i++)
                 {
-                    decimal yearlyPaid = monthly * 12;
-                    balance += yearlyPaid;
-                    balance += balance * (rate/100);
-                    balance += yearlyPaid * 0.30m; 
+                    decimal yearlyContribution = monthly * 12;
+                    decimal stateMatch = Math.Min(yearlyContribution * 0.30m, 24000m); // 2025 limits: 30% state match
+                    
+                    // Add contributions
+                    balance += yearlyContribution + stateMatch;
+                    
+                    // Apply compound interest
+                    balance *= (1 + rate / 100);
 
                     series.Points.Add(new SeriesPoint(i, (double)balance));
                 }
                 
+                if (series.View is AreaSeriesView areaView)
+                {
+                    areaView.Color = Color.FromArgb(251, 191, 36);
+                    areaView.Transparency = 120;
+                    areaView.Border.Color = Color.FromArgb(251, 191, 36);
+                }
+                
                 chartProjection.Series.Add(series);
-                lblEstimatedTotal.Text = $"{balance:N0} TL";
+                
+                // Style the diagram
+                if(chartProjection.Diagram is XYDiagram diag)
+                {
+                    diag.DefaultPane.BackColor = Color.FromArgb(40, 40, 40);
+                    diag.AxisX.Label.TextColor = Color.White;
+                    diag.AxisY.Label.TextColor = Color.White;
+                    diag.AxisX.GridLines.Color = Color.FromArgb(60, 60, 60);
+                    diag.AxisY.GridLines.Color = Color.FromArgb(60, 60, 60);
+                }
+
+                lblEstimatedTotal.Text = $"Tahmini: {balance:N0} TL";
+                lblTotalContribution.Text = $"Ödemeniz: {monthly * 12 * years:N0} TL";
+                lblStateContribution.Text = $"Devlet Katkısı: {(monthly * 12 * years * 0.30m):N0} TL (Max)";
             } catch {}
         }
 

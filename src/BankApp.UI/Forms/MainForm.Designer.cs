@@ -39,6 +39,7 @@ namespace BankApp.UI.Forms
         
         // Yeni: Yatırım butonları
         private DevExpress.XtraBars.BarButtonItem btnStockMarket;
+        private DevExpress.XtraBars.BarButtonItem btnInvestmentDashboard; // NEW: Portfolio Management
         private DevExpress.XtraBars.BarButtonItem btnBES;
         private DevExpress.XtraBars.BarButtonItem btnCards;
         private DevExpress.XtraBars.BarButtonItem btnTimeDeposit;
@@ -111,6 +112,7 @@ namespace BankApp.UI.Forms
             this.btnExportPdf = new DevExpress.XtraBars.BarButtonItem();
             this.btnAuditLogs = new DevExpress.XtraBars.BarButtonItem();
             this.btnStockMarket = new DevExpress.XtraBars.BarButtonItem();
+            this.btnInvestmentDashboard = new DevExpress.XtraBars.BarButtonItem(); // NEW
             this.btnBES = new DevExpress.XtraBars.BarButtonItem();
             this.btnCards = new DevExpress.XtraBars.BarButtonItem();
             this.btnTimeDeposit = new DevExpress.XtraBars.BarButtonItem();
@@ -175,7 +177,7 @@ namespace BankApp.UI.Forms
                 this.btnAiAssist, this.btnRefresh, this.btnMoneyTransfer,
                 this.btnAddCustomer, this.btnEditCustomer, this.btnDeleteCustomer,
                 this.btnCustomerAccounts, this.btnExportExcel, this.btnExportPdf,
-                this.btnAuditLogs, this.btnStockMarket, this.btnBES, this.btnCards,
+                this.btnAuditLogs, this.btnStockMarket, this.btnInvestmentDashboard, this.btnBES, this.btnCards,
                 this.btnTimeDeposit, this.btnLoanApplication, this.btnLoanApproval, this.btnLogout
             });
             this.ribbonControl1.Location = new Point(0, 0);
@@ -257,12 +259,19 @@ namespace BankApp.UI.Forms
             this.btnAuditLogs.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnAuditLogs_ItemClick);
 
             // YENİ: Yatırım Butonları - MODERN İKONLAR
-            this.btnStockMarket.Caption = "📈 Borsa";
+            this.btnStockMarket.Caption = "📈 Trade Terminal";
             this.btnStockMarket.Id = 11;
             this.btnStockMarket.Name = "btnStockMarket";
             this.btnStockMarket.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
             this.btnStockMarket.ImageOptions.Image = CreateIconImage(Color.FromArgb(33, 150, 243), "↗");
             this.btnStockMarket.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnStockMarket_ItemClick);
+
+            this.btnInvestmentDashboard.Caption = "💼 Portföyüm";
+            this.btnInvestmentDashboard.Id = 18;
+            this.btnInvestmentDashboard.Name = "btnInvestmentDashboard";
+            this.btnInvestmentDashboard.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnInvestmentDashboard.ImageOptions.Image = CreateIconImage(Color.FromArgb(34, 197, 94), "💰");
+            this.btnInvestmentDashboard.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnInvestmentDashboard_ItemClick);
 
             this.btnBES.Caption = "BES Başvurusu";
             this.btnBES.Id = 12;
@@ -330,6 +339,7 @@ namespace BankApp.UI.Forms
             groupReports.ItemLinks.Add(this.btnAuditLogs);
 
             this.groupInvestmentActions.ItemLinks.Add(this.btnStockMarket);
+            this.groupInvestmentActions.ItemLinks.Add(this.btnInvestmentDashboard); // NEW: Portfolio button
             this.groupInvestmentActions.ItemLinks.Add(this.btnBES);
             this.groupInvestmentActions.ItemLinks.Add(this.btnCards);
             this.groupInvestmentActions.ItemLinks.Add(this.btnTimeDeposit);

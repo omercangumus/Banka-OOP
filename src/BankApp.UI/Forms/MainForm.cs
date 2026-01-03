@@ -62,9 +62,20 @@ namespace BankApp.UI.Forms
                     conn.Open();
                     
                     // Toplam Varlık
-                    var totalAssets = await conn.ExecuteScalarAsync<decimal?>(
+                    // Toplam Varlık (Bank Accounts + Investment Portfolio)
+                    var totalBankAssets = await conn.ExecuteScalarAsync<decimal?>(
                         "SELECT COALESCE(SUM(\"Balance\"), 0) FROM \"Accounts\"") ?? 0;
-                    lblTotalAssetsValue.Text = totalAssets.ToString("N2");
+                        
+                    // Add Portfolio Value
+                    var portfolioService = new PortfolioService();
+                    var portfolioValue = await portfolioService.GetNetWorthAsync();
+                    
+                    var totalWealth = totalBankAssets + portfolioValue;
+                    
+                    lblTotalAssetsValue.Text = totalWealth.ToString("N2");
+                    
+                    // Update Title to reflect integration
+                    if (lblTotalAssetsTitle != null) lblTotalAssetsTitle.Text = "💰 Toplam Varlık (Banka + Yatırım)";
                     
                     // Günlük İşlem Sayısı
                     var dailyTransactions = await conn.ExecuteScalarAsync<int>(
@@ -112,10 +123,9 @@ namespace BankApp.UI.Forms
 
         private void InitializeInvestmentDashboard()
         {
-            investmentDashboard = new InvestmentDashboard();
-            investmentDashboard.Visible = false;
-            investmentDashboard.Dock = DockStyle.Fill;
-            this.Controls.Add(investmentDashboard);
+            // Legacy control removed in favor of InvestmentDashboardForm
+            // investmentDashboard = new InvestmentDashboard();
+            // ...
         }
 
         private void RibbonControl1_SelectedPageChanged(object sender, EventArgs e)
@@ -128,15 +138,8 @@ namespace BankApp.UI.Forms
 
             if (pnlDashboard != null) pnlDashboard.Visible = isDashboard;
             
-            if (investmentDashboard != null)
-            {
-                investmentDashboard.Visible = isInvestments;
-                if (isInvestments)
-                {
-                    investmentDashboard.BringToFront();
-                    investmentDashboard.LoadDummyData();
-                }
-            }
+            // Legacy Dashboard logic removed - using Buttons instead
+            // if (investmentDashboard != null) ...
 
             if (gridCustomers != null)
             {
@@ -517,25 +520,25 @@ namespace BankApp.UI.Forms
             frm.ShowDialog();
         }
 
-        // YENİ: Yatırım İşlemleri
+        // YENİ: Trade Terminal - Aktif İşlem Ekranı
         private void btnStockMarket_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            StockMarketForm frm = new StockMarketForm();
+            TradeTerminalForm frm = new TradeTerminalForm();
             frm.ShowDialog();
             RefreshDashboard(); // İşlem sonrası dashboard'u güncelle
         }
 
+        // YENİ: Investment Dashboard - Portföy Yönetimi
+        private void btnInvestmentDashboard_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            InvestmentDashboardForm frm = new InvestmentDashboardForm();
+            frm.ShowDialog();
+        }
+
         private void btnBES_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            try 
-            {
-                var frm = new BESForm(); 
-                frm.ShowDialog();
-            }
-            catch (Exception ex)
-            {
-                DevExpress.XtraEditors.XtraMessageBox.Show("BES Ekranı açılırken hata: " + ex.Message);
-            }
+            BESForm frm = new BESForm();
+            frm.ShowDialog();
         }
 
         // YENİ: Kartlarım butonu
