@@ -96,14 +96,12 @@ namespace BankApp.UI.Controls
                 
                 if (success)
                 {
-                    copyTooltip.Show("✓ IBAN kopyalandı!", this, mouseX, mouseY - 25, 1500);
-                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY SUCCESS: {iban}");
+                    // [CRITICAL] IbanCopy log - ZORUNLU
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] IbanCopy attempt=OK success=true thread={System.Threading.Thread.CurrentThread.ManagedThreadId} iban={iban}");
                     
-                    DevExpress.XtraEditors.XtraMessageBox.Show(
-                        $"✓ IBAN KOPYALANDI!\n\n{iban}\n\nPanoya kopyalandı.",
-                        "Başarılı",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
+                    copyTooltip.Show("✓ IBAN kopyalandı!", this, mouseX, mouseY - 25, 1500);
+                    
+                    // Sadece tooltip göster, MessageBox kaldırıldı (UX iyileştirme)
                 }
                 else
                 {
@@ -112,12 +110,15 @@ namespace BankApp.UI.Controls
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY FAILED: {ex.Message}");
+                // [CRITICAL] IbanCopy fail log
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] IbanCopy attempt=FAIL success=false thread={System.Threading.Thread.CurrentThread.ManagedThreadId} error={ex.Message}");
+                
+                // Fallback: IBAN'u kopyalanabilir mesaj olarak göster
                 DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"IBAN kopyalama hatası:\n{ex.Message}\n\nLütfen manuel kopyalayın:\n{iban}",
-                    "Hata",
+                    $"IBAN kopyalanamadı.\n\nManuel kopyalayın:\n{iban}\n\nHata: {ex.Message}",
+                    "Bilgi",
                     MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                    MessageBoxIcon.Information);
             }
         }
         
