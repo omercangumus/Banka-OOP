@@ -360,9 +360,8 @@ namespace BankApp.UI.Forms
         {
             if (sender is ChartControl chart)
             {
-                // Chart detail disabled
-                // ChartDetailForm detail = new ChartDetailForm(chart);
-                // detail.ShowDialog();
+                ChartDetailForm detail = new ChartDetailForm(chart);
+                detail.ShowDialog();
             }
         }
 
@@ -725,11 +724,8 @@ namespace BankApp.UI.Forms
 
         private void btnAiAssist_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            DevExpress.XtraEditors.XtraMessageBox.Show(
-                "🤖 NovaBank AI Asistan\n\nDestek: support@novabank.com",
-                "Destek",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            AIAssistantForm frm = new AIAssistantForm();
+            frm.ShowDialog();
         }
 
         private void btnMoneyTransfer_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -742,7 +738,12 @@ namespace BankApp.UI.Forms
 
         private void btnAddCustomer_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            XtraMessageBox.Show("Müşteri yönetimi şu anda devre dışı.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            CustomerForm frm = new CustomerForm();
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                LoadCustomers();
+                LoadDashboardData();
+            }
         }
 
         private void btnEditCustomer_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -762,9 +763,11 @@ namespace BankApp.UI.Forms
 
             if(row is BankApp.Core.Entities.Customer customer)
             {
-                // Costumer edit disabled
-                // CustomerForm frm = new CustomerForm(customer);
-                XtraMessageBox.Show("Müşteri düzenleme şu anda devre dışı.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomerForm frm = new CustomerForm(customer);
+                if (frm.ShowDialog() == DialogResult.OK)
+                {
+                    LoadCustomers();
+                }
             }
         }
 
@@ -823,8 +826,8 @@ namespace BankApp.UI.Forms
 
             if(row is BankApp.Core.Entities.Customer customer)
             {
-                // Customer accounts disabled
-                XtraMessageBox.Show("Müşteri hesapları şu anda devre dışı.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomerAccountsForm frm = new CustomerAccountsForm(customer.Id);
+                frm.ShowDialog();
             }
         }
 
