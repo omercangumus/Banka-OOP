@@ -30,7 +30,7 @@ namespace BankApp.Infrastructure.Services
             _random = new Random();
         }
 
-        public async Task<MarketData> GetMarketDataAsync(string assetType)
+        public async Task<CommodityMarketData> GetMarketDataAsync(string assetType)
         {
             string symbol = _symbols.ContainsKey(assetType) ? _symbols[assetType] : "TRY=X";
             
@@ -49,7 +49,7 @@ namespace BankApp.Infrastructure.Services
             }
         }
 
-        private MarketData GenerateSimulatedData(string type)
+        private CommodityMarketData GenerateSimulatedData(string type)
         {
             // Yaklaşık Piyasa Değerleri (Ocak 2026 Tahmini :))
             decimal basePrice = 0;
@@ -69,7 +69,7 @@ namespace BankApp.Infrastructure.Services
             double changePct = (_random.NextDouble() * 6) - 3; 
             decimal current = basePrice + (basePrice * (decimal)(changePct/100));
             
-            return new MarketData 
+            return new CommodityMarketData 
             { 
                 Name = type, 
                 Price = current, 
@@ -78,9 +78,9 @@ namespace BankApp.Infrastructure.Services
             };
         }
         
-        public List<MarketData> GetAllMarkets()
+        public List<CommodityMarketData> GetAllMarkets()
         {
-            var list = new List<MarketData>
+            var list = new List<CommodityMarketData>
             {
                 GenerateSimulatedData("Hisse"),
                 GenerateSimulatedData("Dolar"),
@@ -93,7 +93,7 @@ namespace BankApp.Infrastructure.Services
         }
     }
 
-    public class MarketData
+    public class CommodityMarketData
     {
         public string Name { get; set; }
         public decimal Price { get; set; }
