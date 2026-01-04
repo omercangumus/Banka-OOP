@@ -115,7 +115,7 @@ namespace BankApp.UI.Controls
         private MemoEdit memoAnalysis;
         
         // State
-        private string _currentSymbol = "AAPL";
+        private string _currentSymbol = ""; // Empty = no symbol selected (user must click)
         private string _currentTimeframe = "D";
         private BarButtonItem _selectedTool;
         
@@ -131,6 +131,35 @@ namespace BankApp.UI.Controls
         // Analysis data
         private List<(string Name, double Value)> _supportResistanceLevels = new List<(string, double)>();
         private List<(string Name, double Value)> _fibonacciLevels = new List<(string, double)>();
+        
+        // Focus Mode state
+        private bool _isFocusMode = false;
+        private int _prevBottomHeight = 250;
+        private int _prevRightWidth = 280;
+        
+        // Drawing Mode
+        private DrawMode _activeDrawMode = DrawMode.None;
+        #endregion
+        
+        #region Enums
+        /// <summary>
+        /// Drawing tool modes for chart interaction
+        /// </summary>
+        private enum DrawMode
+        {
+            None,
+            Select,
+            Crosshair,
+            Trendline,
+            HorizontalLine,
+            Ray,
+            Fib,
+            Rectangle,
+            Text,
+            TriggerPoint,
+            AutoSR,
+            AutoFib
+        }
         #endregion
 
         public InvestmentView()
@@ -170,7 +199,25 @@ namespace BankApp.UI.Controls
 
         private async void InvestmentView_Load(object sender, EventArgs e)
         {
-            await LoadInitialDataAsync();
+            // Load watchlist and market tiles, but NOT chart (user must select symbol)
+            await LoadWatchlistDataAsync();
+            await LoadMarketTilesDataAsync();
+            
+            // Show empty state for chart
+            ShowChartEmpty(true);
+        }
+        
+        /// <summary>
+        /// Override ProcessCmdKey to capture ESC for exiting draw mode
+        /// </summary>
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Escape && _activeDrawMode != DrawMode.None)
+            {
+                SetDrawMode(DrawMode.None);
+                return true; // Key handled
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
         }
 
         #region Initialize UI
@@ -252,9 +299,9 @@ namespace BankApp.UI.Controls
             barRefresh.ItemClick += async (s, e) => await RefreshCurrentSymbolAsync();
             barTop.LinksPersistInfo.Add(new LinkPersistInfo(barRefresh, true));
 
-            // Fullscreen button
-            barFullscreen = CreateBarButton("⛶", "Tam Ekran", false);
-            barFullscreen.ItemClick += (s, e) => ToggleFullscreen();
+            // Focus Mode button (collapse/expand bottom panel)
+            barFullscreen = CreateBarButton("⛶", "Focus Mode (Chart Büyüt)", false);
+            barFullscreen.ItemClick += (s, e) => ToggleFocusMode();
             barTop.LinksPersistInfo.Add(new LinkPersistInfo(barFullscreen));
 
             // === LEFT DRAWING TOOLS BAR (TradingView Style) ===
@@ -270,43 +317,42 @@ namespace BankApp.UI.Controls
             barManager.Bars.Add(barDrawingTools);
 
             // Group 1: Cursor Tools
-            barToolSelect = CreateToolButtonWithText("⊹", "Seç", "İmleç/Seçim Aracı");
-            barToolSelect.ItemClick += ToolButton_Click;
+            barToolSelect = CreateToolButtonWithText("⊹", "Seç", "İmleç/Seçim Aracı (ESC)");
+            barToolSelect.ItemClick += (s, e) => SetDrawMode(DrawMode.Select);
             barToolSelect.Down = true;
-            _selectedTool = barToolSelect;
             
             barToolCrosshair = CreateToolButtonWithText("✛", "Crosshair", "Çapraz İmleç");
-            barToolCrosshair.ItemClick += ToolButton_Click;
+            barToolCrosshair.ItemClick += (s, e) => SetDrawMode(DrawMode.Crosshair);
             
-            // Group 2: Line Tools
-            barToolTrendline = CreateToolButtonWithText("╲", "Trend", "Trend Çizgisi");
-            barToolTrendline.ItemClick += ToolButton_Click;
+            // Group 2: Line Tools (drawing modes)
+            barToolTrendline = CreateToolButtonWithText("╲", "Trend", "Trend Çizgisi Çiz");
+            barToolTrendline.ItemClick += (s, e) => SetDrawMode(DrawMode.Trendline);
             
             barToolHorizontal = CreateToolButtonWithText("─", "Yatay", "Yatay Çizgi (S/R)");
-            barToolHorizontal.ItemClick += (s, e) => AddHorizontalLine();
+            barToolHorizontal.ItemClick += (s, e) => { SetDrawMode(DrawMode.HorizontalLine); AddHorizontalLine(); };
             
             barToolRay = CreateToolButtonWithText("↗", "Ray", "Işın Çizgisi");
-            barToolRay.ItemClick += ToolButton_Click;
+            barToolRay.ItemClick += (s, e) => SetDrawMode(DrawMode.Ray);
             
             // Group 3: Fibonacci & Shapes
             barToolFibonacci = CreateToolButtonWithText("Fib", "Fibonacci", "Fibonacci Seviyeleri");
-            barToolFibonacci.ItemClick += (s, e) => AddFibonacciLevels();
+            barToolFibonacci.ItemClick += (s, e) => { SetDrawMode(DrawMode.Fib); AddFibonacciLevels(); };
             
             barToolRectangle = CreateToolButtonWithText("▭", "Dikdörtgen", "Dikdörtgen Çiz");
-            barToolRectangle.ItemClick += ToolButton_Click;
+            barToolRectangle.ItemClick += (s, e) => SetDrawMode(DrawMode.Rectangle);
             
             barToolText = CreateToolButtonWithText("T", "Metin", "Metin Notu");
-            barToolText.ItemClick += (s, e) => AddTextNote();
+            barToolText.ItemClick += (s, e) => { SetDrawMode(DrawMode.Text); AddTextNote(); SetDrawMode(DrawMode.None); };
             
-            // Group 4: Trigger Tools (Analysis)
+            // Group 4: Trigger Tools (one-shot analysis, returns to None)
             barToolTriggerPoint = CreateToolButtonWithText("◉", "Trigger", "TriggerPoint Analizi");
-            barToolTriggerPoint.ItemClick += (s, e) => RunTriggerPointAnalysis();
+            barToolTriggerPoint.ItemClick += (s, e) => { RunTriggerPointAnalysis(); SetDrawMode(DrawMode.None); };
             
             barToolAutoSR = CreateToolButtonWithText("≡", "Auto S/R", "Otomatik Destek/Direnç");
-            barToolAutoSR.ItemClick += (s, e) => RunAutoSupportResistance();
+            barToolAutoSR.ItemClick += (s, e) => { RunAutoSupportResistance(); SetDrawMode(DrawMode.None); };
             
             barToolAutoFib = CreateToolButtonWithText("⟨⟩", "Auto Fib", "Otomatik Fibonacci");
-            barToolAutoFib.ItemClick += (s, e) => RunAutoFibonacci();
+            barToolAutoFib.ItemClick += (s, e) => { RunAutoFibonacci(); SetDrawMode(DrawMode.None); };
             
             // Group 5: Clear & Undo
             barToolClear = CreateToolButtonWithText("🗑", "Temizle", "Tüm Çizimleri Temizle");
@@ -404,16 +450,17 @@ namespace BankApp.UI.Controls
             pnlChartContainer.Appearance.BackColor = Color.FromArgb(25, 25, 25);
             pnlChartContainer.Padding = new Padding(5);
             
-            // Empty State Label
+            // Empty State Label - shown when no symbol selected
             lblChartEmpty = new LabelControl();
-            lblChartEmpty.Text = "📈 Grafik görmek için sembol seçin";
-            lblChartEmpty.Appearance.Font = new Font("Segoe UI", 14F, FontStyle.Regular);
-            lblChartEmpty.Appearance.ForeColor = Color.FromArgb(100, 100, 100);
+            lblChartEmpty.Text = "📈 Grafik görüntülemek için\nüstteki sembol kartlarından birini seçin\n\n(AAPL, MSFT, TSLA...)";
+            lblChartEmpty.Appearance.Font = new Font("Segoe UI", 16F, FontStyle.Regular);
+            lblChartEmpty.Appearance.ForeColor = Color.FromArgb(120, 120, 120);
             lblChartEmpty.AutoSizeMode = LabelAutoSizeMode.None;
             lblChartEmpty.Dock = DockStyle.Fill;
             lblChartEmpty.Appearance.TextOptions.HAlignment = HorzAlignment.Center;
             lblChartEmpty.Appearance.TextOptions.VAlignment = VertAlignment.Center;
-            lblChartEmpty.Visible = false;
+            lblChartEmpty.Appearance.TextOptions.WordWrap = WordWrap.Wrap;
+            lblChartEmpty.Visible = true; // Show by default until symbol selected
             
             // Loading State Label
             lblChartLoading = new LabelControl();
@@ -741,10 +788,11 @@ namespace BankApp.UI.Controls
         {
             dockPanelBottom = dockManager.AddPanel(DockingStyle.Bottom);
             dockPanelBottom.Text = "İşlemler & Analiz";
-            dockPanelBottom.Height = 220;
+            dockPanelBottom.Height = 250; // Compact height
             dockPanelBottom.Options.AllowFloating = false;
             dockPanelBottom.Options.ShowCloseButton = false;
             dockPanelBottom.Appearance.BackColor = Color.FromArgb(20, 20, 20);
+            _prevBottomHeight = 250; // Store for focus mode
             
             bottomContainer = dockPanelBottom.ControlContainer;
             bottomContainer.BackColor = Color.FromArgb(20, 20, 20);
@@ -946,20 +994,6 @@ namespace BankApp.UI.Controls
             ((BarButtonItem)sender).Down = true;
             _currentTimeframe = e.Item.Tag?.ToString() ?? "D";
             _ = LoadChartDataAsync(_currentSymbol, _currentTimeframe);
-        }
-
-        private void ToolButton_Click(object sender, ItemClickEventArgs e)
-        {
-            // Uncheck previous
-            if (_selectedTool != null)
-                _selectedTool.Down = false;
-            
-            _selectedTool = (BarButtonItem)sender;
-            _selectedTool.Down = true;
-            
-            // Enable/disable crosshair based on selection
-            if (_selectedTool == barToolCrosshair)
-                chartMain.CrosshairEnabled = DefaultBoolean.True;
         }
 
         private void TileBarMarket_SelectedItemChanged(object sender, TileItemEventArgs e)
@@ -1498,19 +1532,72 @@ namespace BankApp.UI.Controls
             ShowToast("Yenilendi", $"{_currentSymbol} verileri güncellendi.", false);
         }
         
-        private void ToggleFullscreen()
+        /// <summary>
+        /// Toggle Focus Mode - collapse/expand bottom panel to maximize chart area
+        /// </summary>
+        private void ToggleFocusMode()
         {
-            var parentForm = this.FindForm();
-            if (parentForm != null)
+            _isFocusMode = !_isFocusMode;
+            
+            if (_isFocusMode)
             {
-                if (parentForm.WindowState == FormWindowState.Maximized)
-                {
-                    parentForm.WindowState = FormWindowState.Normal;
-                }
-                else
-                {
-                    parentForm.WindowState = FormWindowState.Maximized;
-                }
+                // Store current sizes
+                _prevBottomHeight = dockPanelBottom.Height;
+                
+                // Collapse bottom panel
+                dockPanelBottom.Visibility = DockVisibility.Hidden;
+                
+                // Update button to show "exit focus" state
+                barFullscreen.Caption = "⊟";
+                barFullscreen.Hint = "Focus Mode Kapat";
+            }
+            else
+            {
+                // Restore bottom panel
+                dockPanelBottom.Visibility = DockVisibility.Visible;
+                dockPanelBottom.Height = _prevBottomHeight;
+                
+                // Update button
+                barFullscreen.Caption = "⛶";
+                barFullscreen.Hint = "Focus Mode (Chart Büyüt)";
+            }
+        }
+        
+        /// <summary>
+        /// Set the active drawing mode and update tool button states
+        /// </summary>
+        private void SetDrawMode(DrawMode mode)
+        {
+            _activeDrawMode = mode;
+            
+            // Update all tool button states
+            barToolSelect.Down = (mode == DrawMode.Select || mode == DrawMode.None);
+            barToolCrosshair.Down = (mode == DrawMode.Crosshair);
+            barToolTrendline.Down = (mode == DrawMode.Trendline);
+            barToolHorizontal.Down = (mode == DrawMode.HorizontalLine);
+            barToolRay.Down = (mode == DrawMode.Ray);
+            barToolFibonacci.Down = (mode == DrawMode.Fib);
+            barToolRectangle.Down = (mode == DrawMode.Rectangle);
+            barToolText.Down = (mode == DrawMode.Text);
+            
+            // Update crosshair on chart
+            if (mode == DrawMode.Crosshair)
+            {
+                chartMain.CrosshairEnabled = DefaultBoolean.True;
+            }
+            else if (mode == DrawMode.None || mode == DrawMode.Select)
+            {
+                chartMain.CrosshairEnabled = DefaultBoolean.False;
+            }
+            
+            // Update cursor based on mode
+            if (mode == DrawMode.Trendline || mode == DrawMode.HorizontalLine || mode == DrawMode.Ray || mode == DrawMode.Fib)
+            {
+                pnlChartContainer.Cursor = Cursors.Cross;
+            }
+            else
+            {
+                pnlChartContainer.Cursor = Cursors.Default;
             }
         }
 
