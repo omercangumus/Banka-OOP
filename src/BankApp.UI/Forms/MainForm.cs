@@ -147,8 +147,8 @@ namespace BankApp.UI.Forms
                 quickActions.QRPayClicked += (s, e) => { }; // QR Removed
                 quickActions.ExchangeClicked += (s, e) => { }; // Exchange Removed
                 quickActions.SupportClicked += (s, e) => {
-                    // Open AI Assistant Form
-                    var aiForm = new AIAssistantForm();
+                    // Open AI Assistant Form V2
+                    var aiForm = new AIAssistantFormV2();
                     aiForm.Show();
                 };
                 
@@ -305,37 +305,62 @@ namespace BankApp.UI.Forms
         }
 
         private InvestmentDashboard investmentDashboard;
+        private InvestmentView investmentView;
 
         private void InitializeInvestmentDashboard()
         {
+            // Legacy InvestmentDashboard - kept for compatibility (used by buttons)
             investmentDashboard = new InvestmentDashboard();
             investmentDashboard.Dock = DockStyle.Fill;
             investmentDashboard.Visible = false; 
             this.Controls.Add(investmentDashboard);
-            // Ensure it appears below the Ribbon but above background
-            investmentDashboard.BringToFront();
+            
+            // NEW: TradingView-like Investment View for Tab3 (Yatırım)
+            investmentView = new InvestmentView();
+            investmentView.Dock = DockStyle.Fill;
+            investmentView.Visible = false;
+            this.Controls.Add(investmentView);
         }
 
         private void RibbonControl1_SelectedPageChanged(object sender, EventArgs e)
         {
             if (ribbonControl1 == null || pageDashboard == null) return;
 
-            bool isDashboard = (ribbonControl1.SelectedPage == pageDashboard);
-            bool isInvestments = (ribbonControl1.SelectedPage == pageInvestments);
-            bool isCustomers = (ribbonControl1.SelectedPage == pageCustomers);
+            // Determine which tab is selected
+            bool isTab1Dashboard = (ribbonControl1.SelectedPage == pageDashboard);
+            bool isTab2Portfolio = (ribbonControl1.SelectedPage == pagePortfolio);
+            bool isTab3Investment = (ribbonControl1.SelectedPage == pageInvestments);
+            bool isTab4Customers = (ribbonControl1.SelectedPage == pageCustomers);
 
-            if (pnlDashboard != null) pnlDashboard.Visible = isDashboard;
+            // Tab1 and Tab2 both show the SAME dashboard content
+            // Only the toolbar buttons differ (handled by ribbon page groups)
+            bool showDashboard = isTab1Dashboard || isTab2Portfolio;
+
+            // Show/hide dashboard panel
+            if (pnlDashboard != null)
+            {
+                pnlDashboard.Visible = showDashboard;
+                if (showDashboard) pnlDashboard.BringToFront();
+            }
             
+            // Hide legacy investmentDashboard - no longer used in tab switching
             if (investmentDashboard != null)
             {
-                investmentDashboard.Visible = isInvestments;
-                if (isInvestments) investmentDashboard.BringToFront();
+                investmentDashboard.Visible = false;
+            }
+            
+            // Tab3: Show TradingView-like investment screen
+            if (investmentView != null)
+            {
+                investmentView.Visible = isTab3Investment;
+                if (isTab3Investment) investmentView.BringToFront();
             }
 
+            // Tab4: Customers grid (Admin only)
             if (gridCustomers != null)
             {
-                gridCustomers.Visible = isCustomers;
-                if(isCustomers)
+                gridCustomers.Visible = isTab4Customers;
+                if (isTab4Customers)
                 {
                     gridCustomers.Dock = DockStyle.Fill;
                     gridCustomers.BringToFront();
@@ -742,7 +767,7 @@ namespace BankApp.UI.Forms
 
         private void btnAiAssist_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            AIAssistantForm frm = new AIAssistantForm();
+            var frm = new AIAssistantFormV2();
             frm.ShowDialog();
         }
 
@@ -990,7 +1015,7 @@ namespace BankApp.UI.Forms
         {
             bool isAdmin = AppEvents.CurrentSession.IsAdmin;
             
-            // Müşteriler sekmesi - SADECE Admin görebilir
+            // Müşteriler sekmesi (Tab4) - SADECE Admin görebilir
             if (pageCustomers != null)
             {
                 pageCustomers.Visible = isAdmin;
@@ -1011,6 +1036,9 @@ namespace BankApp.UI.Forms
                     ? DevExpress.XtraBars.BarItemVisibility.Always 
                     : DevExpress.XtraBars.BarItemVisibility.Never;
             }
+            
+            // All users can see Tab1 (Genel Bakış), Tab2 (Portföy), Tab3 (Yatırım)
+            // These tabs are always visible for customers
         }
 
         // Event sistemi için subscribe (form load'da çağrılmalı)

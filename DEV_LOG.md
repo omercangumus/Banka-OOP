@@ -150,3 +150,25 @@ Separate active trading from passive portfolio management to address UX issues. 
 **Status:** System is fully integrated and consistent.
 
 
+---
+
+## Session 4: Admin Panel Export Stability & CSV Removal
+**Date:** 2026-01-04 19:50
+
+### Objective
+Fix critical crashes in Admin Panel CSV/PDF export and streamline export options by removing CSV functionality.
+
+### Key Changes
+1. **Stability Improvements ([Fixing CSV Export Crash](task.md))**:
+   - Implemented `AdminGridExtractor` with robust null checking to prevent crashes during data extraction.
+   - Wrapped automatic file opening (`Process.Start`) in `try-catch` blocks to safely handle errors (e.g., no default app, file locked).
+2. **Dependency Management**:
+   - Installed `SkiaSharp` and `SkiaSharp.NativeAssets.Win32` to resolve `QuestPDF` runtime crashes on Windows.
+3. **Refactoring**:
+   - **Deprecated CSV Export**: Removed "CSV Dışa Aktar" button, `ExportToCsv` method, and `AdminCsvExporter` class per user request.
+   - Updated `ExportToPdf` to operate independently of CSV components.
+
+### Status
+**Build:** 🟢 SUCCESS
+**Export:** 🟢 STABLE (PDF Only)
+**Push:** ✅ Committed and pushed to `main` branch.

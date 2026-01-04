@@ -14,3 +14,7 @@ obj/
 .vscode/
 .idea/
 artifacts/
+
+# API Keys - DO NOT COMMIT
+appsettings.local.json
+*.local.json

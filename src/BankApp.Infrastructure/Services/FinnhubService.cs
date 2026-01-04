@@ -11,8 +11,46 @@ namespace BankApp.Infrastructure.Services
     public class FinnhubService
     {
         private static readonly HttpClient _http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-        private readonly string _apiKey = "d5ce7rpr01qsbm8k8vh0d5ce7rpr01qsbm8k8vhg";
+        private readonly string _apiKey;
         private readonly string _baseUrl = "https://finnhub.io/api/v1";
+        
+        // API Key: Environment variable veya config'den okunur
+        private static string GetApiKey()
+        {
+            // 1. Environment variable
+            var envKey = Environment.GetEnvironmentVariable("FINNHUB_API_KEY");
+            if (!string.IsNullOrEmpty(envKey))
+                return envKey;
+            
+            // 2. Config dosyasından oku
+            try
+            {
+                var appDir = AppDomain.CurrentDomain.BaseDirectory;
+                var configPath = System.IO.Path.Combine(appDir, "appsettings.local.json");
+                
+                if (!System.IO.File.Exists(configPath))
+                {
+                    var devPath = System.IO.Path.Combine(appDir, "..", "..", "..", "appsettings.local.json");
+                    if (System.IO.File.Exists(devPath))
+                        configPath = devPath;
+                }
+                
+                if (System.IO.File.Exists(configPath))
+                {
+                    var json = System.IO.File.ReadAllText(configPath);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("Finnhub", out var section) &&
+                        section.TryGetProperty("ApiKey", out var keyElement))
+                    {
+                        return keyElement.GetString() ?? "";
+                    }
+                }
+            }
+            catch { }
+            
+            // 3. Fallback (demo/sandbox key)
+            return "demo";
+        }
         
         // Cache to prevent hitting rate limits
         private Dictionary<string, (DateTime timestamp, object data)> _cache;
@@ -27,6 +65,7 @@ namespace BankApp.Infrastructure.Services
 
         public FinnhubService()
         {
+            _apiKey = GetApiKey();
             _cache = new Dictionary<string, (DateTime, object)>();
         }
 
