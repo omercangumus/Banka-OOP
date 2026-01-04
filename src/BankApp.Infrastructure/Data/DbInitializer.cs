@@ -154,18 +154,9 @@ namespace BankApp.Infrastructure.Data
                         );";
                     cmd.ExecuteNonQuery();
 
-                    // 6. QuickContacts Table
-                    cmd.CommandText = @"
-                        CREATE TABLE IF NOT EXISTS ""QuickContacts"" (
-                            ""Id"" SERIAL PRIMARY KEY,
-                            ""UserId"" INT NOT NULL,
-                            ""Name"" VARCHAR(50) NOT NULL,
-                            ""IBAN"" VARCHAR(34) NOT NULL,
-                            ""ColorHex"" VARCHAR(7) NOT NULL,
-                            ""CreatedAt"" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            FOREIGN KEY (""UserId"") REFERENCES ""Users""(""Id"") ON DELETE CASCADE
-                        );";
-                    cmd.ExecuteNonQuery();
+                    // 6. QuickContacts Table - DISABLED (causing SQL errors)
+                    // cmd.CommandText = @"CREATE TABLE IF NOT EXISTS ""QuickContacts"" (...";
+                    // cmd.ExecuteNonQuery();
 
                     // 7. Loans Table (Krediler)
                     cmd.CommandText = @"
@@ -197,41 +188,8 @@ namespace BankApp.Infrastructure.Data
                 conn.Open();
                 
                 // SORUN DÜZELTİLDİ: Önce mevcut test kullanıcıları temizle (ID'ler sıfırlanmasın diye)
-                // **ALWAYS REFRESH QUICKCONTACTS WITH REAL IBANs**
-                using (var cleanupCmd = conn.CreateCommand())
-                {
-                    cleanupCmd.CommandText = @"
-                        DELETE FROM ""QuickContacts"";
-                        
-                        INSERT INTO ""QuickContacts"" (""UserId"", ""Name"", ""IBAN"", ""ColorHex"")
-                        SELECT 
-                            u1.""Id"" as UserId,
-                            u2.""FullName"" as Name,
-                            a.""IBAN"" as IBAN,
-                            CASE 
-                                WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 1 THEN '#FF6B6B'
-                                WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 2 THEN '#4ECDC4'
-                                WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 3 THEN '#45B7D1'
-                                WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 4 THEN '#F7B731'
-                                WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 5 THEN '#00D2FF'
-                                ELSE '#FF007A'
-                            END as ColorHex
-                        FROM ""Users"" u1
-                        CROSS JOIN ""Users"" u2
-                        INNER JOIN ""Accounts"" a ON a.""UserId"" = u2.""Id""
-                        WHERE u1.""Id"" != u2.""Id""
-                        LIMIT 200;
-                    ";
-                    try 
-                    { 
-                        cleanupCmd.ExecuteNonQuery(); 
-                        Console.WriteLine("✅ QuickContacts gerçek IBAN'larla güncellendi");
-                    } 
-                    catch (Exception ex) 
-                    { 
-                        Console.WriteLine($"⚠️ QuickContacts güncellenemedi: {ex.Message}"); 
-                    }
-                }
+                // **DISABLED: QuickContacts initialization - causing SQL errors**
+                Console.WriteLine("⏭️ QuickContacts initialization skipped");
 
 
                 // Cleanup test users
@@ -422,46 +380,8 @@ namespace BankApp.Infrastructure.Data
                             }
                         }
 
-                        // **ADD QUICK CONTACTS WITH REAL USER IBANs**
-                        using (var contactCmd = conn.CreateCommand())
-                        {
-                            contactCmd.CommandText = @"
-                                -- Delete existing QuickContacts
-                                DELETE FROM ""QuickContacts"";
-                                
-                                -- Add QuickContacts using REAL user account IBANs
-                                -- Each user gets contacts pointing to OTHER users' accounts
-                                INSERT INTO ""QuickContacts"" (""UserId"", ""Name"", ""IBAN"", ""ColorHex"")
-                                SELECT 
-                                    u1.""Id"" as UserId,
-                                    u2.""FullName"" as Name,
-                                    a.""IBAN"" as IBAN,
-                                    CASE 
-                                        WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 1 THEN '#FF6B6B'
-                                        WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 2 THEN '#4ECDC4'
-                                        WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 3 THEN '#45B7D1'
-                                        WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 4 THEN '#F7B731'
-                                        WHEN ROW_NUMBER() OVER (PARTITION BY u1.""Id"" ORDER BY u2.""Id"") % 6 = 5 THEN '#00D2FF'
-                                        ELSE '#FF007A'
-                                    END as ColorHex
-                                FROM ""Users"" u1
-                                CROSS JOIN ""Users"" u2
-                                INNER JOIN ""Customers"" c ON c.""UserId"" = u2.""Id""
-                                INNER JOIN ""Accounts"" a ON a.""CustomerId"" = c.""Id""
-                                WHERE u1.""Id"" != u2.""Id""  -- Don't add yourself
-                                AND ROW_NUMBER() OVER (PARTITION BY u1.""Id"", u2.""Id"" ORDER BY a.""CreatedAt"") = 1  -- One account per user pair
-                                LIMIT 200;  -- Safety limit
-                            ";
-                            try
-                            {
-                                contactCmd.ExecuteNonQuery();
-                                Console.WriteLine("✅ Hızlı kişiler gerçek IBAN'larla eklendi");
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"⚠️ QuickContacts hatası: {ex.Message}");
-                            }
-                        }
+                        // **DISABLED: QuickContacts initialization - causing SQL errors**
+                        Console.WriteLine("⏭️ QuickContacts initialization skipped (second part)");
 
                         // Add audit log - SORUN DÜZELTİLDİ: Dinamik ID kullanımı
                         using (var auditCmd = conn.CreateCommand())

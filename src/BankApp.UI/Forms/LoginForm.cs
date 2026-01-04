@@ -89,11 +89,18 @@ namespace BankApp.UI.Forms
                         AppEvents.NotifyUserLoggedIn(user.Id, user.Username, user.Role);
                     }
                     
-                    this.DialogResult = DialogResult.OK;
-                    MainForm mainForm = new MainForm();
+                    // FIX: Proper form handoff pattern
+                    // Hide login form and show main form
                     this.Hide();
-                    mainForm.ShowDialog();
-                    this.Close();
+                    
+                    MainForm mainForm = new MainForm();
+                    mainForm.FormClosed += (s, args) => {
+                        // When main form closes, exit the application
+                        this.Close();
+                    };
+                    
+                    mainForm.Show();
+                    // LoginForm stays alive but hidden, keeping the message loop running
                 }
                 else
                 {

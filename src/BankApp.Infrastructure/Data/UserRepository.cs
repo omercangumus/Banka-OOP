@@ -2,6 +2,7 @@
 using BankApp.Core.Entities;
 using BankApp.Core.Interfaces;
 using Dapper;
+using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -126,11 +127,25 @@ namespace BankApp.Infrastructure.Data
                 return null;
             }
             
-            using (var connection = _context.CreateConnection())
+            try
             {
-                connection.Open();
-                var query = "SELECT * FROM \"Users\" WHERE \"Username\" = @Username";
-                return await connection.QueryFirstOrDefaultAsync<User>(query, new { Username = username });
+                using (var connection = _context.CreateConnection())
+                {
+                    connection.Open();
+                    var query = "SELECT * FROM \"Users\" WHERE \"Username\" = @Username";
+                    return await connection.QueryFirstOrDefaultAsync<User>(query, new { Username = username });
+                }
+            }
+            catch (Npgsql.NpgsqlException ex)
+            {
+                // SORUN DÜZELTİLDİ: Veritabanı bağlantı hatasını yeniden fırlat
+                System.Diagnostics.Debug.WriteLine($"GetByUsernameAsync DB Hatası: {ex.Message}");
+                throw; // Hata üst seviyede yakalanacak
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetByUsernameAsync Genel Hata: {ex.Message}");
+                throw;
             }
         }
 

@@ -71,19 +71,39 @@ namespace BankApp.UI.Forms
 
         private void ShowAdminDashboard()
         {
-            // Hide all customer tabs and widgets
-            if (pnlDashboard != null) pnlDashboard.Visible = false;
-            if (pageInvestments != null) pageInvestments.Visible = false;
-            if (investmentDashboard != null) investmentDashboard.Visible = false;
-            
-            // Hide customer menu items
-            if (btnMoneyTransfer != null) btnMoneyTransfer.Visibility = DevExpress.XtraBars.BarItemVisibility.Never;
-            if (btnStockMarket != null) btnStockMarket.Visibility = DevExpress.XtraBars.BarItemVisibility.Never;
-            
-            // Show admin panel
-            adminPanel = new AdminDashboardPanel { Dock = DockStyle.Fill };
-            this.Controls.Add(adminPanel);
-            adminPanel.BringToFront();
+            try
+            {
+                // Hide all customer tabs and widgets
+                if (pnlDashboard != null) pnlDashboard.Visible = false;
+                if (quickActions != null) quickActions.Visible = false;
+                if (recentTransactions != null) recentTransactions.Visible = false;
+                if (assetChart != null) assetChart.Visible = false;
+                
+                // Show admin panel as separate form
+                var adminForm = new AdminDashboardForm();
+                adminForm.Show();
+                this.Hide();
+                
+                // When admin form closes, show main form again
+                adminForm.FormClosed += (s, args) => {
+                    this.Show();
+                };
+            }
+            catch (Exception ex)
+            {
+                // Show error instead of crashing
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"Admin paneli açılırken hata oluştu:\n\n{ex.Message}\n\nDetay: {ex.InnerException?.Message ?? "Yok"}",
+                    "Admin Panel Hatası",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                
+                // Log to debug output
+                System.Diagnostics.Debug.WriteLine($"AdminDashboard Error: {ex}");
+                
+                // Show customer dashboard as fallback
+                ShowCustomerDashboard();
+            }
         }
 
         private void ShowCustomerDashboard()
