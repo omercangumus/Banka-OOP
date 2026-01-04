@@ -108,6 +108,18 @@ namespace BankApp.UI.Forms
                     _ = DashboardRefreshOrchestrator.Instance.RequestRefreshAsync(e.UserId, RefreshReason.Investment);
                 }
             };
+            
+            // B3: Trade sonrası tek RefreshPipeline
+            AppEvents.TradeCompleted += async (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[DASHBOARD] TradeCompleted received - refreshing all widgets");
+                await RefreshAllWidgetsAsync();
+            };
+            
+            // B5: Hesap değişimi - tüm dashboard güncelle
+            AppEvents.ActiveAccountChanged += async (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[DASHBOARD] ActiveAccountChanged received old={e.OldAccountId} new={e.NewAccountId}");
+                await RefreshAllWidgetsAsync();
+            };
             PortfolioEvents.TransactionChanged += (s, e) => {
                 System.Diagnostics.Debug.WriteLine($"[DASHBOARD] TransactionChanged received: UserId={e.UserId}, Amount={e.Amount}");
                 if (e.UserId == AppEvents.CurrentSession.UserId)
@@ -1553,6 +1565,38 @@ namespace BankApp.UI.Forms
                 count++;
             }
             return chain.Length > 0 ? chain.ToString().TrimEnd(' ', '-', '>') : "ROOT";
+        }
+        
+        /// <summary>
+        /// B3: Tüm widget'ları refresh et - TEK PIPELINE
+        /// </summary>
+        private async Task RefreshAllWidgetsAsync()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] RefreshAllWidgets START");
+                
+                // 1. HeroCard (Net Worth)
+                UpdateHeroCard();
+                heroCard?.Invalidate();
+                
+                // 2. AssetAllocationChart (Pasta)
+                if (assetChart != null) await assetChart.RefreshDataAsync();
+                
+                // 3. RecentTransactions
+                recentTransactions?.RefreshData();
+                
+                // 4. Portfolio (Tab2)
+                UpdatePortfolioHeroCard();
+                portfolioHeroCard?.Invalidate();
+                if (portfolioAssetChart != null) await portfolioAssetChart.RefreshDataAsync();
+                
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] RefreshAllWidgets END");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERR] RefreshAllWidgets error: {ex.Message}");
+            }
         }
     }
 }
