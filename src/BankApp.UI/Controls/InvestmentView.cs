@@ -1280,11 +1280,15 @@ namespace BankApp.UI.Controls
                     // Refresh positions grid
                     await LoadPositionsDataAsync();
                     
-                    // Notify dashboard to refresh (triggers pie chart + balance update)
-                    System.Diagnostics.Debug.WriteLine($"[TRADE] Firing events: AppEvents.NotifyDataChanged + PortfolioEvents.OnPortfolioChanged");
-                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] EVENT: AppEvents.NotifyDataChanged(source='InvestmentView', action='{actionType}')");
-                    AppEvents.NotifyDataChanged("InvestmentView", actionType);
-                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] EVENT: PortfolioEvents.OnPortfolioChanged(userId={AppEvents.CurrentSession.UserId}, changeType='Trade')");
+                    // B3: TEK RefreshPipeline - NotifyTradeCompleted
+                    AppEvents.NotifyTradeCompleted(
+                        AppEvents.CurrentSession.ActiveAccountId,
+                        AppEvents.CurrentSession.CustomerId,
+                        _currentSymbol,
+                        totalAmount,
+                        isBuy);
+                    
+                    // Legacy events (opsiyonel - yedek olarak)
                     PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "Trade");
                     
                     // Show success toast
