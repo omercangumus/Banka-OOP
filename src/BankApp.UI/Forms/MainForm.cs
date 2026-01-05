@@ -305,7 +305,7 @@ namespace BankApp.UI.Forms
         }
 
         private InvestmentDashboard investmentDashboard;
-        private InvestmentView investmentView;
+        private InvestmentViewContainer investmentView;
 
         private void InitializeInvestmentDashboard()
         {
@@ -316,7 +316,8 @@ namespace BankApp.UI.Forms
             this.Controls.Add(investmentDashboard);
             
             // NEW: TradingView-like Investment View for Tab3 (Yatırım)
-            investmentView = new InvestmentView();
+            // Now uses container with MarketHome -> InstrumentDetail navigation
+            investmentView = new InvestmentViewContainer();
             investmentView.Dock = DockStyle.Fill;
             investmentView.Visible = false;
             this.Controls.Add(investmentView);
@@ -354,6 +355,13 @@ namespace BankApp.UI.Forms
             {
                 investmentView.Visible = isTab3Investment;
                 if (isTab3Investment) investmentView.BringToFront();
+            }
+            
+            // Hide legacy "Yatırım Araçları" ribbon group when Investment tab is active
+            // We now have buttons in MarketHome/Detail views instead
+            if (groupTradingActions != null)
+            {
+                groupTradingActions.Visible = !isTab3Investment;
             }
 
             // Tab4: Customers grid (Admin only)
