@@ -719,6 +719,7 @@ namespace BankApp.UI.Controls
         {
             // TRACE: Track last UI action for crash diagnostics
             UiActionTrace.LastAction = "BtnExportPdf_Click (InstrumentDetailView)";
+            System.Diagnostics.Debug.WriteLine("[TRACE] BtnExportPdf_Click START");
             
             using var dialog = new SaveFileDialog();
             dialog.Filter = "PDF Files (*.pdf)|*.pdf";
