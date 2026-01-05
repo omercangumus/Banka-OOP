@@ -24,7 +24,6 @@
     <PackageReference Include="DevExpress.Win.Charts" Version="*" />
     <PackageReference Include="DevExpress.Win.Printing" Version="*" />
     <PackageReference Include="DevExpress.Win.Reporting" Version="25.2.3" />
-    <PackageReference Include="QuestPDF" Version="2025.12.1" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.1" /> 
   </ItemGroup>
