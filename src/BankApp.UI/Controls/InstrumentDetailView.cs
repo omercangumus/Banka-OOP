@@ -724,6 +724,7 @@ namespace BankApp.UI.Controls
             dialog.Filter = "PDF Files (*.pdf)|*.pdf";
             dialog.FileName = $"{_currentSymbol}_Analysis_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
             dialog.Title = "PDF Raporu Kaydet";
+            dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             
             if (dialog.ShowDialog() != DialogResult.OK) return;
             
@@ -753,20 +754,33 @@ namespace BankApp.UI.Controls
             {
                 if (t.Exception != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"PDF Error: {t.Exception}");
+                    var ex = t.Exception.GetBaseException();
+                    System.Diagnostics.Debug.WriteLine($"PDF Error: {ex}");
                     DevExpress.XtraEditors.XtraMessageBox.Show(
-                        $"PDF oluşturulamadı: {t.Exception.InnerException?.Message ?? t.Exception.Message}\n\nlogs klasörüne bak.",
-                        "Hata",
+                        $"PDF oluşturulamadı:\n\n{ex.GetType().Name}\n{ex.Message}",
+                        "PDF Export Hatası",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
                 }
                 else
                 {
-                    DevExpress.XtraEditors.XtraMessageBox.Show(
-                        $"PDF başarıyla oluşturuldu:\n{path}",
-                        "PDF Export",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
+                    // Verify file actually exists and has content
+                    if (!System.IO.File.Exists(path) || new System.IO.FileInfo(path).Length < 200)
+                    {
+                        DevExpress.XtraEditors.XtraMessageBox.Show(
+                            $"PDF üretildi gibi görünüyor ama dosya oluşmadı veya boş.\n\nPath: {path}\n\nLog: %LocalAppData%\\NovaBank\\logs",
+                            "PDF Export Uyarı",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                    }
+                    else
+                    {
+                        DevExpress.XtraEditors.XtraMessageBox.Show(
+                            $"PDF başarıyla oluşturuldu:\n{path}",
+                            "PDF Export",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                    }
                 }
             }, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
         }
