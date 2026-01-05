@@ -118,6 +118,8 @@ namespace BankApp.UI.Controls
         {
             try
             {
+                if (candles == null || candles.Count == 0) { ShowChartError("Veri yok"); return; }
+                
                 // Lazy init ChartControl
                 if (chartMain == null)
                 {
@@ -125,12 +127,12 @@ namespace BankApp.UI.Controls
                     chartMain.Dock = DockStyle.Fill;
                     chartMain.BackColor = Color.FromArgb(14, 14, 14);
                     chartMain.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
+                    chartMain.CrosshairEnabled = DevExpress.Utils.DefaultBoolean.True;
                     pnlChart.Controls.Add(chartMain);
                     chartMain.BringToFront();
                 }
                 
                 chartMain.Series.Clear();
-                if (candles == null || candles.Count == 0) { ShowChartError("Veri yok"); return; }
                 
                 var series = new Series(_currentSymbol, ViewType.CandleStick);
                 series.ArgumentScaleType = ScaleType.DateTime;
@@ -151,34 +153,9 @@ namespace BankApp.UI.Controls
                 if (_showEMA12) AddEMA(candles, 12, Color.FromArgb(0, 188, 212));
                 if (_showBollinger) AddBollingerBands(candles, 20, 2);
                 
-                var diagram = chartMain.Diagram as XYDiagram;
-                if (diagram != null)
-                {
-                    diagram.EnableAxisXZooming = true;
-                    diagram.EnableAxisYZooming = true;
-                    diagram.EnableAxisXScrolling = true;
-                    diagram.EnableAxisYScrolling = true;
-                    diagram.ZoomingOptions.UseMouseWheel = true;
-                    diagram.AxisX.Label.TextPattern = "{A:MM/dd}";
-                    diagram.AxisX.Color = Color.FromArgb(40, 40, 40);
-                    diagram.AxisY.Color = Color.FromArgb(40, 40, 40);
-                    diagram.AxisX.GridLines.Color = Color.FromArgb(30, 30, 30);
-                    diagram.AxisY.GridLines.Color = Color.FromArgb(30, 30, 30);
-                    diagram.AxisX.GridLines.Visible = true;
-                    diagram.AxisY.GridLines.Visible = true;
-                    diagram.AxisX.Label.Font = new Font("Segoe UI", 8F);
-                    diagram.AxisY.Label.Font = new Font("Segoe UI", 8F);
-                    diagram.AxisX.Label.TextColor = Color.FromArgb(130, 130, 130);
-                    diagram.AxisY.Label.TextColor = Color.FromArgb(130, 130, 130);
-                    diagram.DefaultPane.BackColor = Color.FromArgb(14, 14, 14);
-                }
+                // Configure diagram AFTER series added (use BeginInvoke to ensure handle exists)
+                BeginInvoke(new Action(() => ConfigureDiagram()));
                 
-                chartMain.CrosshairEnabled = DevExpress.Utils.DefaultBoolean.True;
-                chartMain.CrosshairOptions.ShowArgumentLabels = true;
-                chartMain.CrosshairOptions.ShowValueLabels = true;
-                chartMain.CrosshairOptions.ArgumentLineColor = Color.FromArgb(80, 80, 80);
-                chartMain.CrosshairOptions.ValueLineColor = Color.FromArgb(80, 80, 80);
-                chartMain.Legend.Visibility = DevExpress.Utils.DefaultBoolean.False;
                 chartMain.Visible = true;
                 chartMain.BringToFront();
             }
@@ -187,6 +164,40 @@ namespace BankApp.UI.Controls
                 System.Diagnostics.Debug.WriteLine($"RenderChart Error: {ex.Message}");
                 ShowChartError("Grafik yüklenemedi");
             }
+        }
+        
+        private void ConfigureDiagram()
+        {
+            try
+            {
+                if (chartMain == null) return;
+                var diagram = chartMain.Diagram as XYDiagram;
+                if (diagram == null) return;
+                
+                diagram.EnableAxisXZooming = true;
+                diagram.EnableAxisYZooming = true;
+                diagram.EnableAxisXScrolling = true;
+                diagram.EnableAxisYScrolling = true;
+                diagram.ZoomingOptions.UseMouseWheel = true;
+                diagram.AxisX.Label.TextPattern = "{A:MM/dd}";
+                diagram.AxisX.Color = Color.FromArgb(40, 40, 40);
+                diagram.AxisY.Color = Color.FromArgb(40, 40, 40);
+                diagram.AxisX.GridLines.Color = Color.FromArgb(30, 30, 30);
+                diagram.AxisY.GridLines.Color = Color.FromArgb(30, 30, 30);
+                diagram.AxisX.GridLines.Visible = true;
+                diagram.AxisY.GridLines.Visible = true;
+                diagram.AxisX.Label.Font = new Font("Segoe UI", 8F);
+                diagram.AxisY.Label.Font = new Font("Segoe UI", 8F);
+                diagram.AxisX.Label.TextColor = Color.FromArgb(130, 130, 130);
+                diagram.AxisY.Label.TextColor = Color.FromArgb(130, 130, 130);
+                diagram.DefaultPane.BackColor = Color.FromArgb(14, 14, 14);
+                
+                chartMain.CrosshairOptions.ShowArgumentLabels = true;
+                chartMain.CrosshairOptions.ShowValueLabels = true;
+                chartMain.CrosshairOptions.ArgumentLineColor = Color.FromArgb(80, 80, 80);
+                chartMain.CrosshairOptions.ValueLineColor = Color.FromArgb(80, 80, 80);
+            }
+            catch { }
         }
         
         private void AddMA(List<MarketCandle> candles, int period, Color color)
