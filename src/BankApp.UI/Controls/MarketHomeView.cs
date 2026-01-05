@@ -10,6 +10,9 @@ using System.IO;
 using DevExpress.XtraEditors;
 using DevExpress.Utils;
 using BankApp.Infrastructure.Services;
+using BankApp.UI.Services;
+using BankApp.UI.Forms;
+using System.Threading;
 
 namespace BankApp.UI.Controls
 {
@@ -259,9 +262,9 @@ namespace BankApp.UI.Controls
             }
             else
             {
-                lblChange.Text = "N/A";
-                lblChange.ForeColor = Color.FromArgb(150, 150, 150);
-                lblChange.BackColor = Color.FromArgb(40, 40, 40);
+                lblChange.Text = "—";
+                lblChange.ForeColor = Color.FromArgb(120, 120, 120);
+                lblChange.BackColor = Color.FromArgb(35, 35, 35);
             }
             lblChange.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblChange.Location = new Point(200, 38);
@@ -279,6 +282,10 @@ namespace BankApp.UI.Controls
             card.Size = new Size(290, 100);
             card.Margin = new Padding(6);
             card.BackColor = Color.FromArgb(24, 24, 24);
+            card.Cursor = Cursors.Hand;
+            card.MouseEnter += (s, e) => card.BackColor = Color.FromArgb(35, 35, 35);
+            card.MouseLeave += (s, e) => card.BackColor = Color.FromArgb(24, 24, 24);
+            card.Click += (s, e) => OpenIPODetail(ipo);
             
             // Badge
             var pnlBadge = new Panel();
@@ -369,6 +376,20 @@ namespace BankApp.UI.Controls
             path.AddArc(rect.X, rect.Bottom - radius * 2, radius * 2, radius * 2, 90, 90);
             path.CloseFigure();
             return path;
+        }
+        
+        private void OpenIPODetail(IPOItem ipo)
+        {
+            try
+            {
+                var form = new IPODetailForm(ipo.Company, ipo.Ticker, ipo.PriceRange, ipo.Date, ipo.Status);
+                form.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"IPO Detail Error: {ex.Message}");
+                XtraMessageBox.Show("Detay açılamadı. Lütfen tekrar deneyin.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
         
         private void RenderCards(List<MarketAsset> assets)
