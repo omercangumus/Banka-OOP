@@ -638,16 +638,36 @@ namespace BankApp.UI.Controls
         
         private void BtnBuy_Click(object sender, EventArgs e)
         {
+            if (!ValidateOrder()) return;
             var orderType = cmbOrderType.EditValue?.ToString() ?? "Market";
             var amount = txtAmount.Text;
-            MessageBox.Show($"BUY Emri\nSembol: {_currentSymbol}\nTip: {orderType}\nMiktar: {amount}", "Emir Onayı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            var price = orderType == "Market" ? "Piyasa Fiyatı" : txtPrice.Text;
+            MessageBox.Show($"✅ BUY Emri Oluşturuldu\n\nSembol: {_currentSymbol}\nTip: {orderType}\nFiyat: {price}\nMiktar: {amount}\nToplam: {txtTotal.Text}", "Emir Onayı", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         
         private void BtnSell_Click(object sender, EventArgs e)
         {
+            if (!ValidateOrder()) return;
             var orderType = cmbOrderType.EditValue?.ToString() ?? "Market";
             var amount = txtAmount.Text;
-            MessageBox.Show($"SELL Emri\nSembol: {_currentSymbol}\nTip: {orderType}\nMiktar: {amount}", "Emir Onayı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            var price = orderType == "Market" ? "Piyasa Fiyatı" : txtPrice.Text;
+            MessageBox.Show($"✅ SELL Emri Oluşturuldu\n\nSembol: {_currentSymbol}\nTip: {orderType}\nFiyat: {price}\nMiktar: {amount}\nToplam: {txtTotal.Text}", "Emir Onayı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        
+        private bool ValidateOrder()
+        {
+            if (string.IsNullOrWhiteSpace(txtAmount.Text) || !double.TryParse(txtAmount.Text, out double amt) || amt <= 0)
+            {
+                MessageBox.Show("⚠️ Geçerli bir miktar giriniz.", "Validasyon Hatası", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            var orderType = cmbOrderType.EditValue?.ToString() ?? "Market";
+            if (orderType != "Market" && (string.IsNullOrWhiteSpace(txtPrice.Text) || !double.TryParse(txtPrice.Text, out double price) || price <= 0))
+            {
+                MessageBox.Show("⚠️ Limit/Stop emirleri için geçerli bir fiyat giriniz.", "Validasyon Hatası", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            return true;
         }
         
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Windows.Forms;
 using DevExpress.XtraEditors;
 using DevExpress.XtraCharts;
@@ -41,6 +42,14 @@ namespace BankApp.UI.Forms
         private ChartDrawing _selectedDrawing = null;
         private bool _isDragging = false;
         private Point _dragOffset;
+        
+        // Undo/Redo
+        private Stack<List<ChartDrawing>> _undoStack = new Stack<List<ChartDrawing>>();
+        private Stack<List<ChartDrawing>> _redoStack = new Stack<List<ChartDrawing>>();
+        private SimpleButton btnUndo, btnRedo, btnSave;
+        
+        // Drawings file path
+        private static readonly string _drawingsDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "NovaBank_Drawings");
         
         public FullscreenChartForm(IMarketDataProvider dataProvider, string symbol, string timeframe)
         {
@@ -138,9 +147,21 @@ namespace BankApp.UI.Forms
             btnRectangle = CreateToolButton("▢", "rectangle", toolY); toolY += 45;
             btnFibonacci = CreateToolButton("ƒ", "fibonacci", toolY); toolY += 45;
             btnText = CreateToolButton("T", "text", toolY); toolY += 60;
-            btnClearAll = CreateToolButton("🗑", "clear", toolY);
+            btnClearAll = CreateToolButton("🗑", "clear", toolY); toolY += 55;
             btnClearAll.Click -= ToolButton_Click;
-            btnClearAll.Click += (s, e) => { _drawings.Clear(); chartMain.Invalidate(); };
+            btnClearAll.Click += (s, e) => { SaveUndoState(); _drawings.Clear(); chartMain.Invalidate(); };
+            
+            btnUndo = CreateToolButton("↩", "undo", toolY); toolY += 45;
+            btnUndo.Click -= ToolButton_Click;
+            btnUndo.Click += (s, e) => Undo();
+            
+            btnRedo = CreateToolButton("↪", "redo", toolY); toolY += 45;
+            btnRedo.Click -= ToolButton_Click;
+            btnRedo.Click += (s, e) => Redo();
+            
+            btnSave = CreateToolButton("💾", "save", toolY);
+            btnSave.Click -= ToolButton_Click;
+            btnSave.Click += (s, e) => SaveDrawings();
             
             pnlToolbar.Controls.Add(btnCrosshair);
             pnlToolbar.Controls.Add(btnTrendline);
@@ -149,6 +170,9 @@ namespace BankApp.UI.Forms
             pnlToolbar.Controls.Add(btnFibonacci);
             pnlToolbar.Controls.Add(btnText);
             pnlToolbar.Controls.Add(btnClearAll);
+            pnlToolbar.Controls.Add(btnUndo);
+            pnlToolbar.Controls.Add(btnRedo);
+            pnlToolbar.Controls.Add(btnSave);
             
             // Context menu
             ctxMenu = new ContextMenuStrip();
@@ -180,6 +204,9 @@ namespace BankApp.UI.Forms
             
             // Highlight current timeframe
             HighlightTimeframe(_timeframe);
+            
+            // Load saved drawings
+            LoadDrawings();
             
             // Load chart
             LoadChartAsync();
@@ -497,6 +524,7 @@ namespace BankApp.UI.Forms
         {
             if (_drawStart.HasValue && _currentTool != "crosshair")
             {
+                SaveUndoState();
                 _drawings.Add(new ChartDrawing
                 {
                     Type = _currentTool,
@@ -516,6 +544,61 @@ namespace BankApp.UI.Forms
                 chartMain.Invalidate();
             }
         }
+        
+        private void SaveUndoState()
+        {
+            var copy = _drawings.Select(d => new ChartDrawing { Type = d.Type, Start = d.Start, End = d.End, Color = d.Color }).ToList();
+            _undoStack.Push(copy);
+            _redoStack.Clear();
+            if (_undoStack.Count > 20) { var temp = _undoStack.ToArray(); _undoStack.Clear(); for (int i = 0; i < 20; i++) _undoStack.Push(temp[19 - i]); }
+        }
+        
+        private void Undo()
+        {
+            if (_undoStack.Count == 0) return;
+            var current = _drawings.Select(d => new ChartDrawing { Type = d.Type, Start = d.Start, End = d.End, Color = d.Color }).ToList();
+            _redoStack.Push(current);
+            _drawings = _undoStack.Pop();
+            chartMain.Invalidate();
+        }
+        
+        private void Redo()
+        {
+            if (_redoStack.Count == 0) return;
+            var current = _drawings.Select(d => new ChartDrawing { Type = d.Type, Start = d.Start, End = d.End, Color = d.Color }).ToList();
+            _undoStack.Push(current);
+            _drawings = _redoStack.Pop();
+            chartMain.Invalidate();
+        }
+        
+        private void SaveDrawings()
+        {
+            try
+            {
+                if (!System.IO.Directory.Exists(_drawingsDir)) System.IO.Directory.CreateDirectory(_drawingsDir);
+                var filePath = System.IO.Path.Combine(_drawingsDir, $"{_symbol.Replace("/", "_")}.json");
+                var json = System.Text.Json.JsonSerializer.Serialize(_drawings.Select(d => new { d.Type, StartX = d.Start.X, StartY = d.Start.Y, EndX = d.End.X, EndY = d.End.Y, R = d.Color.R, G = d.Color.G, B = d.Color.B }));
+                System.IO.File.WriteAllText(filePath, json);
+                MessageBox.Show("Çizimler kaydedildi!", "Kaydet", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex) { MessageBox.Show($"Kayıt hatası: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+        }
+        
+        private void LoadDrawings()
+        {
+            try
+            {
+                var filePath = System.IO.Path.Combine(_drawingsDir, $"{_symbol.Replace("/", "_")}.json");
+                if (!System.IO.File.Exists(filePath)) return;
+                var json = System.IO.File.ReadAllText(filePath);
+                var items = System.Text.Json.JsonSerializer.Deserialize<List<DrawingDto>>(json);
+                _drawings = items?.Select(d => new ChartDrawing { Type = d.Type, Start = new Point(d.StartX, d.StartY), End = new Point(d.EndX, d.EndY), Color = Color.FromArgb(d.R, d.G, d.B) }).ToList() ?? new List<ChartDrawing>();
+                chartMain.Invalidate();
+            }
+            catch { }
+        }
+        
+        private class DrawingDto { public string Type { get; set; } public int StartX { get; set; } public int StartY { get; set; } public int EndX { get; set; } public int EndY { get; set; } public byte R { get; set; } public byte G { get; set; } public byte B { get; set; } }
         
         private class ChartDrawing
         {
