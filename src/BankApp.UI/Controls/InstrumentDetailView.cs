@@ -11,6 +11,7 @@ using DevExpress.XtraGrid;
 using DevExpress.XtraGrid.Views.Grid;
 using BankApp.Infrastructure.Services;
 using BankApp.UI.Forms;
+using BankApp.UI.Services.Pdf;
 
 namespace BankApp.UI.Controls
 {
@@ -30,7 +31,7 @@ namespace BankApp.UI.Controls
         private SimpleButton btnBack;
         private LabelControl lblSymbol;
         private SimpleButton btnTf1m, btnTf5m, btnTf15m, btnTf1H, btnTf4H, btnTf1D, btnTf1W;
-        private SimpleButton btnRefresh, btnAnalysis;
+        private SimpleButton btnRefresh, btnAnalysis, btnExportPdf;
         private CheckEdit chkMA20, chkEMA12, chkBollinger;
         
         // Order Panel
@@ -48,6 +49,8 @@ namespace BankApp.UI.Controls
         private LabelControl lblChartLoading;
         private bool _isLoadingChart = false;
         private bool _showMA20, _showEMA12, _showBollinger;
+        private double _lastPrice = 0;
+        private double _changePercent = 0;
         
         private readonly IMarketDataProvider _dataProvider;
         
@@ -74,6 +77,8 @@ namespace BankApp.UI.Controls
                     var quote = await _dataProvider.GetQuoteAsync(_currentSymbol);
                     if (quote != null)
                     {
+                        _lastPrice = quote.Current;
+                        _changePercent = quote.ChangePercent;
                         lblCurrentPrice.Text = "$" + quote.Current.ToString("N2");
                         lblCurrentPrice.ForeColor = quote.Change >= 0 ? Color.FromArgb(38, 166, 91) : Color.FromArgb(232, 65, 66);
                     }
@@ -340,6 +345,17 @@ namespace BankApp.UI.Controls
             btnAnalysis.Appearance.Options.UseForeColor = true;
             btnAnalysis.Click += BtnAnalysis_Click;
             pnlHeader.Controls.Add(btnAnalysis);
+            
+            btnExportPdf = new SimpleButton();
+            btnExportPdf.Text = "📄 PDF";
+            btnExportPdf.Size = new Size(70, 30);
+            btnExportPdf.Location = new Point(tfX + 385, 8);
+            btnExportPdf.Appearance.BackColor = Color.FromArgb(33, 150, 243);
+            btnExportPdf.Appearance.ForeColor = Color.White;
+            btnExportPdf.Appearance.Options.UseBackColor = true;
+            btnExportPdf.Appearance.Options.UseForeColor = true;
+            btnExportPdf.Click += BtnExportPdf_Click;
+            pnlHeader.Controls.Add(btnExportPdf);
             
             // RIGHT PANEL - Binance-like Order Entry
             pnlRight = new PanelControl();
@@ -668,6 +684,58 @@ namespace BankApp.UI.Controls
                 return false;
             }
             return true;
+        }
+        
+        private void BtnExportPdf_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using var dialog = new SaveFileDialog();
+                dialog.Filter = "PDF Files (*.pdf)|*.pdf";
+                dialog.FileName = $"{_currentSymbol}_Analysis_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                dialog.Title = "PDF Raporu Kaydet";
+                
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+                
+                var data = new InvestmentReportData
+                {
+                    Symbol = _currentSymbol,
+                    Name = _currentSymbol,
+                    AssetType = _dataProvider.GetType().Name.Contains("Binance") ? "Crypto" : "Stock",
+                    LastPrice = _lastPrice,
+                    ChangePercent = _changePercent,
+                    ChangeAbsolute = _lastPrice * _changePercent / 100,
+                    Timeframe = _currentTimeframe,
+                    GeneratedAt = DateTime.Now,
+                    BollingerEnabled = _showBollinger,
+                    UserNotes = ""
+                };
+                
+                // Try to capture chart image
+                try
+                {
+                    using var ms = new System.IO.MemoryStream();
+                    chartMain.ExportToImage(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    data.ChartImage = ms.ToArray();
+                }
+                catch { }
+                
+                PdfGenerator.GenerateInvestmentAnalysisReport(data, dialog.FileName);
+                
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"PDF başarıyla oluşturuldu:\n{dialog.FileName}",
+                    "PDF Export",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"PDF oluşturulurken hata: {ex.Message}",
+                    "Hata",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
         
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
