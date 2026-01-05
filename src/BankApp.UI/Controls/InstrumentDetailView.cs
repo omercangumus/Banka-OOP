@@ -419,7 +419,7 @@ namespace BankApp.UI.Controls
         
         private void BtnAnalysis_Click(object sender, EventArgs e)
         {
-            var form = new FullscreenChartForm(_dataProvider, _currentSymbol, _currentTimeframe);
+            var form = new ChartAnalysisForm(_dataProvider, _currentSymbol, _currentTimeframe);
             form.ShowDialog();
         }
         
