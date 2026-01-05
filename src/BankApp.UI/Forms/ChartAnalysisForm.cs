@@ -1055,6 +1055,17 @@ namespace BankApp.UI.Forms
         {
             try
             {
+                // Validate symbol exists
+                if (string.IsNullOrWhiteSpace(_symbol))
+                {
+                    DevExpress.XtraEditors.XtraMessageBox.Show(
+                        "PDF için sembol bilgisi bulunamadı.",
+                        "Uyarı",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
+                
                 using var dialog = new SaveFileDialog();
                 dialog.Filter = "PDF Files (*.pdf)|*.pdf";
                 dialog.FileName = $"{_symbol}_Analysis_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
@@ -1062,16 +1073,20 @@ namespace BankApp.UI.Forms
                 
                 if (dialog.ShowDialog() != DialogResult.OK) return;
                 
+                // Validate path
+                if (string.IsNullOrWhiteSpace(dialog.FileName))
+                    return;
+                
                 var lastPrice = _candles.Count > 0 ? _candles.Last().Close : 0;
                 var prevPrice = _candles.Count > 1 ? _candles[^2].Close : lastPrice;
                 var changePercent = prevPrice > 0 ? ((lastPrice - prevPrice) / prevPrice) * 100 : 0;
                 
-                // Use simple InvestmentAnalysisData instead of InvestmentReportData
+                // Create data - ensure it's never null
                 var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
                 {
-                    Symbol = _symbol,
-                    Name = _symbol,
-                    Timeframe = _timeframe,
+                    Symbol = _symbol ?? "UNKNOWN",
+                    Name = _symbol ?? "UNKNOWN",
+                    Timeframe = _timeframe ?? "1D",
                     LastPrice = lastPrice,
                     ChangePercent = changePercent,
                     ChangeAbsolute = lastPrice - prevPrice,
@@ -1082,8 +1097,10 @@ namespace BankApp.UI.Forms
                     GeneratedAt = DateTime.Now
                 };
                 
+                // Generate PDF
                 BankApp.UI.Services.Pdf.PdfGenerator.GenerateInvestmentAnalysis(data, dialog.FileName);
                 
+                // Success message
                 DevExpress.XtraEditors.XtraMessageBox.Show(
                     $"PDF başarıyla oluşturuldu:\n{dialog.FileName}",
                     "PDF Export",
@@ -1093,11 +1110,12 @@ namespace BankApp.UI.Forms
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"PDF Export Error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
                 DevExpress.XtraEditors.XtraMessageBox.Show(
-                    "PDF oluşturulamadı. Lütfen tekrar deneyin.",
+                    $"PDF oluşturulamıyor: {ex.Message}",
                     "Hata",
                     MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
+                    MessageBoxIcon.Error);
             }
         }
         
