@@ -719,25 +719,15 @@ namespace BankApp.UI.Controls
         {
             try
             {
-                UiActionTrace.LastAction = "BtnExportPdf_Click (InstrumentDetailView)";
-                
-                using var dialog = new SaveFileDialog();
-                dialog.Filter = "PDF Files (*.pdf)|*.pdf";
-                dialog.FileName = $"{_currentSymbol}_Analysis_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
-                dialog.Title = "PDF Raporu Kaydet";
-                dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                
-                if (dialog.ShowDialog() != DialogResult.OK) return;
-                
-                // Create data - NO chart references, only field values
+                // TEST: InvestmentAnalysisReport constructor only
                 var data = new BankApp.UI.Services.Pdf.InvestmentAnalysisData
                 {
-                    Symbol = _currentSymbol ?? "UNKNOWN",
-                    Name = _currentSymbol ?? "UNKNOWN",
-                    Timeframe = _currentTimeframe ?? "1D",
-                    LastPrice = _lastPrice,
-                    ChangePercent = _changePercent,
-                    ChangeAbsolute = _lastPrice * _changePercent / 100,
+                    Symbol = _currentSymbol ?? "TEST",
+                    Name = "Test",
+                    Timeframe = "1D",
+                    LastPrice = 100,
+                    ChangePercent = 5,
+                    ChangeAbsolute = 5,
                     RSI = "N/A",
                     MACD = "N/A",
                     Signal = "N/A",
@@ -745,23 +735,15 @@ namespace BankApp.UI.Controls
                     GeneratedAt = DateTime.Now
                 };
                 
-                // Use DevExpress XtraReport instead of QuestPDF
-                BankApp.UI.Reports.PdfReportExporter.GenerateInvestmentReport(data, dialog.FileName);
+                DevExpress.XtraEditors.XtraMessageBox.Show("Constructor test başlıyor...", "Test", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 
-                DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"PDF başarıyla oluşturuldu:\n{dialog.FileName}",
-                    "PDF Export",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                using var report = new BankApp.UI.Reports.InvestmentAnalysisReport(data);
+                
+                DevExpress.XtraEditors.XtraMessageBox.Show("Constructor başarılı!", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"PDF Error: {ex}");
-                DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"PDF oluşturulamadı:\n\n{ex.GetType().Name}\n{ex.Message}",
-                    "PDF Export Hatası",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                DevExpress.XtraEditors.XtraMessageBox.Show($"CONSTRUCTOR HATASI:\n{ex.GetType().Name}\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         
