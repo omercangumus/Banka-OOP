@@ -601,7 +601,11 @@ namespace BankApp.UI.Controls
             btn.Appearance.Options.UseForeColor = true;
             btn.Click += (s, e) => {
                 var pct = int.Parse(text.Replace("%", "")) / 100.0;
-                txtAmount.EditValue = (10 * pct).ToString("N4");
+                var mockBalance = 10000.0;
+                var price = _lastPrice > 0 ? _lastPrice : 100.0;
+                var maxQty = mockBalance / price;
+                txtAmount.EditValue = (maxQty * pct).ToString("N4");
+                UpdateTotal();
             };
             return btn;
         }
@@ -621,9 +625,10 @@ namespace BankApp.UI.Controls
                 }
                 
                 var total = amt * price;
+                var fee = total * 0.001; // 0.1% fee
                 txtTotal.EditValue = total.ToString("N2");
-                lblFee.Text = $"Tahmini Komisyon: ~${(total * 0.001):N2}";
-                lblAvailBalance.Text = $"Bakiye: ${(_lastPrice * 10):N2}"; // Mock balance
+                lblFee.Text = $"Komisyon (0.1%): ${fee:N2}";
+                lblAvailBalance.Text = $"Kullanılabilir: $10,000.00 USDT"; // Mock balance
             }
             catch { }
         }
