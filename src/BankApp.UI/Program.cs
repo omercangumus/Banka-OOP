@@ -20,6 +20,11 @@ namespace BankApp.UI
         static async System.Threading.Tasks.Task Main()
         {
             // ==================================================================
+            // STEP 0: CONFIGURE QUESTPDF LICENSE
+            // ==================================================================
+            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+            
+            // ==================================================================
             // STEP 1: GLOBAL EXCEPTION HANDLERS - PREVENT SILENT CRASHES
             // ==================================================================
             
