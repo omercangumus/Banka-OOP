@@ -186,6 +186,7 @@ namespace BankApp.UI
             logContent.AppendLine("=".PadRight(70, '='));
             logContent.AppendLine($"CRASH LOG - {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             logContent.AppendLine($"SOURCE: {source}");
+            logContent.AppendLine($"LAST_UI_ACTION: {UiActionTrace.LastAction}");
             logContent.AppendLine("=".PadRight(70, '='));
             logContent.AppendLine();
             logContent.AppendLine($"Exception Type: {ex.GetType().FullName}");
