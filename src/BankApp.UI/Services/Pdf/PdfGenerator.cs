@@ -34,5 +34,17 @@ namespace BankApp.UI.Services.Pdf
             var document = new InvestmentAnalysisReportDocument(data);
             return document.GeneratePdf();
         }
+        
+        public static void GenerateInvestmentAnalysis(InvestmentAnalysisData data, string filePath)
+        {
+            if (data == null)
+                throw new ArgumentNullException(nameof(data));
+            
+            if (string.IsNullOrWhiteSpace(filePath))
+                throw new ArgumentNullException(nameof(filePath));
+            
+            var document = new InvestmentAnalysisDocument(data);
+            document.GeneratePdf(filePath);
+        }
     }
 }

@@ -67,9 +67,7 @@ namespace BankApp.UI.Services
                 var requests = LoadRequests();
                 requests.Add(request);
                 
-                var json = JsonSerializer.Serialize(requests, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_requestsPath, json);
-                return true;
+                return AtomicWrite(requests);
             }
             catch (Exception ex)
             {
@@ -88,13 +86,42 @@ namespace BankApp.UI.Services
                 
                 request.Status = status;
                 
-                var json = JsonSerializer.Serialize(requests, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_requestsPath, json);
-                return true;
+                return AtomicWrite(requests);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"IPO Store Update Error: {ex.Message}");
+                return false;
+            }
+        }
+        
+        private static bool AtomicWrite(List<IPORequest> requests)
+        {
+            var tempPath = _requestsPath + ".tmp";
+            try
+            {
+                var json = JsonSerializer.Serialize(requests, new JsonSerializerOptions { WriteIndented = true });
+                
+                // Write to temp file first
+                File.WriteAllText(tempPath, json);
+                
+                // Replace original file atomically
+                if (File.Exists(_requestsPath))
+                    File.Delete(_requestsPath);
+                File.Move(tempPath, _requestsPath);
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"IPO Store Atomic Write Error: {ex.Message}");
+                
+                // Clean up temp file if exists
+                if (File.Exists(tempPath))
+                {
+                    try { File.Delete(tempPath); } catch { }
+                }
+                
                 return false;
             }
         }
