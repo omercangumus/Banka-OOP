@@ -188,10 +188,15 @@ namespace BankApp.UI.Controls
                     }
                     catch { }
                     
-                    // Notify dashboard
-                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] EVENT: AppEvents.NotifyDataChanged(source='InstrumentDetailView', action='{actionType}')");
-                    AppEvents.NotifyDataChanged("InstrumentDetailView", actionType);
-                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] EVENT: PortfolioEvents.OnPortfolioChanged(userId={AppEvents.CurrentSession.UserId}, changeType='Trade')");
+                    // B3: TEK RefreshPipeline - NotifyTradeCompleted
+                    AppEvents.NotifyTradeCompleted(
+                        primaryAccount.Id,
+                        primaryAccount.CustomerId,
+                        _currentSymbol,
+                        totalAmount,
+                        isBuy);
+                    
+                    // Legacy events (opsiyonel - yedek olarak)
                     PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "Trade");
                     
                     // Show success - REAL TRADE COMPLETE
