@@ -33,6 +33,9 @@ namespace BankApp.UI.Controls
         
         private async Task ExecuteRealTradeAsync(bool isBuy)
         {
+            // [CRITICAL] TradeStart - ZORUNLU
+            System.Diagnostics.Debug.WriteLine($"[CRITICAL] TradeStart viewType={GetType().FullName} viewHash={GetHashCode()} isBuy={isBuy} symbol={_currentSymbol} userId={AppEvents.CurrentSession.UserId}");
+            
             // Initialize services if not already done
             if (_transactionService == null)
             {

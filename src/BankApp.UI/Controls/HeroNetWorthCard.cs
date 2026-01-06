@@ -19,6 +19,9 @@ namespace BankApp.UI.Controls
 
         public HeroNetWorthCard()
         {
+            // [OPENED] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Handle=PENDING | Hash={GetHashCode()} | Parent={Parent?.Name ?? "null"} | Visible={Visible}");
+            
             this.DoubleBuffered = true;
             this.Size = new Size(480, 200);
             this.MinimumSize = new Size(400, 180);
@@ -34,8 +37,8 @@ namespace BankApp.UI.Controls
         
         private void HeroNetWorthCard_MouseClick(object sender, MouseEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: HeroNetWorthCard clicked at ({e.X},{e.Y}), control={GetType().FullName}");
-            System.Diagnostics.Debug.WriteLine($"[IBAN] MouseClick at ({e.X},{e.Y}), ibanRect={ibanRect}, userIban={userIban}");
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] HeroNetWorthCard.MouseClick | senderHash={sender?.GetHashCode()} | controlHash={this.GetHashCode()} | click=({e.X},{e.Y}) | ibanRect={ibanRect} | iban={userIban}");
             
             // Check if click is on IBAN area (with 15px tolerance)
             var toleranceRect = new Rectangle(

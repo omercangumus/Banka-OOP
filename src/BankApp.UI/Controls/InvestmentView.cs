@@ -167,7 +167,8 @@ namespace BankApp.UI.Controls
 
         public InvestmentView()
         {
-            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] OPENED: {GetType().FullName}");
+            // [OPENED] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Handle=PENDING | Hash={GetHashCode()} | Parent={Parent?.Name ?? "null"} | Visible={Visible}");
             System.Diagnostics.Debug.WriteLine("=== INVESTMENTVIEW LOADED v2 ===");
             
             _finnhubService = new FinnhubService();
@@ -1099,13 +1100,15 @@ namespace BankApp.UI.Controls
 
         private async void BtnBuy_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnBuy clicked, this={GetType().FullName}");
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] btnBuy.Click -> BtnBuy_Click | senderType={sender?.GetType().Name} | senderHash={sender?.GetHashCode()} | formHash={this.GetHashCode()} | viewType={GetType().FullName}");
             await ExecuteTradeAsync(isBuy: true);
         }
 
         private async void BtnSell_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnSell clicked, this={GetType().FullName}");
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] btnSell.Click -> BtnSell_Click | senderType={sender?.GetType().Name} | senderHash={sender?.GetHashCode()} | formHash={this.GetHashCode()} | viewType={GetType().FullName}");
             await ExecuteTradeAsync(isBuy: false);
         }
         
@@ -1114,6 +1117,8 @@ namespace BankApp.UI.Controls
         /// </summary>
         private async Task ExecuteTradeAsync(bool isBuy)
         {
+            // [CRITICAL] TradeStart - ZORUNLU
+            System.Diagnostics.Debug.WriteLine($"[CRITICAL] TradeStart viewType={GetType().FullName} viewHash={GetHashCode()} isBuy={isBuy} symbol={_currentSymbol} userId={AppEvents.CurrentSession.UserId}");
             System.Diagnostics.Debug.WriteLine($"[TRADE] ExecuteTradeAsync START - isBuy={isBuy}, symbol={_currentSymbol}, qtyText={txtOrderQuantity.Text}");
             
             // Double-click prevention

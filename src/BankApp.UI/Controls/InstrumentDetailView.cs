@@ -57,6 +57,9 @@ namespace BankApp.UI.Controls
         
         public InstrumentDetailView(IMarketDataProvider dataProvider)
         {
+            // [OPENED] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Handle=PENDING | Hash={GetHashCode()} | Parent={Parent?.Name ?? "null"} | Visible={Visible}");
+            
             _dataProvider = dataProvider;
             InitializeComponents();
         }
@@ -759,12 +762,16 @@ namespace BankApp.UI.Controls
         
         private async void BtnBuy_Click(object sender, EventArgs e)
         {
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] btnBuy.Click -> BtnBuy_Click | senderType={sender?.GetType().Name} | senderHash={sender?.GetHashCode()} | formHash={this.GetHashCode()} | viewType={GetType().FullName}");
             if (!ValidateOrder()) return;
             await ExecuteRealTradeAsync(isBuy: true);
         }
         
         private async void BtnSell_Click(object sender, EventArgs e)
         {
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] btnSell.Click -> BtnSell_Click | senderType={sender?.GetType().Name} | senderHash={sender?.GetHashCode()} | formHash={this.GetHashCode()} | viewType={GetType().FullName}");
             if (!ValidateOrder()) return;
             await ExecuteRealTradeAsync(isBuy: false);
         }
