@@ -1163,7 +1163,11 @@ namespace BankApp.UI.Controls
                     price = 100m; // Fallback price
                 }
                 
-                decimal totalAmount = quantity * price;
+                // S3 KUR FIX: USD fiyatı TRY'ye çevir
+                string symbolCurrency = CurrencyConversionService.GetCurrencyForSymbol(_currentSymbol);
+                decimal totalAmountTry = CurrencyConversionService.GetTryValue(_currentSymbol, price, quantity);
+                
+                System.Diagnostics.Debug.WriteLine($"[DATA] MoneyConvert symbol={_currentSymbol} qty={quantity} priceUsd={price:N2} currency={symbolCurrency} totalTry={totalAmountTry:N2}");
                 
                 // Get user's primary account (UserId is used as CustomerId)
                 System.Diagnostics.Debug.WriteLine($"[CRITICAL] Trade START - UserId={AppEvents.CurrentSession.UserId}");
@@ -1184,18 +1188,19 @@ namespace BankApp.UI.Controls
                 
                 if (isBuy)
                 {
-                    // AL: Bakiyeden düş (Withdraw)
+                    // AL: Bakiyeden düş (Withdraw) - TRY cinsinden
                     result = await _transactionService.WithdrawAsync(
                         primaryAccount.Id, 
-                        totalAmount, 
-                        $"Yatırım AL: {quantity} adet {_currentSymbol} @ ${price:N2}");
+                        totalAmountTry, 
+                        $"Yatırım AL: {quantity} adet {_currentSymbol} @ ${price:N2} (Kur: {CurrencyConversionService.UsdTryRate:N2})");
                     actionType = "StockBuy";
                     
-                    // Update portfolio position
+                    // Update portfolio position - TRY maliyet olarak kaydet
                     if (result == null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[CRITICAL] BuyAsync - CustomerId={primaryAccount.CustomerId}, Symbol={_currentSymbol}, Qty={quantity}");
-                        await _portfolioRepository.BuyAsync(primaryAccount.CustomerId, _currentSymbol, quantity, price);
+                        decimal priceTry = CurrencyConversionService.ConvertToTry(price, symbolCurrency);
+                        System.Diagnostics.Debug.WriteLine($"[CRITICAL] BuyAsync - CustomerId={primaryAccount.CustomerId}, Symbol={_currentSymbol}, Qty={quantity}, PriceTRY={priceTry:N2}");
+                        await _portfolioRepository.BuyAsync(primaryAccount.CustomerId, _currentSymbol, quantity, priceTry);
                     }
                 }
                 else
@@ -1210,11 +1215,11 @@ namespace BankApp.UI.Controls
                         return;
                     }
                     
-                    // SAT: Bakiyeye ekle (Deposit)
+                    // SAT: Bakiyeye ekle (Deposit) - TRY cinsinden
                     result = await _transactionService.DepositAsync(
                         primaryAccount.Id, 
-                        totalAmount, 
-                        $"Yatırım SAT: {quantity} adet {_currentSymbol} @ ${price:N2}");
+                        totalAmountTry, 
+                        $"Yatırım SAT: {quantity} adet {_currentSymbol} @ ${price:N2} (Kur: {CurrencyConversionService.UsdTryRate:N2})");
                     actionType = "StockSell";
                 }
                 
@@ -1285,17 +1290,17 @@ namespace BankApp.UI.Controls
                         AppEvents.CurrentSession.ActiveAccountId,
                         AppEvents.CurrentSession.CustomerId,
                         _currentSymbol,
-                        totalAmount,
+                        totalAmountTry,
                         isBuy);
                     
                     // Legacy events (opsiyonel - yedek olarak)
                     PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "Trade");
                     
-                    // Show success toast
+                    // Show success toast - TRY cinsinden göster
                     string tradeType = isBuy ? "AL" : "SAT";
                     ShowToast(
                         $"✓ {tradeType} Emri Gerçekleşti",
-                        $"{_currentSymbol} • {quantity} adet • ${totalAmount:N2}",
+                        $"{_currentSymbol} • {quantity} adet • ₺{totalAmountTry:N2}",
                         isError: false);
                     
                     // Clear quantity field

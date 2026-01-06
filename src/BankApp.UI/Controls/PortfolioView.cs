@@ -433,20 +433,25 @@ namespace BankApp.UI.Controls
                     });
                 }
                 
-                // 2. Stocks (if exists)
+                // 2. CustomerPortfolios - Gerçek pozisyonlar (S2 FIX)
                 try
                 {
-                    var stocks = await conn.QueryAsync<dynamic>(@"
+                    var portfolioPositions = await conn.QueryAsync<dynamic>(@"
                         SELECT 
                             'Hisse' as Category,
-                            Symbol as AssetName,
-                            Quantity,
-                            CurrentPrice as UnitPrice,
-                            (Quantity * CurrentPrice) as TotalValue,
-                            (Quantity * PurchasePrice) as TotalCost,
-                            (Quantity * (CurrentPrice - PurchasePrice)) as ProfitLoss
-                        FROM ""UserStocks""
-                        WHERE ""UserId"" = @UserId AND ""Quantity"" > 0");
+                            ""StockSymbol"" as AssetName,
+                            ""Quantity"",
+                            ""AverageCost"" as UnitPrice,
+                            (""Quantity"" * ""AverageCost"") as TotalValue,
+                            (""Quantity"" * ""AverageCost"") as TotalCost,
+                            0 as ProfitLoss
+                        FROM ""CustomerPortfolios""
+                        WHERE ""CustomerId"" = @CustomerId AND ""Quantity"" > 0",
+                        new { CustomerId = customerId.Value });
+                    
+                    System.Diagnostics.Debug.WriteLine($"[DATA] PortfolioView.CustomerPortfolios count={portfolioPositions.Count()} customerId={customerId.Value}");
+                    
+                    var stocks = portfolioPositions;
                     
                     foreach (var stock in stocks)
                     {
