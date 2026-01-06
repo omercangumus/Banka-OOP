@@ -55,55 +55,14 @@ namespace BankApp.UI.Controls
             // Check if click is on IBAN area (with 15px tolerance)
             if (!string.IsNullOrEmpty(userIban) && inTolerance)
             {
-                try
+                // UI thread'de çalıştır - STA thread fix
+                if (this.InvokeRequired)
                 {
-                    // MULTIPLE RETRY STRATEGY for clipboard
-                    bool success = false;
-                    Exception lastException = null;
-                    
-                    // Retry 1: SetDataObject with retry
-                    for (int i = 0; i < 3 && !success; i++)
-                    {
-                        try
-                        {
-                            Clipboard.Clear();
-                            System.Threading.Thread.Sleep(10);
-                            Clipboard.SetDataObject(userIban, true, 10, 100);
-                            success = true;
-                            System.Diagnostics.Debug.WriteLine($"[IBAN] Copy success on attempt {i+1}");
-                        }
-                        catch (Exception ex)
-                        {
-                            lastException = ex;
-                            System.Diagnostics.Debug.WriteLine($"[IBAN] Copy attempt {i+1} failed: {ex.Message}");
-                            System.Threading.Thread.Sleep(50);
-                        }
-                    }
-                    
-                    if (success)
-                    {
-                        copyTooltip.Show("✓ IBAN kopyalandı!", this, e.X, e.Y - 25, 1500);
-                        System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY SUCCESS: {userIban}");
-                        
-                        DevExpress.XtraEditors.XtraMessageBox.Show(
-                            $"✓ IBAN KOPYALANDI!\n\n{userIban}\n\nPanoya kopyalandı.",
-                            "Başarılı",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        throw lastException ?? new Exception("Clipboard kopyalama başarısız");
-                    }
+                    this.Invoke(new Action(() => CopyIbanToClipboard(userIban, e.X, e.Y)));
                 }
-                catch (Exception ex) 
-                { 
-                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY FAILED: {ex.Message}");
-                    DevExpress.XtraEditors.XtraMessageBox.Show(
-                        $"IBAN kopyalama hatası:\n{ex.Message}\n\nLütfen manuel kopyalayın:\n{userIban}",
-                        "Hata",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
+                else
+                {
+                    CopyIbanToClipboard(userIban, e.X, e.Y);
                 }
             }
             else
@@ -114,6 +73,59 @@ namespace BankApp.UI.Controls
                     "IBAN Kopyalanamadı",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
+            }
+        }
+        
+        private void CopyIbanToClipboard(string iban, int mouseX, int mouseY)
+        {
+            try
+            {
+                // UI thread'de çalışıyoruz, direkt clipboard kullan
+                bool success = false;
+                Exception lastException = null;
+                
+                for (int i = 0; i < 3 && !success; i++)
+                {
+                    try
+                    {
+                        Clipboard.Clear();
+                        System.Threading.Thread.Sleep(10);
+                        Clipboard.SetDataObject(iban, true, 10, 100);
+                        success = true;
+                        System.Diagnostics.Debug.WriteLine($"[IBAN] Copy success on attempt {i+1}");
+                    }
+                    catch (Exception ex)
+                    {
+                        lastException = ex;
+                        System.Diagnostics.Debug.WriteLine($"[IBAN] Copy attempt {i+1} failed: {ex.Message}");
+                        System.Threading.Thread.Sleep(50);
+                    }
+                }
+                
+                if (success)
+                {
+                    copyTooltip.Show("✓ IBAN kopyalandı!", this, mouseX, mouseY - 25, 1500);
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY SUCCESS: {iban}");
+                    
+                    DevExpress.XtraEditors.XtraMessageBox.Show(
+                        $"✓ IBAN KOPYALANDI!\n\n{iban}\n\nPanoya kopyalandı.",
+                        "Başarılı",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                else
+                {
+                    throw lastException ?? new Exception("Clipboard kopyalama başarısız");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY FAILED: {ex.Message}");
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"IBAN kopyalama hatası:\n{ex.Message}\n\nLütfen manuel kopyalayın:\n{iban}",
+                    "Hata",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
         }
         
