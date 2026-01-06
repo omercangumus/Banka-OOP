@@ -49,6 +49,9 @@ namespace BankApp.UI.Forms
         // Guards to prevent multiple setup
         private bool _dashboardInitialized = false;
         private bool _portfolioDashboardInitialized = false;
+        
+        // B5: Hesap seçimi
+        private DevExpress.XtraEditors.LookUpEdit cmbAccountSelector;
 
         public MainForm()
         {
@@ -145,11 +148,12 @@ namespace BankApp.UI.Forms
             // BUILD STAMP VERIFICATION
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             var buildTime = DateTime.Now.ToString("HH:mm:ss");
-            this.Text = $"NovaBank - v{version} | Build: {buildTime} | Commit: 8072102";
-            System.Diagnostics.Debug.WriteLine($"[BUILD-STAMP] NovaBank v{version} | {buildTime} | Commit 8072102");
+            var commitHash = GetCommitHash();
+            this.Text = $"NovaBank | v{version} | {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ} | commit={commitHash}";
+            System.Diagnostics.Debug.WriteLine($"[BUILD-STAMP] NovaBank v{version} | {buildTime} | Commit {commitHash}");
             
-            // EKRANDA GÖSTER (Debug Output yerine)
-            XtraMessageBox.Show($"Build: {buildTime}\nCommit: 8072102\nUserId: {AppEvents.CurrentSession.UserId}\nUsername: {AppEvents.CurrentSession.Username}", "NovaBank Başlatıldı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            // B5: Hesapları yükle ve session'a set et
+            _ = LoadUserAccountsAsync();
             
             // Role-Based Dashboard
             if (AppEvents.CurrentSession.IsAdmin)
@@ -162,6 +166,44 @@ namespace BankApp.UI.Forms
             }
             
             UpdateMenuForRole();
+        }
+        
+        /// <summary>
+        /// B5: Kullanıcının hesaplarını yükle ve session'a set et
+        /// </summary>
+        private async Task LoadUserAccountsAsync()
+        {
+            try
+            {
+                using var conn = new DapperContext().CreateConnection();
+                
+                // Kullanıcının customer ve hesaplarını bul
+                var customer = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    @"SELECT ""Id"", ""FirstName"", ""LastName"" FROM ""Customers"" WHERE ""UserId"" = @UserId",
+                    new { UserId = AppEvents.CurrentSession.UserId });
+                
+                if (customer != null)
+                {
+                    int customerId = (int)customer.Id;
+                    
+                    var accounts = await conn.QueryAsync<dynamic>(
+                        @"SELECT ""Id"", ""AccountNumber"", ""AccountType"", ""Balance"" FROM ""Accounts"" WHERE ""CustomerId"" = @CustomerId",
+                        new { CustomerId = customerId });
+                    
+                    var accountList = accounts.ToList();
+                    if (accountList.Any())
+                    {
+                        int defaultAccountId = (int)accountList.First().Id;
+                        AppEvents.CurrentSession.SetCustomer(customerId, defaultAccountId);
+                        
+                        System.Diagnostics.Debug.WriteLine($"[DATA] UserAccounts loaded count={accountList.Count} customerId={customerId} defaultAccountId={defaultAccountId}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERR] LoadUserAccountsAsync error: {ex.Message}");
+            }
         }
 
         private void ShowAdminDashboard()
