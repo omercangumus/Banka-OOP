@@ -256,6 +256,133 @@ namespace BankApp.UI.Controls
                     }
                 }
             };
+            
+            // SAT BUTONU
+            var btnSell = new RepositoryItemButtonEdit();
+            btnSell.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.HideTextEditor;
+            btnSell.Buttons[0].Caption = "SAT";
+            btnSell.Buttons[0].Kind = DevExpress.XtraEditors.Controls.ButtonPredefines.Glyph;
+            btnSell.ButtonClick += async (s, e) =>
+            {
+                var rowHandle = viewPositions.FocusedRowHandle;
+                if (rowHandle >= 0)
+                {
+                    var symbol = viewPositions.GetRowCellValue(rowHandle, "Symbol")?.ToString();
+                    var qty = viewPositions.GetRowCellValue(rowHandle, "Quantity");
+                    if (!string.IsNullOrEmpty(symbol) && qty != null)
+                    {
+                        await ShowSellDialogAsync(symbol, Convert.ToDecimal(qty));
+                    }
+                }
+            };
+            
+            var colSell = new GridColumn
+            {
+                FieldName = "SellAction",
+                Caption = "💰 SAT",
+                VisibleIndex = 7,
+                Width = 70,
+                UnboundType = DevExpress.Data.UnboundColumnType.String
+            };
+            colSell.ColumnEdit = btnSell;
+            colSell.AppearanceHeader.ForeColor = Color.FromArgb(239, 68, 68);
+            colSell.AppearanceHeader.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            viewPositions.Columns.Add(colSell);
+            gridPositions.RepositoryItems.Add(btnSell);
+        }
+        
+        private async Task ShowSellDialogAsync(string symbol, decimal maxQuantity)
+        {
+            using (var form = new Form())
+            {
+                form.Text = $"{symbol} SAT";
+                form.Size = new Size(350, 200);
+                form.StartPosition = FormStartPosition.CenterParent;
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.MaximizeBox = false;
+                form.MinimizeBox = false;
+                form.BackColor = Color.FromArgb(30, 30, 30);
+                
+                var lblSymbol = new Label { Text = $"Sembol: {symbol}", Location = new Point(20, 20), ForeColor = Color.White, AutoSize = true };
+                var lblMax = new Label { Text = $"Mevcut: {maxQuantity}", Location = new Point(20, 45), ForeColor = Color.Gray, AutoSize = true };
+                var lblQty = new Label { Text = "Satılacak Miktar:", Location = new Point(20, 75), ForeColor = Color.White, AutoSize = true };
+                
+                var txtQty = new TextBox { Location = new Point(20, 95), Size = new Size(150, 25), Text = maxQuantity.ToString() };
+                
+                var btnConfirm = new Button { Text = "SAT", Location = new Point(20, 130), Size = new Size(100, 35), BackColor = Color.FromArgb(239, 68, 68), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+                var btnCancel = new Button { Text = "İptal", Location = new Point(130, 130), Size = new Size(80, 35), BackColor = Color.FromArgb(60, 60, 60), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+                
+                btnCancel.Click += (s, e) => form.DialogResult = DialogResult.Cancel;
+                btnConfirm.Click += async (s, e) =>
+                {
+                    if (decimal.TryParse(txtQty.Text, out decimal sellQty) && sellQty > 0 && sellQty <= maxQuantity)
+                    {
+                        await ExecuteSellAsync(symbol, sellQty);
+                        form.DialogResult = DialogResult.OK;
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Geçerli miktar girin (max: {maxQuantity})", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                };
+                
+                form.Controls.AddRange(new Control[] { lblSymbol, lblMax, lblQty, txtQty, btnConfirm, btnCancel });
+                form.ShowDialog();
+            }
+        }
+        
+        private async Task ExecuteSellAsync(string symbol, decimal quantity)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[TRADE] PortfolioViewPro.ExecuteSell symbol={symbol} qty={quantity}");
+                
+                int customerId = AppEvents.CurrentSession.CustomerId;
+                if (customerId == 0)
+                {
+                    using var conn = _context.CreateConnection();
+                    customerId = await conn.QueryFirstOrDefaultAsync<int>(
+                        "SELECT \"Id\" FROM \"Customers\" WHERE \"UserId\" = @UserId LIMIT 1",
+                        new { UserId = AppEvents.CurrentSession.UserId });
+                }
+                
+                // Pozisyonu sat
+                var sold = await _portfolioRepository.SellAsync(customerId, symbol, quantity);
+                if (!sold)
+                {
+                    XtraMessageBox.Show("Satış başarısız - yetersiz pozisyon.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                
+                // Hesaba para ekle (simulated price)
+                var accounts = await new AccountRepository(_context).GetByCustomerIdAsync(customerId);
+                var primaryAccount = accounts?.FirstOrDefault();
+                if (primaryAccount != null)
+                {
+                    // Get position avg cost for calculation
+                    var position = await _portfolioRepository.GetBySymbolAsync(customerId, symbol);
+                    decimal price = position?.AverageCost ?? 100m;
+                    decimal totalAmount = quantity * price;
+                    
+                    await _transactionService.DepositAsync(
+                        primaryAccount.Id,
+                        totalAmount,
+                        $"Portföyden SAT: {quantity} adet {symbol}");
+                    
+                    System.Diagnostics.Debug.WriteLine($"[TRADE] Sell SUCCESS symbol={symbol} qty={quantity} amount={totalAmount}");
+                }
+                
+                XtraMessageBox.Show($"✅ {symbol} satıldı!\n\nMiktar: {quantity}", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                // Refresh
+                await LoadDataAsync();
+                PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "Sell");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERR] ExecuteSell error: {ex.Message}");
+                XtraMessageBox.Show($"Hata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         
         private void CreatePendingOrdersGrid()
