@@ -57,6 +57,8 @@ namespace BankApp.UI.Forms
         
         public ChartAnalysisForm(IMarketDataProvider dataProvider, string symbol, string timeframe)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] OPENED: {GetType().FullName}, Symbol={symbol}, Timeframe={timeframe}");
+            
             _dataProvider = dataProvider;
             _symbol = symbol;
             _timeframe = timeframe;
@@ -140,7 +142,10 @@ namespace BankApp.UI.Forms
             btnResetZoom.Appearance.BackColor = Color.FromArgb(40, 40, 40);
             btnResetZoom.Appearance.ForeColor = Color.White;
             btnResetZoom.Appearance.Options.UseBackColor = true;
-            btnResetZoom.Click += (s, e) => ResetZoom();
+            btnResetZoom.Click += (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnResetZoom clicked, this={GetType().FullName}");
+                ResetZoom();
+            };
             pnlTopBar.Controls.Add(btnResetZoom);
             
             // Close button

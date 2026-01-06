@@ -167,6 +167,7 @@ namespace BankApp.UI.Controls
 
         public InvestmentView()
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] OPENED: {GetType().FullName}");
             System.Diagnostics.Debug.WriteLine("=== INVESTMENTVIEW LOADED v2 ===");
             
             _finnhubService = new FinnhubService();
@@ -205,6 +206,8 @@ namespace BankApp.UI.Controls
 
         private async void InvestmentView_Load(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] InvestmentView_Load fired, this={GetType().FullName}");
+            
             // Load watchlist and market tiles, but NOT chart (user must select symbol)
             await LoadWatchlistDataAsync();
             await LoadMarketTilesDataAsync();
@@ -1096,11 +1099,13 @@ namespace BankApp.UI.Controls
 
         private async void BtnBuy_Click(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnBuy clicked, this={GetType().FullName}");
             await ExecuteTradeAsync(isBuy: true);
         }
 
         private async void BtnSell_Click(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnSell clicked, this={GetType().FullName}");
             await ExecuteTradeAsync(isBuy: false);
         }
         
@@ -1197,17 +1202,42 @@ namespace BankApp.UI.Controls
                 {
                     System.Diagnostics.Debug.WriteLine($"[TRADE] SUCCESS - {actionType} completed");
                     
-                    // DB Count Check
+                    // DB Verification - READ-ONLY CHECK
                     try
                     {
                         using var conn = new DapperContext().CreateConnection();
-                        var txCount = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM \"Transactions\" WHERE \"AccountId\" = @AccId", new { AccId = primaryAccount.Id });
-                        var portfolioCount = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId", new { CustId = primaryAccount.CustomerId });
-                        System.Diagnostics.Debug.WriteLine($"[TRADE] DB CHECK: TxCount={txCount}, PortfolioCount={portfolioCount}");
+                        
+                        // Balance verification
+                        var currentBalance = await conn.ExecuteScalarAsync<decimal>(
+                            "SELECT \"Balance\" FROM \"Accounts\" WHERE \"Id\" = @AccId", 
+                            new { AccId = primaryAccount.Id });
+                        
+                        // Transaction count
+                        var txCount = await conn.ExecuteScalarAsync<int>(
+                            "SELECT COUNT(*) FROM \"Transactions\" WHERE \"AccountId\" = @AccId", 
+                            new { AccId = primaryAccount.Id });
+                        
+                        // Portfolio positions
+                        var portfolioCount = await conn.ExecuteScalarAsync<int>(
+                            "SELECT COUNT(*) FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId", 
+                            new { CustId = primaryAccount.CustomerId });
+                        
+                        // Symbol position (if exists)
+                        var symbolQty = await conn.ExecuteScalarAsync<decimal?>(
+                            "SELECT \"Quantity\" FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId AND \"StockSymbol\" = @Symbol",
+                            new { CustId = primaryAccount.CustomerId, Symbol = _currentSymbol });
+                        
+                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] ===== POST-TRADE VERIFICATION =====");
+                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] Action: {actionType}");
+                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] Account Balance: ₺{currentBalance:N2}");
+                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] Total Transactions: {txCount}");
+                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] Total Portfolio Positions: {portfolioCount}");
+                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] {_currentSymbol} Quantity: {symbolQty?.ToString("N2") ?? "0 (no position)"}");
+                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] ===============================");
                     }
                     catch (Exception dbEx)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[TRADE] DB CHECK ERROR: {dbEx.Message}");
+                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] ERROR: {dbEx.Message}");
                     }
                     
                     // Update orders grid with new entry
@@ -1218,7 +1248,9 @@ namespace BankApp.UI.Controls
                     
                     // Notify dashboard to refresh (triggers pie chart + balance update)
                     System.Diagnostics.Debug.WriteLine($"[TRADE] Firing events: AppEvents.NotifyDataChanged + PortfolioEvents.OnPortfolioChanged");
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] EVENT: AppEvents.NotifyDataChanged(source='InvestmentView', action='{actionType}')");
                     AppEvents.NotifyDataChanged("InvestmentView", actionType);
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] EVENT: PortfolioEvents.OnPortfolioChanged(userId={AppEvents.CurrentSession.UserId}, changeType='Trade')");
                     PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "Trade");
                     
                     // Show success toast

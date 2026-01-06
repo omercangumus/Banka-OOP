@@ -32,6 +32,8 @@ namespace BankApp.UI.Forms
 
         public AIAssistantFormV4(string? stockContext = null)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] OPENED: {GetType().FullName}, StockContext={stockContext}");
+            
             _stockContext = stockContext ?? "";
             _aiProvider = AiProviderFactory.CreateProvider();
             _contextBuilder = new AiContextBuilder();
@@ -132,7 +134,10 @@ namespace BankApp.UI.Forms
             btnPdf.Appearance.BackColor = Color.FromArgb(45, 45, 45);
             btnPdf.Appearance.ForeColor = Color.White;
             btnPdf.Appearance.Options.UseBackColor = true;
-            btnPdf.Click += async (s, e) => await ExportPdfAsync();
+            btnPdf.Click += async (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnPdf clicked, this={GetType().FullName}");
+                await ExportPdfAsync();
+            };
             pnlQuickActions.Controls.Add(btnPdf);
             
             var btnPortfolio = new SimpleButton();
@@ -225,6 +230,7 @@ namespace BankApp.UI.Forms
 
         private async Task ExportPdfAsync()
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] ExportPdfAsync called, this={GetType().FullName}");
             AppendMessage("AI", "PDF hazırlanıyor...");
             
             try

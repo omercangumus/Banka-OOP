@@ -52,6 +52,8 @@ namespace BankApp.UI.Forms
 
         public MainForm()
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] OPENED: {GetType().FullName}");
+            
             try
             {
                 InitializeComponent();
@@ -116,6 +118,8 @@ namespace BankApp.UI.Forms
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] MainForm_Load fired, this={GetType().FullName}");
+            
             // Role-Based Dashboard
             if (AppEvents.CurrentSession.IsAdmin)
             {
@@ -327,7 +331,8 @@ namespace BankApp.UI.Forms
                 // Wire up portfolio quick actions
                 portfolioQuickActions.SendMoneyClicked += (s, e) => btnMoneyTransfer_ItemClick(s, null);
                 portfolioQuickActions.SupportClicked += (s, e) => {
-                    var aiForm = new AIAssistantFormV2();
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: portfolioQuickActions.Support clicked, opening AIAssistantFormV4");
+                    var aiForm = new AIAssistantFormV4();
                     aiForm.Show();
                 };
                 
@@ -1018,8 +1023,9 @@ namespace BankApp.UI.Forms
 
         private void btnAiAssist_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            var frm = new AIAssistantFormV2();
-            frm.ShowDialog();
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnAiAssist clicked, opening AIAssistantFormV4");
+            var frm = new AIAssistantFormV4();
+            frm.Show();
         }
 
         private void btnMoneyTransfer_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -1257,6 +1263,7 @@ namespace BankApp.UI.Forms
         // Dashboard'u yenile
         private void RefreshDashboard()
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] RefreshDashboard called, this={GetType().FullName}");
             LoadDashboardData();
             LoadDashboardCharts();
         }
@@ -1297,6 +1304,7 @@ namespace BankApp.UI.Forms
         {
             AppEvents.DataChanged += (sender, args) =>
             {
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] EVENT RECEIVED: AppEvents.DataChanged, Source={args.Source}, Action={args.Action}");
                 // UI thread'e geç
                 if (this.InvokeRequired)
                 {

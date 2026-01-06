@@ -34,6 +34,7 @@ namespace BankApp.UI.Controls
         
         private void HeroNetWorthCard_MouseClick(object sender, MouseEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: HeroNetWorthCard clicked at ({e.X},{e.Y}), control={GetType().FullName}");
             System.Diagnostics.Debug.WriteLine($"[IBAN] MouseClick at ({e.X},{e.Y}), ibanRect={ibanRect}, userIban={userIban}");
             // Check if click is on IBAN area
             if (!string.IsNullOrEmpty(userIban) && ibanRect.Contains(e.Location))
@@ -42,12 +43,18 @@ namespace BankApp.UI.Controls
                 {
                     Clipboard.SetText(userIban);
                     copyTooltip.Show("✓ IBAN kopyalandı!", this, e.X, e.Y - 25, 1500);
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY SUCCESS: {userIban}");
                     System.Diagnostics.Debug.WriteLine($"[IBAN] IBAN COPIED TO CLIPBOARD: {userIban}");
                 }
                 catch (Exception ex) 
                 { 
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY FAILED: {ex.Message}");
                     System.Diagnostics.Debug.WriteLine($"[IBAN] Copy failed: {ex.Message}");
                 }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] Click outside IBAN area or no IBAN set");
             }
         }
         
