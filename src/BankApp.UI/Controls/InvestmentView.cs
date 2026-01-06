@@ -248,7 +248,7 @@ namespace BankApp.UI.Controls
             
             // Create dock panels
             CreateRightDockPanel();
-            CreateBottomDockPanel();
+            // CreateBottomDockPanel(); // Kaldırıldı - grafik tam ekran kaplasın
         }
 
         private void InitializeBarManager()

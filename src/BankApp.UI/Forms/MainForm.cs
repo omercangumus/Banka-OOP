@@ -167,6 +167,10 @@ namespace BankApp.UI.Forms
             }
             
             UpdateMenuForRole();
+            
+            // Ribbon ayarları - kullanıcı açıp kapatamaz, yatırım dışında açık
+            ribbonControl1.AllowMinimizeRibbon = false;
+            ribbonControl1.Minimized = false; // Başlangıçta açık (Genel Bakış)
         }
         
         /// <summary>
@@ -722,6 +726,28 @@ namespace BankApp.UI.Forms
                 investmentView.Visible = isTab3Investment;
                 if (isTab3Investment) investmentView.BringToFront();
             }
+            
+            // Yatırım ekranında ribbon küçük, diğerlerinde normal
+            ribbonControl1.Visible = true;
+            
+            // ÖNCE minimize ayarı, SONRA AllowMinimize kapatılır
+            if (isTab3Investment)
+            {
+                // Yatırım: Ribbon küçük
+                ribbonControl1.AllowMinimizeRibbon = true; // Geçici izin
+                ribbonControl1.Minimized = true;
+                ribbonControl1.Height = 30;
+                ribbonControl1.AllowMinimizeRibbon = false; // Sonra kilitle
+            }
+            else
+            {
+                // Diğer sekmeler: Normal ribbon
+                ribbonControl1.AllowMinimizeRibbon = true; // Geçici izin
+                ribbonControl1.Minimized = false;
+                ribbonControl1.Height = 130;
+                ribbonControl1.AllowMinimizeRibbon = false; // Sonra kilitle
+            }
+            System.Diagnostics.Debug.WriteLine($"[RIBBON] tab={tabName} Minimized={ribbonControl1.Minimized} Height={ribbonControl1.Height}");
             
             // Hide legacy "Yatırım Araçları" ribbon group when Investment tab is active
             // We now have buttons in MarketHome/Detail views instead
