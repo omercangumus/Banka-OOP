@@ -1311,12 +1311,20 @@ namespace BankApp.UI.Forms
             {
                 System.Diagnostics.Debug.WriteLine("[RUNTIME-TRACE] Refreshing assetChart (Tab1)");
                 await assetChart.RefreshDataAsync();
+                assetChart.Invalidate();
+                assetChart.Refresh();
             }
             if (portfolioAssetChart != null)
             {
                 System.Diagnostics.Debug.WriteLine("[RUNTIME-TRACE] Refreshing portfolioAssetChart (Tab2)");
                 await portfolioAssetChart.RefreshDataAsync();
+                portfolioAssetChart.Invalidate();
+                portfolioAssetChart.Refresh();
             }
+            
+            // Force MainForm repaint
+            this.Invalidate();
+            this.Refresh();
         }
 
         // Rol bazlı menü güncelleme
