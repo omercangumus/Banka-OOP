@@ -734,6 +734,7 @@ namespace BankApp.UI.Controls
             cmbOrderType.SelectedIndex = 0;
             cmbOrderType.Properties.Appearance.BackColor = Color.FromArgb(40, 40, 40);
             cmbOrderType.Properties.Appearance.ForeColor = Color.White;
+            cmbOrderType.SelectedIndexChanged += CmbOrderType_SelectedIndexChanged;
             
             var lblQuantity = new LabelControl();
             lblQuantity.Text = "Miktar";
@@ -1410,6 +1411,87 @@ namespace BankApp.UI.Controls
                 }
             }
             catch { /* Grid update failed, not critical */ }
+        }
+        #endregion
+
+        #region S5 - Emir Tipi Mantığı
+        /// <summary>
+        /// S5: Emir tipi değişince fiyat alanlarını aktif/pasif yap
+        /// </summary>
+        private void CmbOrderType_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var orderType = cmbOrderType.SelectedItem?.ToString() ?? "Piyasa";
+            System.Diagnostics.Debug.WriteLine($"[CALL] OrderType changed to: {orderType}");
+            
+            switch (orderType)
+            {
+                case "Piyasa":
+                    // Market: Fiyat alanı pasif, anlık fiyatla işlem
+                    txtOrderPrice.Enabled = false;
+                    txtOrderPrice.Text = "";
+                    txtOrderPrice.Properties.NullText = "Piyasa Fiyatı";
+                    break;
+                    
+                case "Limit":
+                    // Limit: Limit fiyat alanı aktif
+                    txtOrderPrice.Enabled = true;
+                    txtOrderPrice.Text = "";
+                    txtOrderPrice.Properties.NullText = "Limit Fiyat (TRY)";
+                    break;
+                    
+                case "Stop":
+                    // Stop: Stop fiyat alanı aktif
+                    txtOrderPrice.Enabled = true;
+                    txtOrderPrice.Text = "";
+                    txtOrderPrice.Properties.NullText = "Stop Fiyat (TRY)";
+                    break;
+                    
+                case "Stop-Limit":
+                    // Stop-Limit: Her iki fiyat alanı da aktif (basitleştirilmiş - tek alan)
+                    txtOrderPrice.Enabled = true;
+                    txtOrderPrice.Text = "";
+                    txtOrderPrice.Properties.NullText = "Stop-Limit Fiyat (TRY)";
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// S5: Emir tipine göre validasyon
+        /// </summary>
+        private bool ValidateOrderByType(out string errorMessage)
+        {
+            errorMessage = null;
+            var orderType = cmbOrderType.SelectedItem?.ToString() ?? "Piyasa";
+            
+            // Miktar kontrolü
+            if (!decimal.TryParse(txtOrderQuantity.Text, out decimal qty) || qty <= 0)
+            {
+                errorMessage = "Geçerli bir miktar giriniz.";
+                return false;
+            }
+            
+            // Emir tipine göre fiyat kontrolü
+            if (orderType != "Piyasa")
+            {
+                if (string.IsNullOrWhiteSpace(txtOrderPrice.Text) || 
+                    !decimal.TryParse(txtOrderPrice.Text, out decimal limitPrice) || 
+                    limitPrice <= 0)
+                {
+                    errorMessage = $"{orderType} emri için geçerli bir fiyat giriniz.";
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// S5: Emir tipine göre işlem - Limit/Stop emirleri Açık Emirler'e eklenir
+        /// </summary>
+        private bool IsMarketOrder()
+        {
+            var orderType = cmbOrderType.SelectedItem?.ToString() ?? "Piyasa";
+            return orderType == "Piyasa";
         }
         #endregion
 
