@@ -48,7 +48,8 @@ namespace BankApp.UI.Controls
             {
                 try
                 {
-                    Clipboard.SetText(userIban);
+                    // STA thread-safe clipboard operation
+                    Clipboard.SetDataObject(userIban, true);
                     copyTooltip.Show("✓ IBAN kopyalandı!", this, e.X, e.Y - 25, 1500);
                     System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY SUCCESS: {userIban}");
                     System.Diagnostics.Debug.WriteLine($"[IBAN] IBAN COPIED TO CLIPBOARD: {userIban}");
