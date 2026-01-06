@@ -1119,6 +1119,14 @@ namespace BankApp.UI.Controls
         {
             // [CRITICAL] TradeStart - ZORUNLU
             System.Diagnostics.Debug.WriteLine($"[CRITICAL] TradeStart viewType={GetType().FullName} viewHash={GetHashCode()} isBuy={isBuy} symbol={_currentSymbol} userId={AppEvents.CurrentSession.UserId}");
+            
+            // C) Yanlış view tespit - Bu view gerçek trade yapıyor mu?
+            bool isRealTradeView = this.GetType().FullName.Contains("InvestmentView");
+            if (!isRealTradeView)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WARN] Yanlış view aktif: {GetType().FullName}. Trade DB'ye yazmayabilir.");
+                ShowToast("Uyarı", "Yanlış view aktif! Lütfen Yatırım sekmesinden işlem yapın.", isError: true);
+            }
             System.Diagnostics.Debug.WriteLine($"[TRADE] ExecuteTradeAsync START - isBuy={isBuy}, symbol={_currentSymbol}, qtyText={txtOrderQuantity.Text}");
             
             // Double-click prevention

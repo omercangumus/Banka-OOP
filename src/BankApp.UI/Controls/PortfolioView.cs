@@ -38,11 +38,39 @@ namespace BankApp.UI.Controls
 
         public PortfolioView()
         {
+            // [OPENED] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Handle=PENDING | Hash={GetHashCode()} | Parent={Parent?.Name ?? "null"} | Visible={Visible}");
+            
             var context = new DapperContext();
             _dashboardService = new DashboardService(context);
             
             InitializeComponents();
             LoadPortfolioData();
+            
+            // B4: Trade sonrası portföy refresh
+            AppEvents.TradeCompleted += OnTradeCompleted;
+        }
+        
+        private void OnTradeCompleted(object sender, TradeCompletedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DATA] PortfolioView.OnTradeCompleted received - refreshing positions");
+            
+            // UI thread'de çalıştır
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new Action(() => RefreshPortfolio()));
+            }
+            else
+            {
+                RefreshPortfolio();
+            }
+        }
+        
+        public void RefreshPortfolio()
+        {
+            System.Diagnostics.Debug.WriteLine($"[DATA] Portfolio refresh START accountId={AppEvents.CurrentSession.ActiveAccountId}");
+            LoadPortfolioData();
+            System.Diagnostics.Debug.WriteLine($"[DATA] Portfolio refresh END");
         }
 
         private void InitializeComponents()
