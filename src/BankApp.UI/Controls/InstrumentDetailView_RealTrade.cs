@@ -111,11 +111,29 @@ namespace BankApp.UI.Controls
                 
                 System.Diagnostics.Debug.WriteLine($"[CRITICAL] Trade - AccountId={primaryAccount.Id}, CustomerId={primaryAccount.CustomerId}, UserId={AppEvents.CurrentSession.UserId}");
                 
+                // KULLANICI İÇİN: Hesap durumu göster
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"HESAP BİLGİSİ:\n\nHesap ID: {primaryAccount.Id}\nMevcut Bakiye: ₺{primaryAccount.Balance:N2}\n\nALINACAK:\nSembol: {_currentSymbol}\nMiktar: {quantity}\nFiyat: ${price:N2}\nToplam: ${totalAmount:N2}\n\nÇekilecek TL: ₺{totalAmount:N2}\n\nYETERLİ Mİ? {(primaryAccount.Balance >= totalAmount ? "EVET ✅" : "HAYIR ❌")}",
+                    "İşlem Öncesi Kontrol",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                
                 string result;
                 string actionType;
                 
                 if (isBuy)
                 {
+                    // BAKİYE KONTROLÜ
+                    if (primaryAccount.Balance < totalAmount)
+                    {
+                        DevExpress.XtraEditors.XtraMessageBox.Show(
+                            $"YETERSİZ BAKİYE!\n\nMevcut: ₺{primaryAccount.Balance:N2}\nGerekli: ₺{totalAmount:N2}\nEksik: ₺{(totalAmount - primaryAccount.Balance):N2}",
+                            "İşlem Yapılamaz",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error);
+                        return;
+                    }
+                    
                     // AL: Withdraw from account
                     result = await _transactionService.WithdrawAsync(
                         primaryAccount.Id, 
