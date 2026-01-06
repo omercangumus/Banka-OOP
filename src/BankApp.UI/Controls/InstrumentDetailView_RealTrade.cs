@@ -51,8 +51,31 @@ namespace BankApp.UI.Controls
                     return;
                 }
                 
-                // Get price (use market price from chart or default)
+                // Get price and total from UI (txtPrice, txtTotal)
                 decimal price = 100m; // Fallback
+                decimal totalAmount = quantity * price; // Will be recalculated from txtTotal
+                
+                // Try to get actual total from txtTotal (USDT)
+                if (!string.IsNullOrEmpty(txtTotal.Text) && decimal.TryParse(txtTotal.Text.Replace(",", ""), out decimal parsedTotal))
+                {
+                    totalAmount = parsedTotal; // Use UI calculated total (includes commission)
+                    if (quantity > 0)
+                    {
+                        price = totalAmount / quantity; // Recalculate price from total
+                    }
+                }
+                else if (!string.IsNullOrEmpty(txtPrice.Text))
+                {
+                    // Try txtPrice
+                    var priceText = txtPrice.Text.Replace("Market Fiyab", "").Replace(",", "").Trim();
+                    if (decimal.TryParse(priceText, out decimal parsedPrice))
+                    {
+                        price = parsedPrice;
+                        totalAmount = quantity * price;
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[TRADE] Calculated: price={price:N2}, qty={quantity}, total={totalAmount:N2}");
                 
                 // Get user's primary account
                 System.Diagnostics.Debug.WriteLine($"[CRITICAL] InstrumentDetailView Trade START - UserId={AppEvents.CurrentSession.UserId}");
@@ -88,7 +111,6 @@ namespace BankApp.UI.Controls
                 
                 System.Diagnostics.Debug.WriteLine($"[CRITICAL] Trade - AccountId={primaryAccount.Id}, CustomerId={primaryAccount.CustomerId}, UserId={AppEvents.CurrentSession.UserId}");
                 
-                decimal totalAmount = quantity * price;
                 string result;
                 string actionType;
                 
