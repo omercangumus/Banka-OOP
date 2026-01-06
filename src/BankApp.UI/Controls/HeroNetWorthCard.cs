@@ -37,7 +37,7 @@ namespace BankApp.UI.Controls
             System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: HeroNetWorthCard clicked at ({e.X},{e.Y}), control={GetType().FullName}");
             System.Diagnostics.Debug.WriteLine($"[IBAN] MouseClick at ({e.X},{e.Y}), ibanRect={ibanRect}, userIban={userIban}");
             
-            // DEBUG: Her click'te MessageBox göster
+            // Check if click is on IBAN area (with 15px tolerance)
             var toleranceRect = new Rectangle(
                 ibanRect.X - 15, 
                 ibanRect.Y - 15, 
@@ -46,13 +46,6 @@ namespace BankApp.UI.Controls
             
             bool inTolerance = toleranceRect.Contains(e.Location);
             
-            DevExpress.XtraEditors.XtraMessageBox.Show(
-                $"CLICK DEBUG:\n\nClick: ({e.X}, {e.Y})\nIBAN Rect: {ibanRect}\nTolerance Rect: {toleranceRect}\nIBAN: {userIban ?? "(boş)"}\n\nOrijinal rect? {ibanRect.Contains(e.Location)}\nTolerance rect? {inTolerance}",
-                "HeroNetWorthCard Click Test",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-            
-            // Check if click is on IBAN area (with 15px tolerance)
             if (!string.IsNullOrEmpty(userIban) && inTolerance)
             {
                 // UI thread'de çalıştır - STA thread fix
@@ -68,11 +61,7 @@ namespace BankApp.UI.Controls
             else
             {
                 System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] Click outside IBAN area or no IBAN set");
-                DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"IBAN alanı dışında tıkladınız veya IBAN set edilmemiş.\n\nIBAN: {userIban ?? "(yok)"}\nRect: {ibanRect}\nClick: ({e.X}, {e.Y})",
-                    "IBAN Kopyalanamadı",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
+                // Sessizce geç - popup gösterme
             }
         }
         
