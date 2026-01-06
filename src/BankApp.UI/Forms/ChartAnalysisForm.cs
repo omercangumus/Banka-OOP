@@ -1111,11 +1111,34 @@ namespace BankApp.UI.Forms
         
         private void ResetZoom()
         {
+            // Clear all drawings
+            _drawings.Clear();
+            _selectedDrawing = null;
+            _activeDrawing = null;
+            _undoStack.Clear();
+            _redoStack.Clear();
+            
+            // Reset zoom on all charts
             if (_diagram != null)
             {
                 _diagram.AxisX.WholeRange.Auto = true;
                 _diagram.AxisY.WholeRange.Auto = true;
             }
+            if (_diagramRSI != null)
+            {
+                _diagramRSI.AxisX.WholeRange.Auto = true;
+                _diagramRSI.AxisY.WholeRange.Auto = true;
+            }
+            if (_diagramMACD != null)
+            {
+                _diagramMACD.AxisX.WholeRange.Auto = true;
+                _diagramMACD.AxisY.WholeRange.Auto = true;
+            }
+            
+            // Force redraw
+            chartMain?.Invalidate();
+            chartRSI?.Invalidate();
+            chartMACD?.Invalidate();
         }
         
         private void SaveUndoState()

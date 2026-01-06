@@ -42,36 +42,58 @@ namespace BankApp.UI.Forms
 
         private void InitUI()
         {
-            // Form
+            // Form - Larger size for better UX
             this.Text = "NovaBank AI Asistan";
-            this.Size = new Size(550, 500);
-            this.MinimumSize = new Size(400, 350);
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.BackColor = Color.FromArgb(30, 30, 30);
+            this.Size = new Size(900, 650);
+            this.MinimumSize = new Size(700, 500);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.BackColor = Color.FromArgb(20, 20, 20);
             this.ForeColor = Color.White;
+            this.LookAndFeel.SkinName = "Office 2019 Black";
             
-            // Chat display
+            // Header panel
+            var pnlHeader = new Panel();
+            pnlHeader.Dock = DockStyle.Top;
+            pnlHeader.Height = 50;
+            pnlHeader.BackColor = Color.FromArgb(30, 30, 30);
+            pnlHeader.Padding = new Padding(15, 0, 15, 0);
+            
+            var lblTitle = new LabelControl();
+            lblTitle.Text = "🤖 NovaBank AI Asistan";
+            lblTitle.Appearance.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+            lblTitle.Appearance.ForeColor = Color.White;
+            lblTitle.Location = new Point(15, 13);
+            pnlHeader.Controls.Add(lblTitle);
+            
+            // Chat display - DevExpress MemoEdit for better rendering
             rtbChat = new RichTextBox();
             rtbChat.Dock = DockStyle.Fill;
             rtbChat.BackColor = Color.FromArgb(25, 25, 25);
             rtbChat.ForeColor = Color.White;
-            rtbChat.Font = new Font("Segoe UI", 10F);
+            rtbChat.Font = new Font("Segoe UI", 11F);
             rtbChat.ReadOnly = true;
             rtbChat.BorderStyle = BorderStyle.None;
-            rtbChat.Padding = new Padding(10);
+            rtbChat.Margin = new Padding(15);
             
-            // Input panel
+            // Chat container with padding
+            var pnlChat = new Panel();
+            pnlChat.Dock = DockStyle.Fill;
+            pnlChat.BackColor = Color.FromArgb(25, 25, 25);
+            pnlChat.Padding = new Padding(15, 10, 15, 10);
+            pnlChat.Controls.Add(rtbChat);
+            
+            // Input panel - Improved styling
             var pnlInput = new Panel();
             pnlInput.Dock = DockStyle.Bottom;
-            pnlInput.Height = 50;
-            pnlInput.BackColor = Color.FromArgb(35, 35, 35);
-            pnlInput.Padding = new Padding(10, 8, 10, 8);
+            pnlInput.Height = 70;
+            pnlInput.BackColor = Color.FromArgb(30, 30, 30);
+            pnlInput.Padding = new Padding(15, 12, 15, 12);
             
             txtInput = new TextBox();
             txtInput.Dock = DockStyle.Fill;
-            txtInput.BackColor = Color.FromArgb(45, 45, 45);
+            txtInput.BackColor = Color.FromArgb(40, 40, 40);
             txtInput.ForeColor = Color.White;
-            txtInput.Font = new Font("Segoe UI", 11F);
+            txtInput.Font = new Font("Segoe UI", 12F);
             txtInput.BorderStyle = BorderStyle.FixedSingle;
             txtInput.KeyDown += (s, e) => {
                 if (e.KeyCode == Keys.Enter && !e.Shift)
@@ -82,25 +104,61 @@ namespace BankApp.UI.Forms
             };
             
             btnSend = new SimpleButton();
-            btnSend.Text = "Gönder";
+            btnSend.Text = "Gönder ➤";
             btnSend.Dock = DockStyle.Right;
-            btnSend.Width = 80;
+            btnSend.Width = 100;
             btnSend.Appearance.BackColor = Color.FromArgb(59, 130, 246);
             btnSend.Appearance.ForeColor = Color.White;
+            btnSend.Appearance.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btnSend.Appearance.Options.UseBackColor = true;
             btnSend.Appearance.Options.UseForeColor = true;
+            btnSend.Appearance.Options.UseFont = true;
             btnSend.Click += async (s, e) => await SendAsync();
             
             pnlInput.Controls.Add(txtInput);
             pnlInput.Controls.Add(btnSend);
             
-            this.Controls.Add(rtbChat);
+            // Quick actions panel
+            var pnlQuickActions = new Panel();
+            pnlQuickActions.Dock = DockStyle.Bottom;
+            pnlQuickActions.Height = 45;
+            pnlQuickActions.BackColor = Color.FromArgb(28, 28, 28);
+            pnlQuickActions.Padding = new Padding(15, 8, 15, 8);
+            
+            var btnPdf = new SimpleButton();
+            btnPdf.Text = "📄 PDF İndir";
+            btnPdf.Size = new Size(110, 28);
+            btnPdf.Location = new Point(15, 8);
+            btnPdf.Appearance.BackColor = Color.FromArgb(45, 45, 45);
+            btnPdf.Appearance.ForeColor = Color.White;
+            btnPdf.Appearance.Options.UseBackColor = true;
+            btnPdf.Click += async (s, e) => await ExportPdfAsync();
+            pnlQuickActions.Controls.Add(btnPdf);
+            
+            var btnPortfolio = new SimpleButton();
+            btnPortfolio.Text = "📊 Portföy Özeti";
+            btnPortfolio.Size = new Size(120, 28);
+            btnPortfolio.Location = new Point(135, 8);
+            btnPortfolio.Appearance.BackColor = Color.FromArgb(45, 45, 45);
+            btnPortfolio.Appearance.ForeColor = Color.White;
+            btnPortfolio.Appearance.Options.UseBackColor = true;
+            btnPortfolio.Click += async (s, e) => {
+                txtInput.Text = "Portföyümü özetle";
+                await SendAsync();
+            };
+            pnlQuickActions.Controls.Add(btnPortfolio);
+            
+            // Add controls in order
+            this.Controls.Add(pnlChat);
+            this.Controls.Add(pnlQuickActions);
             this.Controls.Add(pnlInput);
+            this.Controls.Add(pnlHeader);
             
             // Welcome
             AppendMessage("AI", "Merhaba! Size nasıl yardımcı olabilirim?\n\n" +
-                "• \"Portföyümü PDF indir\" - PDF rapor\n" +
-                "• Finansal sorularınızı sorun");
+                "📄 PDF İndir - Portföy raporunuzu PDF olarak indirin\n" +
+                "📊 Portföy Özeti - Yatırımlarınızın özetini görün\n" +
+                "💬 Sorularınızı yazın - Finansal konularda yardım alın");
         }
 
         private void AppendMessage(string sender, string text)
