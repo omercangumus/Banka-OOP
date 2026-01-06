@@ -1298,13 +1298,6 @@ namespace BankApp.UI.Controls
                         $"{_currentSymbol} • {quantity} adet • ${totalAmount:N2}",
                         isError: false);
                     
-                    // DEBUG: EKRANDA GÖSTER
-                    DevExpress.XtraEditors.XtraMessageBox.Show(
-                        $"TRADE COMPLETE!\n\nUserId: {AppEvents.CurrentSession.UserId}\nCustomerId: {primaryAccount.CustomerId}\nSymbol: {_currentSymbol}\nQty: {quantity}\nBalance After: ₺{currentBalance:N2}",
-                        "Trade Debug",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    
                     // Clear quantity field
                     txtOrderQuantity.Text = "";
                     

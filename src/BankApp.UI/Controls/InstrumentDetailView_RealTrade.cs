@@ -199,13 +199,9 @@ namespace BankApp.UI.Controls
                     // Legacy events (opsiyonel - yedek olarak)
                     PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "Trade");
                     
-                    // Show success - REAL TRADE COMPLETE
+                    // Trade başarılı - sadece log
                     string tradeType = isBuy ? "AL" : "SAT";
-                    DevExpress.XtraEditors.XtraMessageBox.Show(
-                        $"TRADE COMPLETE!\n\nUserId: {AppEvents.CurrentSession.UserId}\nCustomerId: {primaryAccount.CustomerId}\nSymbol: {_currentSymbol}\nQty: {quantity}\nBalance After: ₺{currentBalance:N2}",
-                        $"{tradeType} İşlemi Başarılı",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
+                    System.Diagnostics.Debug.WriteLine($"[TRADE] {tradeType} SUCCESS - Symbol={_currentSymbol}, Qty={quantity}, Balance={currentBalance:N2}");
                 }
                 else
                 {
