@@ -38,13 +38,22 @@ namespace BankApp.UI.Controls
             System.Diagnostics.Debug.WriteLine($"[IBAN] MouseClick at ({e.X},{e.Y}), ibanRect={ibanRect}, userIban={userIban}");
             
             // DEBUG: Her click'te MessageBox göster
+            var toleranceRect = new Rectangle(
+                ibanRect.X - 15, 
+                ibanRect.Y - 15, 
+                ibanRect.Width + 30, 
+                ibanRect.Height + 30);
+            
+            bool inTolerance = toleranceRect.Contains(e.Location);
+            
             DevExpress.XtraEditors.XtraMessageBox.Show(
-                $"CLICK DEBUG:\n\nClick Pozisyon: ({e.X}, {e.Y})\nIBAN Rect: {ibanRect}\nIBAN: {userIban ?? "(boş)"}\n\nRect içinde mi? {ibanRect.Contains(e.Location)}",
+                $"CLICK DEBUG:\n\nClick: ({e.X}, {e.Y})\nIBAN Rect: {ibanRect}\nTolerance Rect: {toleranceRect}\nIBAN: {userIban ?? "(boş)"}\n\nOrijinal rect? {ibanRect.Contains(e.Location)}\nTolerance rect? {inTolerance}",
                 "HeroNetWorthCard Click Test",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
-            // Check if click is on IBAN area
-            if (!string.IsNullOrEmpty(userIban) && ibanRect.Contains(e.Location))
+            
+            // Check if click is on IBAN area (with 15px tolerance)
+            if (!string.IsNullOrEmpty(userIban) && inTolerance)
             {
                 try
                 {
