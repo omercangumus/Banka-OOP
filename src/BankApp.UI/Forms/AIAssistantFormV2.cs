@@ -73,11 +73,12 @@ namespace BankApp.UI.Forms
             this.SuspendLayout();
             this.Name = "AIAssistantFormV2";
             this.Text = "🤖 NovaBank AI Finansal Asistan";
-            this.Size = new Size(900, 750);
+            this.Size = new Size(920, 780);
             this.StartPosition = FormStartPosition.CenterParent;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
+            this.MinimizeBox = true;
+            this.MinimumSize = new Size(800, 600);
             this.ResumeLayout(false);
         }
 
@@ -92,9 +93,9 @@ namespace BankApp.UI.Forms
             pnlHeader.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
             pnlHeader.Appearance.BackColor = Color.FromArgb(25, 28, 38);
             
-            var lblIcon = new LabelControl { Text = "🤖", Font = new Font("Segoe UI Emoji", 28F), Location = new Point(20, 12) };
-            var lblTitle = new LabelControl { Text = "AI Finansal Asistan", Font = new Font("Segoe UI", 18F, FontStyle.Bold), ForeColor = Color.White, Location = new Point(70, 12) };
-            var lblSubtitle = new LabelControl { Text = _aiProvider.ProviderName, Font = new Font("Segoe UI", 10F), ForeColor = Color.FromArgb(140, 150, 170), Location = new Point(70, 42) };
+            var lblIcon = new LabelControl { Text = "🤖", Font = new Font("Segoe UI Emoji", 32F), Location = new Point(20, 15) };
+            var lblTitle = new LabelControl { Text = "AI Finansal Asistan", Font = new Font("Segoe UI", 20F, FontStyle.Bold), ForeColor = Color.FromArgb(212, 175, 55), Location = new Point(70, 12) };
+            var lblSubtitle = new LabelControl { Text = _aiProvider.ProviderName + " • Kurumsal Finansal Danışman", Font = new Font("Segoe UI", 10F), ForeColor = Color.FromArgb(148, 163, 184), Location = new Point(70, 42) };
             
             pnlHeader.Controls.AddRange(new Control[] { lblIcon, lblTitle, lblSubtitle });
             this.Controls.Add(pnlHeader);
@@ -143,10 +144,10 @@ namespace BankApp.UI.Forms
             // ═══════════════════════════════════════════════════════════
             pnlTopics = new PanelControl();
             pnlTopics.Dock = DockStyle.Left;
-            pnlTopics.Width = 160;
+            pnlTopics.Width = 180;
             pnlTopics.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            pnlTopics.Appearance.BackColor = Color.FromArgb(22, 25, 35);
-            pnlTopics.Padding = new Padding(10, 15, 10, 10);
+            pnlTopics.Appearance.BackColor = Color.FromArgb(30, 41, 59);
+            pnlTopics.Padding = new Padding(15, 20, 15, 15);
             
             var lblTopicsHeader = new LabelControl { Text = "📋 KONULAR", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(100, 110, 130), Location = new Point(15, 10) };
             pnlTopics.Controls.Add(lblTopicsHeader);
@@ -178,10 +179,12 @@ namespace BankApp.UI.Forms
             txtUserInput.Location = new Point(15, 30);
             txtUserInput.Size = new Size(580, 80);
             txtUserInput.Properties.ScrollBars = ScrollBars.Vertical;
-            txtUserInput.Properties.Appearance.BackColor = Color.FromArgb(35, 40, 55);
-            txtUserInput.Properties.Appearance.ForeColor = Color.White;
+            txtUserInput.Properties.Appearance.BackColor = Color.FromArgb(30, 41, 59);
+            txtUserInput.Properties.Appearance.ForeColor = Color.FromArgb(248, 250, 252);
             txtUserInput.Properties.Appearance.Font = new Font("Segoe UI", 11F);
-            txtUserInput.Properties.NullValuePrompt = "💬 Mesajınızı yazın veya soldaki konulardan seçin...";
+            txtUserInput.Properties.AppearanceFocused.BorderColor = Color.FromArgb(212, 175, 55);
+            txtUserInput.Properties.AppearanceFocused.Options.UseBorderColor = true;
+            txtUserInput.Properties.NullValuePrompt = "💬 Finansal sorularınızı yazın veya soldaki konulardan seçin...";
             txtUserInput.Properties.NullValuePromptShowForEmptyValue = true;
             txtUserInput.KeyDown += TxtUserInput_KeyDown;
             
@@ -189,11 +192,15 @@ namespace BankApp.UI.Forms
             btnSend.Text = "Gönder 📤";
             btnSend.Location = new Point(605, 30);
             btnSend.Size = new Size(100, 80);
-            btnSend.Appearance.BackColor = Color.FromArgb(56, 142, 60);
-            btnSend.Appearance.ForeColor = Color.White;
-            btnSend.Appearance.Font = new Font("Segoe UI Semibold", 11F);
+            btnSend.Appearance.BackColor = Color.FromArgb(212, 175, 55);
+            btnSend.Appearance.ForeColor = Color.FromArgb(15, 23, 42);
+            btnSend.Appearance.Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold);
             btnSend.Appearance.Options.UseBackColor = true;
             btnSend.Appearance.Options.UseForeColor = true;
+            btnSend.AppearanceHovered.BackColor = Color.FromArgb(235, 195, 75);
+            btnSend.AppearanceHovered.Options.UseBackColor = true;
+            btnSend.AppearancePressed.BackColor = Color.FromArgb(180, 145, 40);
+            btnSend.AppearancePressed.Options.UseBackColor = true;
             btnSend.Click += BtnSend_Click;
             
             pnlInput.Controls.AddRange(new Control[] { lblTyping, txtUserInput, btnSend });

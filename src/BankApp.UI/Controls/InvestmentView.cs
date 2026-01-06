@@ -20,6 +20,8 @@ using BankApp.Infrastructure.Services.AI;
 using BankApp.Infrastructure.Data;
 using BankApp.Core.Interfaces;
 using BankApp.UI.Forms;
+using BankApp.Infrastructure.Events;
+using Dapper;
 
 namespace BankApp.UI.Controls
 {
@@ -32,6 +34,7 @@ namespace BankApp.UI.Controls
         private readonly FinnhubService _finnhubService;
         private readonly TransactionService _transactionService;
         private readonly IAccountRepository _accountRepository;
+        private readonly CustomerPortfolioRepository _portfolioRepository;
         
         // DevExpress Layout Managers
         private BarManager barManager;
@@ -164,11 +167,14 @@ namespace BankApp.UI.Controls
 
         public InvestmentView()
         {
+            System.Diagnostics.Debug.WriteLine("=== INVESTMENTVIEW LOADED v2 ===");
+            
             _finnhubService = new FinnhubService();
             
             // Initialize repositories and services for transaction processing
             var context = new DapperContext();
             _accountRepository = new AccountRepository(context);
+            _portfolioRepository = new CustomerPortfolioRepository(context);
             var transactionRepo = new TransactionRepository(context);
             var auditRepo = new AuditRepository(context);
             _transactionService = new TransactionService(_accountRepository, transactionRepo, auditRepo);
@@ -202,6 +208,8 @@ namespace BankApp.UI.Controls
             // Load watchlist and market tiles, but NOT chart (user must select symbol)
             await LoadWatchlistDataAsync();
             await LoadMarketTilesDataAsync();
+            await LoadPositionsDataAsync();
+            await LoadOrderHistoryAsync();
             
             // Show empty state for chart
             ShowChartEmpty(true);
@@ -771,6 +779,19 @@ namespace BankApp.UI.Controls
             btnSell.Appearance.Options.UseFont = true;
             btnSell.Click += BtnSell_Click;
             
+            // AI Assistant Button
+            var btnAIAssist = new SimpleButton();
+            btnAIAssist.Text = "🤖 AI Asistan";
+            btnAIAssist.Location = new Point(12, 210);
+            btnAIAssist.Size = new Size(230, 35);
+            btnAIAssist.Appearance.BackColor = Color.FromArgb(88, 101, 242);
+            btnAIAssist.Appearance.ForeColor = Color.White;
+            btnAIAssist.Appearance.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnAIAssist.Appearance.Options.UseBackColor = true;
+            btnAIAssist.Appearance.Options.UseForeColor = true;
+            btnAIAssist.Appearance.Options.UseFont = true;
+            btnAIAssist.Click += (s, e) => OpenAIAssistant();
+            
             pnlOrderTicket.Controls.Add(lblTitle);
             pnlOrderTicket.Controls.Add(lblType);
             pnlOrderTicket.Controls.Add(cmbOrderType);
@@ -780,6 +801,14 @@ namespace BankApp.UI.Controls
             pnlOrderTicket.Controls.Add(txtOrderPrice);
             pnlOrderTicket.Controls.Add(btnBuy);
             pnlOrderTicket.Controls.Add(btnSell);
+            pnlOrderTicket.Controls.Add(btnAIAssist);
+        }
+        
+        private void OpenAIAssistant()
+        {
+            string context = $"{_currentSymbol} @ {lblSymbolPrice?.Text ?? "N/A"}";
+            var aiForm = new Forms.AIAssistantFormV4(context);
+            aiForm.ShowDialog();
         }
         #endregion
 
@@ -1080,9 +1109,12 @@ namespace BankApp.UI.Controls
         /// </summary>
         private async Task ExecuteTradeAsync(bool isBuy)
         {
+            System.Diagnostics.Debug.WriteLine($"[TRADE] ExecuteTradeAsync START - isBuy={isBuy}, symbol={_currentSymbol}, qtyText={txtOrderQuantity.Text}");
+            
             // Double-click prevention
             if (_isTrading)
             {
+                System.Diagnostics.Debug.WriteLine("[TRADE] Already trading, skipping");
                 return;
             }
             
@@ -1092,8 +1124,11 @@ namespace BankApp.UI.Controls
                 if (!decimal.TryParse(txtOrderQuantity.Text, out decimal quantity) || quantity <= 0)
                 {
                     ShowToast("Uyarı", "Geçerli bir miktar giriniz.", isError: true);
+                    System.Diagnostics.Debug.WriteLine("[TRADE] Invalid quantity");
                     return;
                 }
+                
+                System.Diagnostics.Debug.WriteLine($"[TRADE] Quantity parsed: {quantity}");
                 
                 // Lock trading
                 _isTrading = true;
@@ -1127,15 +1162,29 @@ namespace BankApp.UI.Controls
                 
                 if (isBuy)
                 {
-                    // AL: Bakiyeden düş (Withdraw) - Description contains "Yatırım" for pie chart grouping
+                    // AL: Bakiyeden düş (Withdraw)
                     result = await _transactionService.WithdrawAsync(
                         primaryAccount.Id, 
                         totalAmount, 
                         $"Yatırım AL: {quantity} adet {_currentSymbol} @ ${price:N2}");
                     actionType = "StockBuy";
+                    
+                    // Update portfolio position
+                    if (result == null)
+                    {
+                        await _portfolioRepository.BuyAsync(primaryAccount.CustomerId, _currentSymbol, quantity, price);
+                    }
                 }
                 else
                 {
+                    // SAT: Önce pozisyon kontrolü
+                    var canSell = await _portfolioRepository.SellAsync(primaryAccount.CustomerId, _currentSymbol, quantity);
+                    if (!canSell)
+                    {
+                        ShowToast("Hata", $"Yetersiz {_currentSymbol} pozisyonu.", isError: true);
+                        return;
+                    }
+                    
                     // SAT: Bakiyeye ekle (Deposit)
                     result = await _transactionService.DepositAsync(
                         primaryAccount.Id, 
@@ -1146,11 +1195,31 @@ namespace BankApp.UI.Controls
                 
                 if (result == null) // Success
                 {
+                    System.Diagnostics.Debug.WriteLine($"[TRADE] SUCCESS - {actionType} completed");
+                    
+                    // DB Count Check
+                    try
+                    {
+                        using var conn = new DapperContext().CreateConnection();
+                        var txCount = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM \"Transactions\" WHERE \"AccountId\" = @AccId", new { AccId = primaryAccount.Id });
+                        var portfolioCount = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId", new { CustId = primaryAccount.CustomerId });
+                        System.Diagnostics.Debug.WriteLine($"[TRADE] DB CHECK: TxCount={txCount}, PortfolioCount={portfolioCount}");
+                    }
+                    catch (Exception dbEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[TRADE] DB CHECK ERROR: {dbEx.Message}");
+                    }
+                    
                     // Update orders grid with new entry
                     AddOrderToGrid(isBuy ? "AL" : "SAT", _currentSymbol, price, quantity);
                     
+                    // Refresh positions grid
+                    await LoadPositionsDataAsync();
+                    
                     // Notify dashboard to refresh (triggers pie chart + balance update)
+                    System.Diagnostics.Debug.WriteLine($"[TRADE] Firing events: AppEvents.NotifyDataChanged + PortfolioEvents.OnPortfolioChanged");
                     AppEvents.NotifyDataChanged("InvestmentView", actionType);
+                    PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "Trade");
                     
                     // Show success toast
                     string tradeType = isBuy ? "AL" : "SAT";
@@ -1161,6 +1230,8 @@ namespace BankApp.UI.Controls
                     
                     // Clear quantity field
                     txtOrderQuantity.Text = "";
+                    
+                    System.Diagnostics.Debug.WriteLine($"[TRADE] ExecuteTradeAsync END - SUCCESS");
                 }
                 else
                 {
@@ -1873,6 +1944,120 @@ Volatilite orta seviyede.
 - $170 altı kırılımda dikkat
 
 [Groq API entegrasyonu yapılacak]";
+        }
+        #endregion
+
+        #region Portfolio & Order Data
+        /// <summary>
+        /// Müşterinin portföy pozisyonlarını yükler
+        /// </summary>
+        private async Task LoadPositionsDataAsync()
+        {
+            System.Diagnostics.Debug.WriteLine("[POSITIONS] LoadPositionsDataAsync START");
+            try
+            {
+                var accounts = await _accountRepository.GetByCustomerIdAsync(AppEvents.CurrentSession.UserId);
+                var primaryAccount = accounts?.FirstOrDefault();
+                if (primaryAccount == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[POSITIONS] No primary account found");
+                    return;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[POSITIONS] Loading for CustomerId={primaryAccount.CustomerId}");
+                var positions = await _portfolioRepository.GetByCustomerIdAsync(primaryAccount.CustomerId);
+                System.Diagnostics.Debug.WriteLine($"[POSITIONS] Found {positions?.Count() ?? 0} positions");
+                
+                if (gridPositions?.DataSource is System.Data.DataTable dt)
+                {
+                    dt.Rows.Clear();
+                    
+                    foreach (var pos in positions)
+                    {
+                        // Get current price (simplified - use average cost for now)
+                        decimal currentPrice = pos.AverageCost * 1.05m; // Mock 5% gain
+                        decimal totalValue = pos.Quantity * currentPrice;
+                        decimal pnl = totalValue - pos.TotalInvestment;
+                        
+                        dt.Rows.Add(
+                            pos.StockSymbol,
+                            pos.Quantity.ToString("N2"),
+                            $"${pos.AverageCost:N2}",
+                            $"${currentPrice:N2}",
+                            $"{(pnl >= 0 ? "+" : "")}${pnl:N2}"
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"LoadPositionsData Error: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// İşlem geçmişini yükler (Yatırım işlemleri)
+        /// </summary>
+        private async Task LoadOrderHistoryAsync()
+        {
+            System.Diagnostics.Debug.WriteLine("[ORDERS] LoadOrderHistoryAsync START");
+            try
+            {
+                var context = new DapperContext();
+                using var conn = context.CreateConnection();
+                
+                // Get investment transactions
+                var transactions = await conn.QueryAsync<dynamic>(@"
+                    SELECT t.""TransactionDate"", t.""Description"", t.""Amount"", t.""TransactionType""
+                    FROM ""Transactions"" t
+                    INNER JOIN ""Accounts"" a ON t.""AccountId"" = a.""Id""
+                    INNER JOIN ""Customers"" c ON a.""CustomerId"" = c.""Id""
+                    WHERE c.""UserId"" = @UserId
+                    AND (t.""Description"" LIKE '%Yatırım%' OR t.""Description"" LIKE '%AL:%' OR t.""Description"" LIKE '%SAT:%')
+                    ORDER BY t.""TransactionDate"" DESC
+                    LIMIT 50");
+                
+                var txList = transactions.ToList();
+                System.Diagnostics.Debug.WriteLine($"[ORDERS] Found {txList.Count} investment transactions");
+                
+                if (gridOrders?.DataSource is System.Data.DataTable dt)
+                {
+                    dt.Rows.Clear();
+                    
+                    foreach (var tx in txList)
+                    {
+                        string desc = tx.Description?.ToString() ?? "";
+                        string type = desc.Contains("AL") ? "AL" : "SAT";
+                        string symbol = ExtractSymbolFromDescription(desc);
+                        
+                        dt.Rows.Add(
+                            ((DateTime)tx.TransactionDate).ToString("dd.MM HH:mm"),
+                            symbol,
+                            type,
+                            $"${(decimal)tx.Amount:N2}",
+                            "-",
+                            "Gerçekleşti"
+                        );
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[ORDERS] Grid populated with {dt.Rows.Count} rows");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ORDERS] LoadOrderHistory Error: {ex.Message}");
+            }
+        }
+        
+        private string ExtractSymbolFromDescription(string desc)
+        {
+            // Extract symbol from "Yatırım AL: 10 adet AAPL @ $150.00"
+            var parts = desc.Split(' ');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (parts[i] == "adet" && i + 1 < parts.Length)
+                    return parts[i + 1];
+            }
+            return "N/A";
         }
         #endregion
 

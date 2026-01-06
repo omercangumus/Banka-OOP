@@ -738,6 +738,48 @@ namespace BankApp.UI.Forms
             var coords = GetChartCoordinates(e.Location);
             if (coords == null) return;
             
+            // Special handling for text tool - show input dialog
+            if (_currentTool == "text")
+            {
+                System.Diagnostics.Debug.WriteLine("[CHART] Text tool clicked - showing input dialog");
+                var text = ShowInputDialog("Not Metni:", "");
+                if (!string.IsNullOrEmpty(text))
+                {
+                    SaveUndoState();
+                    var newNote = new ChartDrawingObject
+                    {
+                        Type = "text",
+                        StartTime = coords.Value.time,
+                        StartPrice = coords.Value.price,
+                        EndTime = coords.Value.time,
+                        EndPrice = coords.Value.price,
+                        Color = Color.White,
+                        Text = text
+                    };
+                    _drawings.Add(newNote);
+                    System.Diagnostics.Debug.WriteLine($"[CHART] Note added: text='{text}', totalDrawings={_drawings.Count}");
+                    chartMain.Invalidate();
+                }
+                return;
+            }
+            
+            // Special handling for price label - instant placement
+            if (_currentTool == "pricelabel")
+            {
+                SaveUndoState();
+                _drawings.Add(new ChartDrawingObject
+                {
+                    Type = "pricelabel",
+                    StartTime = coords.Value.time,
+                    StartPrice = coords.Value.price,
+                    EndTime = coords.Value.time,
+                    EndPrice = coords.Value.price,
+                    Color = Color.FromArgb(33, 150, 243)
+                });
+                chartMain.Invalidate();
+                return;
+            }
+            
             _isDrawing = true;
             _drawStart = e.Location;
             
@@ -781,7 +823,60 @@ namespace BankApp.UI.Forms
         
         private void Chart_DoubleClick(object sender, MouseEventArgs e)
         {
+            // Check if double-clicked on a text object for editing
+            var coords = GetChartCoordinates(e.Location);
+            if (coords != null)
+            {
+                foreach (var drawing in _drawings)
+                {
+                    if (drawing.Type == "text")
+                    {
+                        var screenPos = GetScreenCoordinates(drawing.StartTime, drawing.StartPrice);
+                        if (screenPos != null)
+                        {
+                            var hitRect = new Rectangle(screenPos.Value.X - 10, screenPos.Value.Y - 10, 150, 30);
+                            if (hitRect.Contains(e.Location))
+                            {
+                                // Edit text
+                                var newText = ShowInputDialog("Not Düzenle:", drawing.Text ?? "");
+                                if (!string.IsNullOrEmpty(newText))
+                                {
+                                    SaveUndoState();
+                                    drawing.Text = newText;
+                                    chartMain.Invalidate();
+                                }
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Default: Reset zoom
             ResetZoom();
+        }
+        
+        private string ShowInputDialog(string prompt, string defaultValue)
+        {
+            using var form = new Form();
+            form.Text = "Giriş";
+            form.Size = new Size(350, 150);
+            form.StartPosition = FormStartPosition.CenterParent;
+            form.FormBorderStyle = FormBorderStyle.FixedDialog;
+            form.MaximizeBox = false;
+            form.MinimizeBox = false;
+            form.BackColor = Color.FromArgb(30, 30, 30);
+            
+            var label = new Label { Text = prompt, Left = 20, Top = 20, Width = 300, ForeColor = Color.White };
+            var textBox = new TextBox { Left = 20, Top = 45, Width = 290, Text = defaultValue, BackColor = Color.FromArgb(45, 45, 45), ForeColor = Color.White };
+            var btnOk = new Button { Text = "Tamam", Left = 140, Top = 80, Width = 80, DialogResult = DialogResult.OK };
+            var btnCancel = new Button { Text = "İptal", Left = 230, Top = 80, Width = 80, DialogResult = DialogResult.Cancel };
+            
+            form.Controls.AddRange(new Control[] { label, textBox, btnOk, btnCancel });
+            form.AcceptButton = btnOk;
+            form.CancelButton = btnCancel;
+            
+            return form.ShowDialog() == DialogResult.OK ? textBox.Text : null;
         }
         
         private void Chart_CustomPaint(object sender, CustomPaintEventArgs e)
@@ -995,11 +1090,14 @@ namespace BankApp.UI.Forms
         
         private void ClearAllDrawings()
         {
+            int prevCount = _drawings.Count;
+            System.Diagnostics.Debug.WriteLine($"[CHART] ClearAllDrawings called, current count={prevCount}");
             if (_drawings.Count > 0)
             {
                 SaveUndoState();
                 _drawings.Clear();
                 chartMain.Invalidate();
+                System.Diagnostics.Debug.WriteLine($"[CHART] Drawings cleared: count was {prevCount}, now {_drawings.Count}");
             }
         }
         

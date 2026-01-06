@@ -9,8 +9,6 @@ namespace BankApp.UI.Controls
     public partial class QuickActionsBar : UserControl
     {
         public event EventHandler SendMoneyClicked;
-        public event EventHandler QRPayClicked;
-        public event EventHandler ExchangeClicked;
         public event EventHandler SupportClicked;
 
         public QuickActionsBar()
@@ -21,58 +19,92 @@ namespace BankApp.UI.Controls
 
         private void InitializeComponent()
         {
-            this.Size = new Size(800, 120);
-            this.BackColor = Color.FromArgb(18, 18, 18);
+            this.Size = new Size(400, 80);
+            this.BackColor = Color.Transparent;
+            this.Padding = new Padding(0);
             
-            CreateActionButton("💸\nPara Gönder", 50, (s, e) => SendMoneyClicked?.Invoke(this, e));
-            // QR Pay and Exchange removed as requested
-            CreateActionButton("🎧\nDestek", 230, (s, e) => SupportClicked?.Invoke(this, e));
+            // Bankacılık tile butonları
+            int tileWidth = 180;
+            int tileHeight = 60;
+            int spacing = 15;
+            
+            CreateTileButton("💸", "Para Gönder", "Hesaplar arası transfer", 0, tileWidth, tileHeight, 
+                Color.FromArgb(59, 130, 246), (s, e) => SendMoneyClicked?.Invoke(this, e));
+            
+            CreateTileButton("🎧", "Destek", "7/24 canlı destek", tileWidth + spacing, tileWidth, tileHeight,
+                Color.FromArgb(139, 92, 246), (s, e) => SupportClicked?.Invoke(this, e));
         }
 
-        private void CreateActionButton(string text, int x, EventHandler onClick)
+        private void CreateTileButton(string icon, string title, string subtitle, int x, int width, int height, Color accentColor, EventHandler onClick)
         {
             Panel pnl = new Panel
             {
-                Size = new Size(100, 100),
+                Size = new Size(width, height),
                 Location = new Point(x, 10),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                BackColor = Color.FromArgb(38, 38, 38)
             };
 
             pnl.Paint += (s, e) =>
             {
                 Graphics g = e.Graphics;
                 g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-                // Circular background
-                using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(30, 30, 30)))
+                // Rounded rectangle background
+                using (GraphicsPath path = CreateRoundedRect(0, 0, width - 1, height - 1, 10))
                 {
-                    g.FillEllipse(bgBrush, 10, 10, 80, 80);
-                }
-
-                // Accent border
-                using (Pen borderPen = new Pen(Color.FromArgb(0, 210, 255), 2))
-                {
-                    g.DrawEllipse(borderPen, 10, 10, 80, 80);
-                }
-
-                // Text
-                using (Font font = new Font("Segoe UI", 11, FontStyle.Bold))
-                using (SolidBrush textBrush = new SolidBrush(Color.White))
-                {
-                    StringFormat sf = new StringFormat
+                    using (SolidBrush bgBrush = new SolidBrush(pnl.BackColor))
                     {
-                        Alignment = StringAlignment.Center,
-                        LineAlignment = StringAlignment.Center
-                    };
-                    g.DrawString(text, font, textBrush, new RectangleF(0, 0, 100, 100), sf);
+                        g.FillPath(bgBrush, path);
+                    }
+                    
+                    // Left accent bar
+                    using (SolidBrush accentBrush = new SolidBrush(accentColor))
+                    {
+                        g.FillRectangle(accentBrush, 0, 8, 4, height - 16);
+                    }
+                }
+
+                // Icon
+                using (Font iconFont = new Font("Segoe UI Emoji", 18))
+                using (SolidBrush iconBrush = new SolidBrush(Color.White))
+                {
+                    g.DrawString(icon, iconFont, iconBrush, 14, 12);
+                }
+
+                // Title
+                using (Font titleFont = new Font("Segoe UI", 11, FontStyle.Bold))
+                using (SolidBrush titleBrush = new SolidBrush(Color.White))
+                {
+                    g.DrawString(title, titleFont, titleBrush, 50, 12);
+                }
+
+                // Subtitle
+                using (Font subFont = new Font("Segoe UI", 8))
+                using (SolidBrush subBrush = new SolidBrush(Color.FromArgb(156, 163, 175)))
+                {
+                    g.DrawString(subtitle, subFont, subBrush, 50, 32);
                 }
             };
 
             pnl.Click += onClick;
-            pnl.MouseEnter += (s, e) => { pnl.BackColor = Color.FromArgb(40, 40, 40); pnl.Invalidate(); };
-            pnl.MouseLeave += (s, e) => { pnl.BackColor = Color.Transparent; pnl.Invalidate(); };
+            pnl.MouseEnter += (s, e) => { pnl.BackColor = Color.FromArgb(48, 48, 48); pnl.Invalidate(); };
+            pnl.MouseLeave += (s, e) => { pnl.BackColor = Color.FromArgb(38, 38, 38); pnl.Invalidate(); };
 
             this.Controls.Add(pnl);
+        }
+        
+        private GraphicsPath CreateRoundedRect(int x, int y, int width, int height, int radius)
+        {
+            GraphicsPath path = new GraphicsPath();
+            int diameter = radius * 2;
+            path.AddArc(x, y, diameter, diameter, 180, 90);
+            path.AddArc(x + width - diameter, y, diameter, diameter, 270, 90);
+            path.AddArc(x + width - diameter, y + height - diameter, diameter, diameter, 0, 90);
+            path.AddArc(x, y + height - diameter, diameter, diameter, 90, 90);
+            path.CloseFigure();
+            return path;
         }
     }
 }
