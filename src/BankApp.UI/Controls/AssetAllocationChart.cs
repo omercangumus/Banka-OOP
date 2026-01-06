@@ -19,6 +19,8 @@ namespace BankApp.UI.Controls
 
         public AssetAllocationChart()
         {
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Hash={GetHashCode()}");
+            
             var context = new DapperContext();
             _summaryService = new DashboardSummaryService(context);
             
@@ -80,7 +82,7 @@ namespace BankApp.UI.Controls
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart.LoadChartDataAsync START, UserId={AppEvents.CurrentSession.UserId}");
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] AssetAllocationChart.LoadChartDataAsync - UserId={AppEvents.CurrentSession.UserId}, Hash={this.GetHashCode()}, Visible={this.Visible}, Parent={this.Parent?.Name ?? "null"}");
                 // Use Asset Allocation (Nakit / Yatırım / Borç)
                 var allocationData = await _summaryService.GetAssetAllocationAsync(AppEvents.CurrentSession.UserId);
                 System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart: Got {allocationData?.Count ?? 0} allocation slices");
