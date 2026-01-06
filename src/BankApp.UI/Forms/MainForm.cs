@@ -34,6 +34,7 @@ namespace BankApp.UI.Forms
         private AssetAllocationChart assetChart;
         private AdminDashboardPanel adminPanel;
         private PortfolioView portfolioView;
+        private PortfolioViewPro portfolioViewPro; // PROFESYONEL PORTFÖY
         
         // Portfolio Dashboard (for Tab2)
         private PanelControl pnlPortfolioDashboard;
@@ -680,25 +681,34 @@ namespace BankApp.UI.Forms
                 DumpControlTree(tabName, pnlDashboard);
             }
 
-            // Tab1: Dashboard & Tab2: Portfolio (AYNI DASHBOARD)
+            // Tab1: Dashboard (Genel Bakış)
             if (pnlDashboard != null)
             {
-                // Hem Genel Bakış hem Portföy sekmesinde aynı dashboard göster
-                pnlDashboard.Visible = isTab1Dashboard || isTab2Portfolio;
-                if (isTab1Dashboard || isTab2Portfolio) pnlDashboard.BringToFront();
+                pnlDashboard.Visible = isTab1Dashboard;
+                if (isTab1Dashboard) pnlDashboard.BringToFront();
             }
             
-            // Hide old portfolio view - artık kullanılmıyor
-            if (portfolioView != null)
+            // Tab2: PROFESYONEL PORTFÖY (Yeni tasarım)
+            if (isTab2Portfolio)
             {
-                portfolioView.Visible = false;
+                if (portfolioViewPro == null)
+                {
+                    portfolioViewPro = new PortfolioViewPro();
+                    portfolioViewPro.Dock = DockStyle.Fill;
+                    this.Controls.Add(portfolioViewPro);
+                }
+                portfolioViewPro.Visible = true;
+                portfolioViewPro.BringToFront();
+                _ = portfolioViewPro.LoadDataAsync();
+            }
+            else if (portfolioViewPro != null)
+            {
+                portfolioViewPro.Visible = false;
             }
             
-            // Hide portfolio dashboard panel - artık kullanılmıyor
-            if (pnlPortfolioDashboard != null)
-            {
-                pnlPortfolioDashboard.Visible = false;
-            }
+            // Hide old portfolio views
+            if (portfolioView != null) portfolioView.Visible = false;
+            if (pnlPortfolioDashboard != null) pnlPortfolioDashboard.Visible = false;
             
             // Hide legacy investmentDashboard - no longer used in tab switching
             if (investmentDashboard != null)

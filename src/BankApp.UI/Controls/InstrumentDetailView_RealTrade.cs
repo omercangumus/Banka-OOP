@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using BankApp.Infrastructure.Data;
 using BankApp.Infrastructure.Services;
 using BankApp.Infrastructure.Events;
+using BankApp.Core.Entities;
 using Dapper;
 
 namespace BankApp.UI.Controls
@@ -18,6 +19,7 @@ namespace BankApp.UI.Controls
         private AccountRepository _accountRepository;
         private TransactionService _transactionService;
         private CustomerPortfolioRepository _portfolioRepository;
+        private PendingOrderRepository _pendingOrderRepository;
         
         private void InitializeTradeServices()
         {
@@ -28,6 +30,7 @@ namespace BankApp.UI.Controls
             _accountRepository = accountRepo;
             _transactionService = new TransactionService(accountRepo, transactionRepo, auditRepo);
             _portfolioRepository = new CustomerPortfolioRepository(_context);
+            _pendingOrderRepository = new PendingOrderRepository(_context);
         }
         private bool _isTrading = false;
         
@@ -118,24 +121,62 @@ namespace BankApp.UI.Controls
                 decimal totalBalance = accounts.Sum(a => a.Balance);
                 int accountCount = accounts.Count();
                 
-                // KULLANICI İÇİN: Hesap durumu göster
-                DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"HESAP BİLGİSİ:\n\nAna Hesap: {primaryAccount.Id}\nAna Hesap Bakiye: ₺{primaryAccount.Balance:N2}\nTOPLAM BAKİYE ({accountCount} hesap): ₺{totalBalance:N2}\n\nALINACAK:\nSembol: {_currentSymbol}\nMiktar: {quantity}\nFiyat: ${price:N2}\nToplam: ${totalAmount:N2}\n\nÇekilecek TL: ₺{totalAmount:N2}\n\nYETERLİ Mİ? {(totalBalance >= totalAmount ? "EVET ✅" : "HAYIR ❌")}",
-                    "İşlem Öncesi Kontrol",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                // Emir tipini kontrol et
+                var orderType = cmbOrderType?.EditValue?.ToString() ?? "Market";
+                System.Diagnostics.Debug.WriteLine($"[TRADE] OrderType={orderType} isBuy={isBuy} symbol={_currentSymbol} qty={quantity} price={price}");
                 
+                // LİMİT/STOP EMİR: Para çekilmez, bekleyen emirlere eklenir
+                if (orderType != "Market")
+                {
+                    // Limit fiyatı al
+                    decimal limitPrice = price;
+                    if (!string.IsNullOrWhiteSpace(txtPrice.Text) && decimal.TryParse(txtPrice.Text.Replace(",", ""), out decimal parsedLimit))
+                    {
+                        limitPrice = parsedLimit;
+                    }
+                    
+                    // Bekleyen emir oluştur
+                    var pendingOrder = new PendingOrder
+                    {
+                        CustomerId = primaryAccount.CustomerId,
+                        AccountId = primaryAccount.Id,
+                        Symbol = _currentSymbol,
+                        OrderType = orderType,
+                        Side = isBuy ? "Buy" : "Sell",
+                        Quantity = quantity,
+                        LimitPrice = limitPrice,
+                        Status = "Pending",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    
+                    var orderId = await _pendingOrderRepository.CreateAsync(pendingOrder);
+                    
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] PendingOrder created Id={orderId} Type={orderType} Side={pendingOrder.Side} Symbol={_currentSymbol} Qty={quantity} LimitPrice={limitPrice}");
+                    
+                    // Kullanıcıya bilgi ver
+                    DevExpress.XtraEditors.XtraMessageBox.Show(
+                        $"✅ {orderType} Emir Oluşturuldu!\n\nEmir No: #{orderId}\nSembol: {_currentSymbol}\nYön: {(isBuy ? "AL" : "SAT")}\nMiktar: {quantity}\nLimit Fiyat: ${limitPrice:N2}\n\n📌 Bu emir Portföy → Bekleyen Emirler kısmında görünecek.\nFiyat hedefe ulaşınca otomatik işlenecek.\n\n❌ İptal etmek için Portföy'den iptal edebilirsiniz.",
+                        "Bekleyen Emir",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    
+                    // Event tetikle (portföy güncellensin)
+                    PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "PendingOrder");
+                    return;
+                }
+                
+                // MARKET EMİR: Direkt işlem yap
                 string result;
                 string actionType;
                 
                 if (isBuy)
                 {
-                    // BAKİYE KONTROLÜ - TOPLAM bakiyeye bak
+                    // BAKİYE KONTROLÜ
                     if (totalBalance < totalAmount)
                     {
                         DevExpress.XtraEditors.XtraMessageBox.Show(
-                            $"YETERSİZ BAKİYE!\n\nToplam Bakiye: ₺{totalBalance:N2}\nGerekli: ₺{totalAmount:N2}\nEksik: ₺{(totalAmount - totalBalance):N2}\n\nNot: {accountCount} hesabınız var, hepsinin toplamı kontrol edildi.",
-                            "İşlem Yapılamaz",
+                            $"Yetersiz bakiye!\n\nMevcut: ₺{totalBalance:N2}\nGerekli: ₺{totalAmount:N2}",
+                            "Hata",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Error);
                         return;
