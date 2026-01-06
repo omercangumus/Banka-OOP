@@ -263,8 +263,9 @@ namespace BankApp.UI.Controls
                     int ibanX = this.Width - padding - (int)ibanSize.Width;
                     int ibanY = this.Height - 24;
                     
-                    // Store rect for click detection
-                    ibanRect = new Rectangle(ibanX - 4, ibanY - 2, (int)ibanSize.Width + 8, (int)ibanSize.Height + 4);
+                    // Store rect for click detection - GENIŞ ALAN (S1 FIX)
+                    // Tüm IBAN satırını kapsasın
+                    ibanRect = new Rectangle(ibanX - 20, ibanY - 10, (int)ibanSize.Width + 40, (int)ibanSize.Height + 20);
                     
                     // Hover highlight
                     if (ibanHovered)
