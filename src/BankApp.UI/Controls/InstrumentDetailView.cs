@@ -12,6 +12,7 @@ using DevExpress.XtraGrid.Views.Grid;
 using BankApp.Infrastructure.Services;
 using BankApp.UI.Forms;
 using BankApp.UI.Services.Pdf;
+using Dapper;
 
 namespace BankApp.UI.Controls
 {
@@ -690,6 +691,70 @@ namespace BankApp.UI.Controls
             tabBottom.TabPages.Add(tabHistory);
             
             pnlBottom.Controls.Add(tabBottom);
+            
+            // Son işlemleri yükle
+            LoadRecentTransactions();
+        }
+        
+        private async void LoadRecentTransactions()
+        {
+            try
+            {
+                using var conn = new BankApp.Infrastructure.Data.DapperContext().CreateConnection();
+                
+                // Son 20 transaction
+                var transactions = await conn.QueryAsync<dynamic>(@"
+                    SELECT 
+                        t.""Id"",
+                        t.""TransactionDate"" as Date,
+                        t.""TransactionType"" as Type,
+                        t.""Amount"",
+                        t.""Description"",
+                        a.""AccountNumber""
+                    FROM ""Transactions"" t
+                    INNER JOIN ""Accounts"" a ON t.""AccountId"" = a.""Id""
+                    WHERE a.""CustomerId"" IN (
+                        SELECT ""Id"" FROM ""Customers"" WHERE ""UserId"" = @UserId
+                    )
+                    ORDER BY t.""TransactionDate"" DESC
+                    LIMIT 20",
+                    new { UserId = AppEvents.CurrentSession.UserId });
+                
+                // DataTable oluştur
+                var dt = new System.Data.DataTable();
+                dt.Columns.Add("Tarih", typeof(DateTime));
+                dt.Columns.Add("Tür", typeof(string));
+                dt.Columns.Add("Açıklama", typeof(string));
+                dt.Columns.Add("Tutar", typeof(decimal));
+                dt.Columns.Add("Hesap", typeof(string));
+                
+                foreach (var tx in transactions)
+                {
+                    dt.Rows.Add(
+                        tx.Date,
+                        tx.Type?.ToString() ?? "",
+                        tx.Description?.ToString() ?? "",
+                        (decimal)tx.Amount,
+                        tx.AccountNumber?.ToString() ?? ""
+                    );
+                }
+                
+                gridHistory.DataSource = dt;
+                
+                // Grid görünümünü ayarla
+                if (gridHistory.MainView is GridView view)
+                {
+                    view.Columns["Tarih"].DisplayFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
+                    view.Columns["Tarih"].DisplayFormat.FormatString = "dd.MM.yyyy HH:mm";
+                    view.Columns["Tutar"].DisplayFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                    view.Columns["Tutar"].DisplayFormat.FormatString = "₺{0:N2}";
+                    view.BestFitColumns();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GRID] LoadRecentTransactions error: {ex.Message}");
+            }
         }
         
         private async void BtnBuy_Click(object sender, EventArgs e)

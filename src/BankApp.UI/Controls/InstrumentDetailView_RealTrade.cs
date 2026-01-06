@@ -111,9 +111,13 @@ namespace BankApp.UI.Controls
                 
                 System.Diagnostics.Debug.WriteLine($"[CRITICAL] Trade - AccountId={primaryAccount.Id}, CustomerId={primaryAccount.CustomerId}, UserId={AppEvents.CurrentSession.UserId}");
                 
+                // TÜM HESAPLARIN TOPLAM BAKİYESİNİ AL
+                decimal totalBalance = accounts.Sum(a => a.Balance);
+                int accountCount = accounts.Count();
+                
                 // KULLANICI İÇİN: Hesap durumu göster
                 DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"HESAP BİLGİSİ:\n\nHesap ID: {primaryAccount.Id}\nMevcut Bakiye: ₺{primaryAccount.Balance:N2}\n\nALINACAK:\nSembol: {_currentSymbol}\nMiktar: {quantity}\nFiyat: ${price:N2}\nToplam: ${totalAmount:N2}\n\nÇekilecek TL: ₺{totalAmount:N2}\n\nYETERLİ Mİ? {(primaryAccount.Balance >= totalAmount ? "EVET ✅" : "HAYIR ❌")}",
+                    $"HESAP BİLGİSİ:\n\nAna Hesap: {primaryAccount.Id}\nAna Hesap Bakiye: ₺{primaryAccount.Balance:N2}\nTOPLAM BAKİYE ({accountCount} hesap): ₺{totalBalance:N2}\n\nALINACAK:\nSembol: {_currentSymbol}\nMiktar: {quantity}\nFiyat: ${price:N2}\nToplam: ${totalAmount:N2}\n\nÇekilecek TL: ₺{totalAmount:N2}\n\nYETERLİ Mİ? {(totalBalance >= totalAmount ? "EVET ✅" : "HAYIR ❌")}",
                     "İşlem Öncesi Kontrol",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
@@ -123,11 +127,11 @@ namespace BankApp.UI.Controls
                 
                 if (isBuy)
                 {
-                    // BAKİYE KONTROLÜ
-                    if (primaryAccount.Balance < totalAmount)
+                    // BAKİYE KONTROLÜ - TOPLAM bakiyeye bak
+                    if (totalBalance < totalAmount)
                     {
                         DevExpress.XtraEditors.XtraMessageBox.Show(
-                            $"YETERSİZ BAKİYE!\n\nMevcut: ₺{primaryAccount.Balance:N2}\nGerekli: ₺{totalAmount:N2}\nEksik: ₺{(totalAmount - primaryAccount.Balance):N2}",
+                            $"YETERSİZ BAKİYE!\n\nToplam Bakiye: ₺{totalBalance:N2}\nGerekli: ₺{totalAmount:N2}\nEksik: ₺{(totalAmount - totalBalance):N2}\n\nNot: {accountCount} hesabınız var, hepsinin toplamı kontrol edildi.",
                             "İşlem Yapılamaz",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Error);
