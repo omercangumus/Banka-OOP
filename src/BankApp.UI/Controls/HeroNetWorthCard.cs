@@ -36,6 +36,13 @@ namespace BankApp.UI.Controls
         {
             System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: HeroNetWorthCard clicked at ({e.X},{e.Y}), control={GetType().FullName}");
             System.Diagnostics.Debug.WriteLine($"[IBAN] MouseClick at ({e.X},{e.Y}), ibanRect={ibanRect}, userIban={userIban}");
+            
+            // DEBUG: Her click'te MessageBox göster
+            DevExpress.XtraEditors.XtraMessageBox.Show(
+                $"CLICK DEBUG:\n\nClick Pozisyon: ({e.X}, {e.Y})\nIBAN Rect: {ibanRect}\nIBAN: {userIban ?? "(boş)"}\n\nRect içinde mi? {ibanRect.Contains(e.Location)}",
+                "HeroNetWorthCard Click Test",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
             // Check if click is on IBAN area
             if (!string.IsNullOrEmpty(userIban) && ibanRect.Contains(e.Location))
             {
@@ -45,16 +52,33 @@ namespace BankApp.UI.Controls
                     copyTooltip.Show("✓ IBAN kopyalandı!", this, e.X, e.Y - 25, 1500);
                     System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY SUCCESS: {userIban}");
                     System.Diagnostics.Debug.WriteLine($"[IBAN] IBAN COPIED TO CLIPBOARD: {userIban}");
+                    
+                    // MessageBox onay
+                    DevExpress.XtraEditors.XtraMessageBox.Show(
+                        $"✓ IBAN KOPYALANDI!\n\n{userIban}\n\nPanoya kopyalandı.",
+                        "Başarılı",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
                 }
                 catch (Exception ex) 
                 { 
                     System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] IBAN COPY FAILED: {ex.Message}");
                     System.Diagnostics.Debug.WriteLine($"[IBAN] Copy failed: {ex.Message}");
+                    DevExpress.XtraEditors.XtraMessageBox.Show(
+                        $"IBAN kopyalama hatası:\n{ex.Message}",
+                        "Hata",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
                 }
             }
             else
             {
                 System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] Click outside IBAN area or no IBAN set");
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"IBAN alanı dışında tıkladınız veya IBAN set edilmemiş.\n\nIBAN: {userIban ?? "(yok)"}\nRect: {ibanRect}\nClick: ({e.X}, {e.Y})",
+                    "IBAN Kopyalanamadı",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
             }
         }
         
