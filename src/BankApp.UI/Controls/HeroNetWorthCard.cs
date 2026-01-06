@@ -70,55 +70,92 @@ namespace BankApp.UI.Controls
         
         private void CopyIbanToClipboard(string iban, int mouseX, int mouseY)
         {
+            System.Diagnostics.Debug.WriteLine($"[IBAN] CopyIbanToClipboard called, iban={iban}");
+            
+            // STA thread'de clipboard işlemi - ayrı thread oluştur
+            bool success = false;
+            Exception lastException = null;
+            
             try
             {
-                // UI thread'de çalışıyoruz, direkt clipboard kullan
-                bool success = false;
-                Exception lastException = null;
-                
-                for (int i = 0; i < 3 && !success; i++)
+                // STA thread oluştur ve clipboard işlemini onda yap
+                var thread = new System.Threading.Thread(() =>
                 {
                     try
                     {
-                        Clipboard.Clear();
-                        System.Threading.Thread.Sleep(10);
-                        Clipboard.SetDataObject(iban, true, 10, 100);
-                        success = true;
-                        System.Diagnostics.Debug.WriteLine($"[IBAN] Copy success on attempt {i+1}");
+                        for (int i = 0; i < 3 && !success; i++)
+                        {
+                            try
+                            {
+                                Clipboard.SetText(iban);
+                                success = true;
+                                System.Diagnostics.Debug.WriteLine($"[IBAN] STA thread copy success on attempt {i+1}");
+                            }
+                            catch (Exception ex)
+                            {
+                                lastException = ex;
+                                System.Diagnostics.Debug.WriteLine($"[IBAN] STA thread attempt {i+1} failed: {ex.Message}");
+                                System.Threading.Thread.Sleep(50);
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
                         lastException = ex;
-                        System.Diagnostics.Debug.WriteLine($"[IBAN] Copy attempt {i+1} failed: {ex.Message}");
-                        System.Threading.Thread.Sleep(50);
                     }
-                }
+                });
+                
+                thread.SetApartmentState(System.Threading.ApartmentState.STA);
+                thread.Start();
+                thread.Join(1000); // 1 saniye bekle
                 
                 if (success)
                 {
-                    // [CRITICAL] IbanCopy log - ZORUNLU
-                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] IbanCopy attempt=OK success=true thread={System.Threading.Thread.CurrentThread.ManagedThreadId} iban={iban}");
-                    
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] IbanCopy attempt=OK success=true iban={iban}");
                     copyTooltip.Show("✓ IBAN kopyalandı!", this, mouseX, mouseY - 25, 1500);
-                    
-                    // Sadece tooltip göster, MessageBox kaldırıldı (UX iyileştirme)
                 }
                 else
                 {
-                    throw lastException ?? new Exception("Clipboard kopyalama başarısız");
+                    throw lastException ?? new Exception("STA thread clipboard başarısız");
                 }
             }
             catch (Exception ex)
             {
-                // [CRITICAL] IbanCopy fail log
-                System.Diagnostics.Debug.WriteLine($"[CRITICAL] IbanCopy attempt=FAIL success=false thread={System.Threading.Thread.CurrentThread.ManagedThreadId} error={ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] IbanCopy attempt=FAIL error={ex.Message}");
                 
-                // Fallback: IBAN'u kopyalanabilir mesaj olarak göster
-                DevExpress.XtraEditors.XtraMessageBox.Show(
-                    $"IBAN kopyalanamadı.\n\nManuel kopyalayın:\n{iban}\n\nHata: {ex.Message}",
-                    "Bilgi",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                // Fallback: Kullanıcıya seçilebilir text göster
+                using (var form = new Form())
+                {
+                    form.Text = "IBAN Kopyala";
+                    form.Size = new Size(450, 150);
+                    form.StartPosition = FormStartPosition.CenterParent;
+                    form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                    form.MaximizeBox = false;
+                    form.MinimizeBox = false;
+                    
+                    var txt = new TextBox();
+                    txt.Text = iban;
+                    txt.ReadOnly = true;
+                    txt.Location = new Point(20, 30);
+                    txt.Size = new Size(400, 25);
+                    txt.SelectAll();
+                    form.Controls.Add(txt);
+                    
+                    var lbl = new Label();
+                    lbl.Text = "IBAN'\u0131 seçip Ctrl+C ile kopyalay\u0131n:";
+                    lbl.Location = new Point(20, 10);
+                    lbl.AutoSize = true;
+                    form.Controls.Add(lbl);
+                    
+                    var btn = new Button();
+                    btn.Text = "Tamam";
+                    btn.Location = new Point(180, 70);
+                    btn.DialogResult = DialogResult.OK;
+                    form.Controls.Add(btn);
+                    form.AcceptButton = btn;
+                    
+                    form.ShowDialog(this);
+                }
             }
         }
         
