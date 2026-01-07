@@ -147,15 +147,19 @@ namespace BankApp.UI.Forms
         
         private void CreateChatArea()
         {
+            // Simple Panel Layout
+            pnlChatContainer.Dock = DockStyle.Fill;
+            pnlChatContainer.BackColor = Color.FromArgb(24, 25, 28);
+            
             // Chat Header
             pnlChatHeader = new DevExpress.XtraEditors.PanelControl()
             {
                 BackColor = Color.FromArgb(32, 33, 36),
                 BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder,
-                Height = 60
+                Height = 60,
+                Dock = DockStyle.Top
             };
             
-            // Title and Status Chips
             var lblTitle = new DevExpress.XtraEditors.LabelControl()
             {
                 Text = "NovaBank AI Assistant",
@@ -166,28 +170,17 @@ namespace BankApp.UI.Forms
                 Location = new Point(20, 15)
             };
             
-            // Status Chips
             chipProvider = CreateStatusChip(_aiProvider.ProviderName, Color.FromArgb(100, 200, 255));
             chipProvider.Location = new Point(250, 20);
             
             chipStatus = CreateStatusChip("Bağlı", Color.FromArgb(100, 255, 100));
             chipStatus.Location = new Point(380, 20);
             
-            chipMarket = CreateStatusChip("Piyasa", Color.FromArgb(255, 200, 100));
-            chipMarket.Location = new Point(460, 20);
+            btnClose = CreateIconButton("✕", "Kapat", pnlChatHeader.Width - 50, 15);
             
-            chipData = CreateStatusChip("Veri", Color.FromArgb(200, 100, 255));
-            chipData.Location = new Point(540, 20);
+            pnlChatHeader.Controls.AddRange(new Control[] { lblTitle, chipProvider, chipStatus, btnClose });
             
-            // Header Actions
-            btnNewChat = CreateIconButton("🔄", "Yeni Sohbet", 620, 15);
-            btnHistory = CreateIconButton("📋", "Geçmiş", 670, 15);
-            btnSettings = CreateIconButton("⚙️", "Ayarlar", 720, 15);
-            btnClose = CreateIconButton("✕", "Kapat", 770, 15);
-            
-            pnlChatHeader.Controls.AddRange(new Control[] { lblTitle, chipProvider, chipStatus, chipMarket, chipData, btnNewChat, btnHistory, btnSettings, btnClose });
-            
-            // Chat Messages Area
+            // Chat Messages
             pnlChatArea = new DevExpress.XtraEditors.PanelControl()
             {
                 BackColor = Color.FromArgb(24, 25, 28),
@@ -203,16 +196,16 @@ namespace BankApp.UI.Forms
             
             flowChatMessages = new DevExpress.XtraEditors.PanelControl()
             {
-                Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(24, 25, 28),
                 BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder,
-                AutoScroll = true
+                AutoScroll = true,
+                Dock = DockStyle.Fill
             };
             
             scrollChat.Controls.Add(flowChatMessages);
             pnlChatArea.Controls.Add(scrollChat);
             
-            // Composer Bar
+            // Input Area
             pnlComposer = new DevExpress.XtraEditors.PanelControl()
             {
                 BackColor = Color.FromArgb(32, 33, 36),
@@ -224,7 +217,7 @@ namespace BankApp.UI.Forms
             txtInput = new DevExpress.XtraEditors.MemoEdit()
             {
                 Location = new Point(20, 15),
-                Size = new Size(pnlComposer.Width - 140, 50),
+                Size = new Size(400, 50),
                 BackColor = Color.FromArgb(45, 46, 50),
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 11F),
@@ -235,7 +228,7 @@ namespace BankApp.UI.Forms
             {
                 Text = "Gönder",
                 Size = new Size(100, 50),
-                Location = new Point(pnlComposer.Width - 110, 15),
+                Location = new Point(430, 15),
                 Appearance = {
                     BackColor = Color.FromArgb(0, 123, 255),
                     ForeColor = Color.White,
@@ -244,15 +237,15 @@ namespace BankApp.UI.Forms
                 ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.Flat
             };
             
-            // Action Icons
-            btnClear = CreateIconButton("🗑️", "Temizle", pnlComposer.Width - 220, 15);
-            btnPDF = CreateIconButton("📄", "PDF", pnlComposer.Width - 170, 15);
-            btnVoice = CreateIconButton("🎤", "Ses", pnlComposer.Width - 120, 15);
+            btnClear = CreateIconButton("🗑️", "Temizle", 540, 15);
+            btnPDF = CreateIconButton("📄", "PDF", 580, 15);
             
-            pnlComposer.Controls.AddRange(new Control[] { txtInput, btnSend, btnClear, btnPDF, btnVoice });
+            pnlComposer.Controls.AddRange(new Control[] { txtInput, btnSend, btnClear, btnPDF });
             
-            // Add to chat container
-            pnlChatContainer.Controls.AddRange(new Control[] { pnlChatHeader, pnlChatArea, pnlComposer });
+            // Add controls
+            pnlChatContainer.Controls.Add(pnlComposer);
+            pnlChatContainer.Controls.Add(pnlChatArea);
+            pnlChatContainer.Controls.Add(pnlChatHeader);
             
             // Welcome message
             AddAssistantMessage($"🌟 **NovaBank AI Asistanına Hoş Geldiniz!**\n\n" +
@@ -272,59 +265,29 @@ namespace BankApp.UI.Forms
         
         private void CreateSidebar()
         {
-            pnlSidebar = new DevExpress.XtraEditors.PanelControl()
+            pnlSidebarContainer.Dock = DockStyle.Fill;
+            pnlSidebarContainer.BackColor = Color.FromArgb(32, 33, 36);
+            pnlSidebarContainer.Padding = new Padding(20);
+            
+            // Title
+            var lblTitle = new DevExpress.XtraEditors.LabelControl()
             {
-                BackColor = Color.FromArgb(32, 33, 36),
-                BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder,
-                Padding = new Padding(20)
-            };
-            
-            // Quick Commands Card
-            pnlQuickCommands = CreateSidebarCard("Hızlı Komutlar");
-            
-            btnPortfolio = CreateSidebarButton("📊 Portföy", "Portföy özetini göster", Color.FromArgb(52, 152, 219));
-            btnAnalysis = CreateSidebarButton("📈 Analiz", "Teknik analiz yap", Color.FromArgb(46, 204, 113));
-            btnRisk = CreateSidebarButton("⚠️ Risk", "Risk analizi", Color.FromArgb(241, 196, 15));
-            btnMarket = CreateSidebarButton("💰 Piyasa", "Piyasa durumu", Color.FromArgb(231, 76, 60));
-            
-            pnlQuickCommands.Controls.AddRange(new Control[] { btnPortfolio, btnAnalysis, btnRisk, btnMarket });
-            
-            // Recommended Commands
-            pnlRecommendedCommands = CreateSidebarCard("Önerilen Komutlar");
-            
-            var recommendedCommands = new[] { "Portföyüm", "GARAN analiz", "Destek göster", "Risklerim" };
-            var yPos = 20;
-            foreach (var cmd in recommendedCommands)
-            {
-                var chip = CreateCommandChip(cmd);
-                chip.Location = new Point(20, yPos);
-                pnlRecommendedCommands.Controls.Add(chip);
-                yPos += 35;
-            }
-            
-            // Shortcuts Card
-            pnlShortcuts = CreateSidebarCard("Kısayol İpuçları");
-            
-            var shortcutsText = new DevExpress.XtraEditors.LabelControl()
-            {
-                Text = "• Enter = Gönder\n• Shift+Enter = Yeni satır\n• Esc = Temizle\n\n" +
-                       $"🤖 Model: {_aiProvider.ProviderName}\n" +
-                       "📊 Veri kaynağı: NovaBank\n" +
-                       "🔄 Otomatik yenileme: Aktif",
+                Text = "⚡ Hızlı Komutlar",
                 Appearance = {
-                    Font = new Font("Segoe UI", 9F),
-                    ForeColor = Color.FromArgb(180, 180, 180)
+                    Font = new Font("Segoe UI", 14F, FontStyle.Bold),
+                    ForeColor = Color.White
                 },
-                Location = new Point(20, 20),
-                // AutoSizeMode = System.Windows.Forms.AutoSizeMode.Vertical // Commented out
+                Location = new Point(20, 20)
             };
             
-            pnlShortcuts.Controls.Add(shortcutsText);
+            // Quick Action Buttons
+            btnPortfolio = CreateSidebarButton("📊 Portföy", "Portföy özetini göster", Color.FromArgb(52, 152, 219), 20, 60);
+            btnAnalysis = CreateSidebarButton("📈 Analiz", "Teknik analiz yap", Color.FromArgb(46, 204, 113), 20, 110);
+            btnRisk = CreateSidebarButton("⚠️ Risk", "Risk analizi", Color.FromArgb(241, 196, 15), 20, 160);
+            btnMarket = CreateSidebarButton("💰 Piyasa", "Piyasa durumu", Color.FromArgb(231, 76, 60), 20, 210);
             
-            // Add all cards to sidebar
-            pnlSidebar.Controls.AddRange(new Control[] { pnlQuickCommands, pnlRecommendedCommands, pnlShortcuts });
-            
-            pnlSidebarContainer.Controls.Add(pnlSidebar);
+            // Add controls
+            pnlSidebarContainer.Controls.AddRange(new Control[] { lblTitle, btnPortfolio, btnAnalysis, btnRisk, btnMarket });
         }
         
         private DevExpress.XtraEditors.LabelControl CreateStatusChip(string text, Color color)
@@ -365,37 +328,14 @@ namespace BankApp.UI.Forms
             return btn;
         }
         
-        private DevExpress.XtraEditors.PanelControl CreateSidebarCard(string title)
-        {
-            var card = new DevExpress.XtraEditors.PanelControl()
-            {
-                BackColor = Color.FromArgb(40, 41, 44),
-                BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder,
-                Height = 200,
-                Margin = new Padding(0, 0, 0, 16)
-            };
-            
-            var lblTitle = new DevExpress.XtraEditors.LabelControl()
-            {
-                Text = title,
-                Appearance = {
-                    Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                    ForeColor = Color.White
-                },
-                Location = new Point(20, 15)
-            };
-            
-            card.Controls.Add(lblTitle);
-            return card;
-        }
-        
-        private DevExpress.XtraEditors.SimpleButton CreateSidebarButton(string text, string tooltip, Color color)
+                
+        private DevExpress.XtraEditors.SimpleButton CreateSidebarButton(string text, string tooltip, Color color, int x, int y)
         {
             var btn = new DevExpress.XtraEditors.SimpleButton()
             {
                 Text = text,
                 Size = new Size(220, 45),
-                Location = new Point(20, 50),
+                Location = new Point(x, y),
                 Appearance = {
                     BackColor = color,
                     ForeColor = Color.White,
@@ -411,27 +351,7 @@ namespace BankApp.UI.Forms
             return btn;
         }
         
-        private DevExpress.XtraEditors.LabelControl CreateCommandChip(string text)
-        {
-            var chip = new DevExpress.XtraEditors.LabelControl()
-            {
-                Text = text,
-                Appearance = {
-                    BackColor = Color.FromArgb(60, 61, 65),
-                    ForeColor = Color.White,
-                    Font = new Font("Segoe UI", 9F),
-                    BorderColor = Color.FromArgb(80, 81, 85)
-                },
-                Size = new Size(180, 30),
-                BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple
-            };
-            
-            chip.MouseEnter += (s, e) => chip.Appearance.BackColor = Color.FromArgb(80, 81, 85);
-            chip.MouseLeave += (s, e) => chip.Appearance.BackColor = Color.FromArgb(60, 61, 65);
-            
-            return chip;
-        }
-        
+                
                 
         private void SetupEventHandlers()
         {
@@ -563,6 +483,7 @@ namespace BankApp.UI.Forms
             }
             
             var bubble = CreateMessageBubble(text, true);
+            bubble.Dock = DockStyle.Top;
             flowChatMessages.Controls.Add(bubble);
             flowChatMessages.ScrollControlIntoView(bubble);
         }
@@ -576,6 +497,7 @@ namespace BankApp.UI.Forms
             }
             
             var bubble = CreateMessageBubble(text, false);
+            bubble.Dock = DockStyle.Top;
             flowChatMessages.Controls.Add(bubble);
             flowChatMessages.ScrollControlIntoView(bubble);
         }
@@ -586,65 +508,23 @@ namespace BankApp.UI.Forms
             {
                 BackColor = isUser ? Color.FromArgb(0, 123, 255) : Color.FromArgb(45, 46, 50),
                 BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder,
-                MaximumSize = new Size(600, 0), // Fixed max width for bubbles
-                // AutoSizeMode = System.Windows.Forms.AutoSizeMode.Vertical // Commented out,
+                MaximumSize = new Size(600, 0),
                 Margin = new Padding(0, 0, 0, 12)
             };
             
-            // Icon and header
-            var pnlHeader = new DevExpress.XtraEditors.PanelControl()
-            {
-                BackColor = Color.Transparent,
-                Height = 25,
-                Dock = DockStyle.Top
-            };
-            
-            var lblIcon = new DevExpress.XtraEditors.LabelControl()
-            {
-                Text = isUser ? "👤" : "🤖",
-                Appearance = {
-                    Font = new Font("Segoe UI", 12F),
-                    ForeColor = Color.White
-                },
-                Location = new Point(10, 3)
-            };
-            
-            var lblSender = new DevExpress.XtraEditors.LabelControl()
-            {
-                Text = isUser ? "Siz" : "AI Asistan",
-                Appearance = {
-                    Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                    ForeColor = Color.White
-                },
-                Location = new Point(35, 3)
-            };
-            
-            var lblTime = new DevExpress.XtraEditors.LabelControl()
-            {
-                Text = DateTime.Now.ToString("HH:mm"),
-                Appearance = {
-                    Font = new Font("Segoe UI", 8F),
-                    ForeColor = Color.FromArgb(200, 200, 200)
-                },
-                Location = new Point(120, 5)
-            };
-            
-            pnlHeader.Controls.AddRange(new Control[] { lblIcon, lblSender, lblTime });
-            
-            // Message content
+            // Simple label for content
             var lblContent = new DevExpress.XtraEditors.LabelControl()
             {
-                Text = text,
+                Text = $"{(isUser ? "👤 Siz" : "🤖 AI")} [{DateTime.Now.ToString("HH:mm")}]\n\n{text}",
                 Appearance = {
                     Font = new Font("Segoe UI", 10F),
                     ForeColor = Color.White
                 },
-                Location = new Point(15, 30),
-                // AutoSizeMode = System.Windows.Forms.AutoSizeMode.Vertical // Commented out,
-                MaximumSize = new Size(570, 0) // Fixed max width for content
+                Location = new Point(15, 15),
+                MaximumSize = new Size(570, 0)
             };
             
-            bubble.Controls.AddRange(new Control[] { pnlHeader, lblContent });
+            bubble.Controls.Add(lblContent);
             return bubble;
         }
         
