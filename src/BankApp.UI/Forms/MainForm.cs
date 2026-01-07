@@ -300,8 +300,8 @@ namespace BankApp.UI.Forms
                 // Wire up quick actions
                 quickActions.SendMoneyClicked += (s, e) => btnMoneyTransfer_ItemClick(s, null);
                 quickActions.SupportClicked += (s, e) => {
-                    // Open AI Assistant Form V2
-                    var aiForm = new AIAssistantFormV2();
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: quickActions.Support clicked, opening AIAssistantForm");
+                    var aiForm = new AIAssistantForm();
                     aiForm.Show();
                 };
                 
@@ -409,8 +409,8 @@ namespace BankApp.UI.Forms
                 // Wire up portfolio quick actions
                 portfolioQuickActions.SendMoneyClicked += (s, e) => btnMoneyTransfer_ItemClick(s, null);
                 portfolioQuickActions.SupportClicked += (s, e) => {
-                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: portfolioQuickActions.Support clicked, opening AIAssistantFormV4");
-                    var aiForm = new AIAssistantFormV4();
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: portfolioQuickActions.Support clicked, opening AIAssistantForm");
+                    var aiForm = new AIAssistantForm();
                     aiForm.Show();
                 };
                 
@@ -1167,8 +1167,8 @@ namespace BankApp.UI.Forms
 
         private void btnAiAssist_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnAiAssist clicked, opening AIAssistantFormV4");
-            var frm = new AIAssistantFormV4();
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnAiAssist clicked, opening AIAssistantForm");
+            var frm = new AIAssistantForm();
             frm.Show();
         }
 

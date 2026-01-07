@@ -812,7 +812,7 @@ namespace BankApp.UI.Controls
         private void OpenAIAssistant()
         {
             string context = $"{_currentSymbol} @ {lblSymbolPrice?.Text ?? "N/A"}";
-            var aiForm = new Forms.AIAssistantFormV4(context);
+            var aiForm = new Forms.AIAssistantForm(context);
             aiForm.ShowDialog();
         }
         #endregion

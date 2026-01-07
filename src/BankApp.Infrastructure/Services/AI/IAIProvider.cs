@@ -1,7 +1,17 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace BankApp.Infrastructure.Services.AI
 {
+    /// <summary>
+    /// Chat message for conversation history
+    /// </summary>
+    public class ChatMessage
+    {
+        public string Role { get; set; } = string.Empty; // "user" or "assistant"
+        public string Content { get; set; } = string.Empty;
+    }
+    
     /// <summary>
     /// AI Provider interface for LLM interactions
     /// </summary>
@@ -47,11 +57,13 @@ namespace BankApp.Infrastructure.Services.AI
         public decimal NetWorth { get; set; }
         public decimal TotalProfit { get; set; }
         public decimal ProfitPercent { get; set; }
+        public decimal TotalPortfolioValue { get; set; }
         
         // Transaction data
         public int RecentTransactionCount { get; set; }
         public decimal TotalSpending { get; set; }
         public string SpendingByCategory { get; set; } = string.Empty;
+        public string RecentTransactions { get; set; } = string.Empty;
         
         // Account data
         public decimal TotalBalance { get; set; }
@@ -63,8 +75,20 @@ namespace BankApp.Infrastructure.Services.AI
         public double StockChange { get; set; }
         public double StockChangePercent { get; set; }
         public string StockNews { get; set; } = string.Empty;
+        public List<StockData> StockData { get; set; } = new List<StockData>();
         
         // User info
         public string Username { get; set; } = string.Empty;
+    }
+    
+    /// <summary>
+    /// Stock data for AI analysis
+    /// </summary>
+    public class StockData
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public decimal CurrentPrice { get; set; }
+        public decimal ChangePercent { get; set; }
+        public decimal Volume { get; set; }
     }
 }

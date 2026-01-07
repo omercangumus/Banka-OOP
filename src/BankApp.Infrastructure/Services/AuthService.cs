@@ -49,7 +49,11 @@ namespace BankApp.Infrastructure.Services
                     return $"Kullanıcı sorgulama hatası: {dbEx.Message}";
                 }
 
-                if (user == null) return "Kullanıcı adı veya şifre hatalı."; // Güvenlik için detay verme
+                if (user == null) 
+                {
+                    await LogAuditAsync(null, "LoginFailed", "Kullanıcı bulunamadı.");
+                    return "Kullanıcı adı veya şifre hatalı."; // Güvenlik için detay verme
+                }
 
                 // PHASE 5: IsVerified kontrolü kaldırıldı - doğrulanmamış kullanıcılar da giriş yapabilir
                 // Özellik kısıtlamaları UI tarafında yapılacak (AppEvents.CurrentSession.IsVerified check)
