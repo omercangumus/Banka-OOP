@@ -110,14 +110,47 @@ namespace BankApp.Infrastructure.Services
                 var existingUser = await _userRepository.GetByUsernameAsync(user.Username);
                 if (existingUser != null) return "Kullanıcı adı alınmış.";
                 
+                // Email kontrolü
+                var existingEmail = await _userRepository.GetByEmailAsync(user.Email);
+                if (existingEmail != null) return "Bu e-posta adresi zaten kayıtlı.";
+                
                 user.PasswordHash = HashPassword(password);
-                user.VerificationCode = "123456"; // Basitlik için sabit veya random
+                user.VerificationCode = GenerateOTP(); // 6 haneli random kod
                 user.VerificationCodeExpiry = DateTime.Now.AddMinutes(15);
                 user.IsVerified = false;
                 user.IsActive = true;
 
                 await _userRepository.AddAsync(user);
                 await LogAuditAsync(null, "Register", $"New user: {user.Username}");
+                
+                // Doğrulama emaili gönder
+                try
+                {
+                    var emailBody = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif; padding: 20px;'>
+                        <h2 style='color: #2c3e50;'>NovaBank Hesap Doğrulama</h2>
+                        <p>Merhaba <strong>{user.FullName ?? user.Username}</strong>,</p>
+                        <p>NovaBank'a kayıt olduğunuz için teşekkür ederiz.</p>
+                        <p>Hesabınızı doğrulamak için aşağıdaki kodu kullanın:</p>
+                        <div style='background: #3498db; color: white; padding: 15px 30px; font-size: 24px; font-weight: bold; display: inline-block; border-radius: 5px; letter-spacing: 3px;'>
+                            {user.VerificationCode}
+                        </div>
+                        <p style='margin-top: 20px;'>Bu kod 15 dakika içinde geçerliliğini yitirecektir.</p>
+                        <hr style='margin: 20px 0; border: none; border-top: 1px solid #eee;'>
+                        <p style='color: #7f8c8d; font-size: 12px;'>Bu e-postayı siz talep etmediyseniz, lütfen dikkate almayın.</p>
+                    </body>
+                    </html>";
+                    
+                    await _emailService.SendEmailAsync(user.Email, "NovaBank - Hesap Doğrulama Kodu", emailBody);
+                    System.Diagnostics.Debug.WriteLine($"[AUTH] Verification email sent to {user.Email}");
+                }
+                catch (Exception emailEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AUTH] Email send failed: {emailEx.Message}");
+                    // Email gönderilemese de kayıt başarılı sayılır, kod UI'da gösterilir
+                }
+                
                 return null;
             }
             catch (Exception ex)
@@ -154,25 +187,41 @@ namespace BankApp.Infrastructure.Services
             return random.Next(100000, 999999).ToString();
         }
         
-        // Mevcut kodların yapısını koruyarak string dönüşü (veya orijinal) mantığı:
         public async Task SendForgotPasswordEmailAsync(string email, string code) 
         { 
-             try
+            try
             {
                 var user = await _userRepository.GetByEmailAsync(email);
-                // Kullanıcı varsa kodu güncelle, yoksa güvenlik gereği belli etme (veya senaryoya göre)
                 if (user != null)
                 {
                     user.VerificationCode = code;
                     user.VerificationCodeExpiry = DateTime.Now.AddMinutes(15);
                     await _userRepository.UpdateAsync(user);
                     
-                    await _emailService.SendEmailAsync(email, "Şifre Sıfırlama Kodu", $"Kodunuz: {code}");
+                    var emailBody = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif; padding: 20px;'>
+                        <h2 style='color: #e74c3c;'>NovaBank Şifre Sıfırlama</h2>
+                        <p>Merhaba <strong>{user.FullName ?? user.Username}</strong>,</p>
+                        <p>Şifre sıfırlama talebiniz alındı.</p>
+                        <p>Şifrenizi sıfırlamak için aşağıdaki kodu kullanın:</p>
+                        <div style='background: #e74c3c; color: white; padding: 15px 30px; font-size: 24px; font-weight: bold; display: inline-block; border-radius: 5px; letter-spacing: 3px;'>
+                            {code}
+                        </div>
+                        <p style='margin-top: 20px;'>Bu kod 15 dakika içinde geçerliliğini yitirecektir.</p>
+                        <hr style='margin: 20px 0; border: none; border-top: 1px solid #eee;'>
+                        <p style='color: #7f8c8d; font-size: 12px;'>Bu e-postayı siz talep etmediyseniz, hesabınızın güvenliği için lütfen şifrenizi değiştirin.</p>
+                    </body>
+                    </html>";
+                    
+                    await _emailService.SendEmailAsync(email, "NovaBank - Şifre Sıfırlama Kodu", emailBody);
+                    System.Diagnostics.Debug.WriteLine($"[AUTH] Password reset email sent to {email}");
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Hata yutulabilir veya loglanabilir
+                System.Diagnostics.Debug.WriteLine($"[AUTH] Password reset email failed: {ex.Message}");
+                throw; // Hatayı yukarı ilet
             }
         }
 
