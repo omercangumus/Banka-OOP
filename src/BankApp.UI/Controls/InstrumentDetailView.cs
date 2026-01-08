@@ -501,7 +501,7 @@ namespace BankApp.UI.Controls
             cmbOrderType.Location = new Point(15, y);
             cmbOrderType.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
             cmbOrderType.Properties.Appearance.ForeColor = Color.White;
-            cmbOrderType.EditValueChanged += (s, e) => txtPrice.Enabled = cmbOrderType.EditValue.ToString() != "Market";
+            cmbOrderType.EditValueChanged += CmbOrderType_EditValueChanged;
             pnlRight.Controls.Add(cmbOrderType);
             y += 38;
             
@@ -514,10 +514,11 @@ namespace BankApp.UI.Controls
             y += 22;
             
             txtPrice = new TextEdit();
-            txtPrice.Size = new Size(270, 28);
+            txtPrice.Size = new Size(270, 32); // Daha büyük - görünür
             txtPrice.Location = new Point(15, y);
-            txtPrice.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
+            txtPrice.Properties.Appearance.BackColor = Color.FromArgb(50, 50, 50); // Daha açık
             txtPrice.Properties.Appearance.ForeColor = Color.White;
+            txtPrice.Properties.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             txtPrice.Properties.NullText = "Market Fiyatı";
             txtPrice.Enabled = false;
             pnlRight.Controls.Add(txtPrice);
@@ -756,6 +757,32 @@ namespace BankApp.UI.Controls
             System.Diagnostics.Debug.WriteLine($"[CALL] btnSell.Click -> BtnSell_Click | senderType={sender?.GetType().Name} | senderHash={sender?.GetHashCode()} | formHash={this.GetHashCode()} | viewType={GetType().FullName}");
             if (!ValidateOrder()) return;
             await ExecuteRealTradeAsync(isBuy: false);
+        }
+        
+        /// <summary>
+        /// Emir tipi değişince fiyat alanını aktif/pasif yap
+        /// </summary>
+        private void CmbOrderType_EditValueChanged(object sender, EventArgs e)
+        {
+            var orderType = cmbOrderType.EditValue?.ToString() ?? "Market";
+            System.Diagnostics.Debug.WriteLine($"[CALL] InstrumentDetailView OrderType changed to: {orderType}");
+            
+            if (orderType == "Market")
+            {
+                txtPrice.Enabled = false;
+                txtPrice.Text = "";
+                txtPrice.Properties.NullText = "Piyasa Fiyatı (Otomatik)";
+                txtPrice.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
+            }
+            else
+            {
+                txtPrice.Enabled = true;
+                txtPrice.Properties.NullText = orderType == "Limit" ? "Limit Fiyat Girin (USDT)" : "Stop Fiyat Girin (USDT)";
+                txtPrice.Properties.Appearance.BackColor = Color.FromArgb(60, 60, 60); // Daha açık - aktif
+                txtPrice.Focus();
+            }
+            
+            UpdateTotal();
         }
         
         private bool ValidateOrder()
