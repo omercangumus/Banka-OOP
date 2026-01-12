@@ -390,10 +390,11 @@ namespace BankApp.UI.Forms
             this.pageDashboard.Text = "Genel Bakış";
 
             // ============================================
-            // TAB 2: PORTFÖY - Sadece gerekli butonlar
+            // TAB 2: PORTFÖY - Finans ürünleri butonları
             // ============================================
             this.groupPortfolioActions = new RibbonPageGroup("Finans Ürünleri");
-            // Portföyüm ve BES butonları kaldırıldı - zaten Portföy sekmesi var
+            // Portföyüm butonu kaldırıldı - zaten Portföy sekmesi var
+            this.groupPortfolioActions.ItemLinks.Add(this.btnBES); // BES geri eklendi
             this.groupPortfolioActions.ItemLinks.Add(this.btnCards);
             this.groupPortfolioActions.ItemLinks.Add(this.btnTimeDeposit);
             this.groupPortfolioActions.ItemLinks.Add(this.btnLoanApplication);
