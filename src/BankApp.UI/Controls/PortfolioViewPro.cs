@@ -11,6 +11,7 @@ using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraGrid.Columns;
 using DevExpress.XtraEditors.Repository;
 using DevExpress.XtraTab;
+using DevExpress.XtraLayout;
 using BankApp.Infrastructure.Data;
 using BankApp.Infrastructure.Services;
 using BankApp.Infrastructure.Events;
@@ -20,16 +21,18 @@ using Dapper;
 namespace BankApp.UI.Controls
 {
     /// <summary>
-    /// PROFESYONEL PORTFÖY SAYFASI
-    /// - Pozisyonlar (hisseler, artış/azalış, PnL)
-    /// - Bekleyen Emirler + İptal butonu
-    /// - Varlık Dağılımı Chart
+    /// PROFESYONEL PORTFÖY SAYFASI V2
+    /// Layout: 3 bölge
+    /// A) Üst: 6 Özet Kart (Toplam Portföy, Nakit, Yatırım Değeri, Günlük P/L, Toplam P/L, Bekleyen Emir)
+    /// B) Sol: Sekmeli Grid (Pozisyonlar + Bekleyen Emirler)
+    /// C) Sağ: Satış Paneli (Market/Limit/Stop-Limit)
     /// </summary>
     public class PortfolioViewPro : XtraUserControl
     {
         private DapperContext _context;
         private PendingOrderRepository _pendingOrderRepository;
         private CustomerPortfolioRepository _portfolioRepository;
+        private AccountRepository _accountRepository;
         private TransactionService _transactionService;
         
         // UI Components
@@ -45,34 +48,58 @@ namespace BankApp.UI.Controls
         private GridControl gridPendingOrders;
         private GridView viewPendingOrders;
         
-        // Chart
-        private ChartControl chartAllocation;
+        // Sağ Panel: Satış Ticket
+        private PanelControl pnlSellTicket;
+        private LabelControl lblSelectedSymbol;
+        private LabelControl lblAvailableQty;
+        private LabelControl lblCurrentPrice;
+        private SpinEdit spinQuantity;
+        private RadioGroup rgOrderType;
+        private SpinEdit spinLimitPrice;
+        private SpinEdit spinStopPrice;
+        private SimpleButton btnSubmitSell;
+        private LabelControl lblValidation;
         
-        // Summary Labels
-        private LabelControl lblTotalValue;
+        // Summary Labels (6 kart)
+        private LabelControl lblTotalPortfolio;
+        private LabelControl lblCash;
+        private LabelControl lblInvestedValue;
+        private LabelControl lblDailyPnL;
         private LabelControl lblTotalPnL;
-        private LabelControl lblDailyChange;
         private LabelControl lblPendingCount;
+        
+        // Seçili pozisyon
+        private string _selectedSymbol = "";
+        private decimal _selectedAvailableQty = 0;
+        private decimal _selectedCurrentPrice = 0;
         
         public PortfolioViewPro()
         {
-            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Hash={GetHashCode()}");
+            System.Diagnostics.Debug.WriteLine($"[OPENED] PortfolioViewPro | Instance={GetHashCode()} | Time={DateTime.Now:HH:mm:ss}");
             
             _context = new DapperContext();
             _pendingOrderRepository = new PendingOrderRepository(_context);
             _portfolioRepository = new CustomerPortfolioRepository(_context);
+            _accountRepository = new AccountRepository(_context);
             
-            var accountRepo = new AccountRepository(_context);
             var transactionRepo = new TransactionRepository(_context);
             var auditRepo = new AuditRepository(_context);
-            _transactionService = new TransactionService(accountRepo, transactionRepo, auditRepo);
+            _transactionService = new TransactionService(_accountRepository, transactionRepo, auditRepo);
             
             InitializeUI();
             _ = LoadDataAsync();
             
             // Event subscriptions
-            PortfolioEvents.PortfolioChanged += async (s, e) => await LoadDataAsync();
-            AppEvents.TradeCompleted += async (s, e) => await LoadDataAsync();
+            PortfolioEvents.PortfolioChanged += async (s, e) => 
+            {
+                System.Diagnostics.Debug.WriteLine($"[EVENT] PortfolioViewPro received PortfolioChanged");
+                await LoadDataAsync();
+            };
+            AppEvents.TradeCompleted += async (s, e) => 
+            {
+                System.Diagnostics.Debug.WriteLine($"[EVENT] PortfolioViewPro received TradeCompleted");
+                await LoadDataAsync();
+            };
         }
         
         private void InitializeUI()
@@ -80,7 +107,7 @@ namespace BankApp.UI.Controls
             this.BackColor = Color.FromArgb(18, 18, 18);
             this.Dock = DockStyle.Fill;
             
-            // Main Layout
+            // Main Layout: 2 satır (üst özet + alt içerik)
             var mainLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -88,31 +115,33 @@ namespace BankApp.UI.Controls
                 ColumnCount = 1,
                 BackColor = Color.FromArgb(18, 18, 18)
             };
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 120));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 110));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             
-            // Summary Panel
+            // A) Üst: 6 Özet Kart
             CreateSummaryPanel();
             mainLayout.Controls.Add(pnlSummary, 0, 0);
             
-            // Split: Left = Positions/Orders, Right = Chart
+            // B+C) Alt: Sol Grid + Sağ Satış Paneli
             splitMain = new SplitContainerControl
             {
                 Dock = DockStyle.Fill,
                 Horizontal = true,
-                SplitterPosition = 600,
+                SplitterPosition = (int)(this.Width * 0.65),
+                FixedPanel = DevExpress.XtraEditors.SplitFixedPanel.Panel2,
                 BackColor = Color.FromArgb(18, 18, 18)
             };
             splitMain.Panel1.BackColor = Color.FromArgb(25, 25, 25);
-            splitMain.Panel2.BackColor = Color.FromArgb(25, 25, 25);
+            splitMain.Panel2.BackColor = Color.FromArgb(30, 30, 30);
+            splitMain.SplitterPosition = 320; // Sağ panel 320px
             
-            // Left: Tab Control (Positions + Pending Orders)
+            // B) Sol: Tab Control (Pozisyonlar + Bekleyen Emirler)
             CreateTabControl();
             splitMain.Panel1.Controls.Add(tabPortfolio);
             
-            // Right: Allocation Chart
-            CreateAllocationChart();
-            splitMain.Panel2.Controls.Add(chartAllocation);
+            // C) Sağ: Satış Ticket Paneli
+            CreateSellTicketPanel();
+            splitMain.Panel2.Controls.Add(pnlSellTicket);
             
             mainLayout.Controls.Add(splitMain, 0, 1);
             this.Controls.Add(mainLayout);
@@ -130,35 +159,43 @@ namespace BankApp.UI.Controls
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 4,
+                ColumnCount = 6,
                 RowCount = 1,
-                Padding = new Padding(20, 15, 20, 15),
+                Padding = new Padding(10, 8, 10, 8),
                 BackColor = Color.FromArgb(30, 30, 30)
             };
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            for (int i = 0; i < 6; i++)
+                layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.67f));
             
-            // Card 1: Total Portfolio Value
-            var card1 = CreateSummaryCard("💰 TOPLAM DEĞER", "₺0.00", Color.FromArgb(33, 150, 243));
-            lblTotalValue = card1.Controls.OfType<LabelControl>().Last();
+            // Card 1: Toplam Portföy (Cash + Invested)
+            var card1 = CreateSummaryCard("💼 TOPLAM PORTFÖY", "₺0,00", Color.FromArgb(33, 150, 243));
+            lblTotalPortfolio = card1.Controls.OfType<LabelControl>().Last();
             layout.Controls.Add(card1, 0, 0);
             
-            // Card 2: Total PnL
-            var card2 = CreateSummaryCard("📈 KAR/ZARAR", "₺0.00", Color.FromArgb(76, 175, 80));
-            lblTotalPnL = card2.Controls.OfType<LabelControl>().Last();
+            // Card 2: Nakit (TRY)
+            var card2 = CreateSummaryCard("💵 NAKİT", "₺0,00", Color.FromArgb(0, 200, 83));
+            lblCash = card2.Controls.OfType<LabelControl>().Last();
             layout.Controls.Add(card2, 1, 0);
             
-            // Card 3: Daily Change
-            var card3 = CreateSummaryCard("⚡ GÜNLÜK DEĞİŞİM", "0%", Color.FromArgb(255, 152, 0));
-            lblDailyChange = card3.Controls.OfType<LabelControl>().Last();
+            // Card 3: Yatırım Değeri
+            var card3 = CreateSummaryCard("📊 YATIRIM DEĞERİ", "₺0,00", Color.FromArgb(255, 193, 7));
+            lblInvestedValue = card3.Controls.OfType<LabelControl>().Last();
             layout.Controls.Add(card3, 2, 0);
             
-            // Card 4: Pending Orders
-            var card4 = CreateSummaryCard("⏳ BEKLEYEN EMİR", "0", Color.FromArgb(156, 39, 176));
-            lblPendingCount = card4.Controls.OfType<LabelControl>().Last();
+            // Card 4: Günlük P/L
+            var card4 = CreateSummaryCard("📈 GÜNLÜK K/Z", "₺0,00", Color.FromArgb(255, 152, 0));
+            lblDailyPnL = card4.Controls.OfType<LabelControl>().Last();
             layout.Controls.Add(card4, 3, 0);
+            
+            // Card 5: Toplam P/L
+            var card5 = CreateSummaryCard("💰 TOPLAM K/Z", "₺0,00", Color.FromArgb(76, 175, 80));
+            lblTotalPnL = card5.Controls.OfType<LabelControl>().Last();
+            layout.Controls.Add(card5, 4, 0);
+            
+            // Card 6: Bekleyen Emir
+            var card6 = CreateSummaryCard("⏳ BEKLEYEN EMİR", "0", Color.FromArgb(156, 39, 176));
+            lblPendingCount = card6.Controls.OfType<LabelControl>().Last();
+            layout.Controls.Add(card6, 5, 0);
             
             pnlSummary.Controls.Add(layout);
         }
@@ -226,163 +263,517 @@ namespace BankApp.UI.Controls
             viewPositions = new GridView(gridPositions);
             gridPositions.MainView = viewPositions;
             
-            // Columns
+            // Columns - Profesyonel grid
             viewPositions.Columns.Add(new GridColumn { FieldName = "Symbol", Caption = "Sembol", VisibleIndex = 0, Width = 80 });
-            viewPositions.Columns.Add(new GridColumn { FieldName = "Quantity", Caption = "Miktar", VisibleIndex = 1, Width = 80 });
-            viewPositions.Columns.Add(new GridColumn { FieldName = "AvgCost", Caption = "Ort. Maliyet", VisibleIndex = 2, Width = 100 });
-            viewPositions.Columns.Add(new GridColumn { FieldName = "CurrentPrice", Caption = "Güncel Fiyat", VisibleIndex = 3, Width = 100 });
-            viewPositions.Columns.Add(new GridColumn { FieldName = "MarketValue", Caption = "Piyasa Değeri", VisibleIndex = 4, Width = 120 });
-            viewPositions.Columns.Add(new GridColumn { FieldName = "PnL", Caption = "Kar/Zarar", VisibleIndex = 5, Width = 100 });
-            viewPositions.Columns.Add(new GridColumn { FieldName = "PnLPercent", Caption = "Değişim %", VisibleIndex = 6, Width = 80 });
+            viewPositions.Columns.Add(new GridColumn { FieldName = "Quantity", Caption = "Adet", VisibleIndex = 1, Width = 70 });
+            viewPositions.Columns.Add(new GridColumn { FieldName = "AvailableQty", Caption = "Kullanılabilir", VisibleIndex = 2, Width = 85 });
+            viewPositions.Columns.Add(new GridColumn { FieldName = "AvgCostRaw", Caption = "Ort. Maliyet", VisibleIndex = 3, Width = 100, DisplayFormat = { FormatType = DevExpress.Utils.FormatType.Numeric, FormatString = "₺#,##0.00" } });
+            viewPositions.Columns.Add(new GridColumn { FieldName = "CurrentPriceRaw", Caption = "Güncel Fiyat", VisibleIndex = 4, Width = 100, DisplayFormat = { FormatType = DevExpress.Utils.FormatType.Numeric, FormatString = "₺#,##0.00" } });
+            viewPositions.Columns.Add(new GridColumn { FieldName = "MarketValueRaw", Caption = "Piyasa Değeri", VisibleIndex = 5, Width = 110, DisplayFormat = { FormatType = DevExpress.Utils.FormatType.Numeric, FormatString = "₺#,##0.00" } });
+            viewPositions.Columns.Add(new GridColumn { FieldName = "PnL", Caption = "K/Z (₺)", VisibleIndex = 6, Width = 90, DisplayFormat = { FormatType = DevExpress.Utils.FormatType.Numeric, FormatString = "+₺#,##0.00;-₺#,##0.00" } });
+            viewPositions.Columns.Add(new GridColumn { FieldName = "PnLPercentRaw", Caption = "K/Z (%)", VisibleIndex = 7, Width = 70, DisplayFormat = { FormatType = DevExpress.Utils.FormatType.Numeric, FormatString = "+0.00%;-0.00%" } });
             
-            // Appearance
-            viewPositions.OptionsView.ShowGroupPanel = false;
-            viewPositions.OptionsView.RowAutoHeight = true;
+            // Appearance - Pro style
+            viewPositions.OptionsView.ShowGroupPanel = true;
+            viewPositions.OptionsView.ShowFilterPanelMode = DevExpress.XtraGrid.Views.Base.ShowFilterPanelMode.ShowAlways;
+            viewPositions.OptionsView.RowAutoHeight = false;
+            viewPositions.RowHeight = 32;
             viewPositions.Appearance.Row.BackColor = Color.FromArgb(30, 30, 30);
             viewPositions.Appearance.Row.ForeColor = Color.White;
-            viewPositions.Appearance.HeaderPanel.BackColor = Color.FromArgb(40, 40, 40);
+            viewPositions.Appearance.Row.Font = new Font("Segoe UI", 10F);
+            viewPositions.Appearance.HeaderPanel.BackColor = Color.FromArgb(45, 45, 45);
             viewPositions.Appearance.HeaderPanel.ForeColor = Color.White;
+            viewPositions.Appearance.HeaderPanel.Font = new Font("Segoe UI Semibold", 9F);
             viewPositions.Appearance.Empty.BackColor = Color.FromArgb(25, 25, 25);
+            viewPositions.Appearance.GroupPanel.BackColor = Color.FromArgb(35, 35, 35);
+            viewPositions.Appearance.GroupPanel.ForeColor = Color.White;
+            viewPositions.Appearance.FocusedRow.BackColor = Color.FromArgb(50, 70, 100);
+            viewPositions.Appearance.FocusedRow.ForeColor = Color.White;
+            viewPositions.Appearance.SelectedRow.BackColor = Color.FromArgb(40, 60, 90);
+            viewPositions.Appearance.SelectedRow.ForeColor = Color.White;
             
-            // Row style - PnL coloring
+            // Row style - PnL conditional formatting (yeşil/kırmızı)
             viewPositions.RowCellStyle += (s, e) =>
             {
-                if (e.Column.FieldName == "PnL" || e.Column.FieldName == "PnLPercent")
+                if (e.Column.FieldName == "PnL" || e.Column.FieldName == "PnLPercentRaw")
                 {
                     var value = viewPositions.GetRowCellValue(e.RowHandle, "PnL");
                     if (value != null && decimal.TryParse(value.ToString(), out decimal pnl))
                     {
                         e.Appearance.ForeColor = pnl >= 0 ? Color.FromArgb(76, 175, 80) : Color.FromArgb(239, 68, 68);
+                        e.Appearance.Font = new Font("Segoe UI Semibold", 10F);
                     }
                 }
             };
             
-            // SAT BUTONU
-            var btnSell = new RepositoryItemButtonEdit();
-            btnSell.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.HideTextEditor;
-            btnSell.Buttons[0].Caption = "SAT";
-            btnSell.Buttons[0].Kind = DevExpress.XtraEditors.Controls.ButtonPredefines.Glyph;
-            btnSell.ButtonClick += async (s, e) =>
+            // Satır seçildiğinde sağ paneli güncelle
+            viewPositions.FocusedRowChanged += (s, e) =>
             {
-                var rowHandle = viewPositions.FocusedRowHandle;
-                if (rowHandle >= 0)
+                if (e.FocusedRowHandle >= 0)
                 {
-                    var symbol = viewPositions.GetRowCellValue(rowHandle, "Symbol")?.ToString();
-                    var qty = viewPositions.GetRowCellValue(rowHandle, "Quantity");
-                    if (!string.IsNullOrEmpty(symbol) && qty != null)
-                    {
-                        await ShowSellDialogAsync(symbol, Convert.ToDecimal(qty));
-                    }
+                    var symbol = viewPositions.GetRowCellValue(e.FocusedRowHandle, "Symbol")?.ToString() ?? "";
+                    var qty = viewPositions.GetRowCellValue(e.FocusedRowHandle, "AvailableQty");
+                    var price = viewPositions.GetRowCellValue(e.FocusedRowHandle, "CurrentPriceRaw");
+                    
+                    decimal availableQty = 0;
+                    decimal currentPrice = 0;
+                    if (qty != null) decimal.TryParse(qty.ToString(), out availableQty);
+                    if (price != null) decimal.TryParse(price.ToString(), out currentPrice);
+                    
+                    UpdateSellTicketPanel(symbol, availableQty, currentPrice);
+                }
+                else
+                {
+                    ClearSellTicketPanel();
                 }
             };
-            
-            var colSell = new GridColumn
-            {
-                FieldName = "SellAction",
-                Caption = "💰 SAT",
-                VisibleIndex = 7,
-                Width = 70,
-                UnboundType = DevExpress.Data.UnboundColumnType.String
-            };
-            colSell.ColumnEdit = btnSell;
-            colSell.AppearanceHeader.ForeColor = Color.FromArgb(239, 68, 68);
-            colSell.AppearanceHeader.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            viewPositions.Columns.Add(colSell);
-            gridPositions.RepositoryItems.Add(btnSell);
         }
         
-        private async Task ShowSellDialogAsync(string symbol, decimal maxQuantity)
+        private void CreateSellTicketPanel()
         {
-            using (var form = new Form())
+            pnlSellTicket = new PanelControl
             {
-                form.Text = $"{symbol} SAT";
-                form.Size = new Size(350, 200);
-                form.StartPosition = FormStartPosition.CenterParent;
-                form.FormBorderStyle = FormBorderStyle.FixedDialog;
-                form.MaximizeBox = false;
-                form.MinimizeBox = false;
-                form.BackColor = Color.FromArgb(30, 30, 30);
-                
-                var lblSymbol = new Label { Text = $"Sembol: {symbol}", Location = new Point(20, 20), ForeColor = Color.White, AutoSize = true };
-                var lblMax = new Label { Text = $"Mevcut: {maxQuantity}", Location = new Point(20, 45), ForeColor = Color.Gray, AutoSize = true };
-                var lblQty = new Label { Text = "Satılacak Miktar:", Location = new Point(20, 75), ForeColor = Color.White, AutoSize = true };
-                
-                var txtQty = new TextBox { Location = new Point(20, 95), Size = new Size(150, 25), Text = maxQuantity.ToString() };
-                
-                var btnConfirm = new Button { Text = "SAT", Location = new Point(20, 130), Size = new Size(100, 35), BackColor = Color.FromArgb(239, 68, 68), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-                var btnCancel = new Button { Text = "İptal", Location = new Point(130, 130), Size = new Size(80, 35), BackColor = Color.FromArgb(60, 60, 60), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-                
-                btnCancel.Click += (s, e) => form.DialogResult = DialogResult.Cancel;
-                btnConfirm.Click += async (s, e) =>
-                {
-                    if (decimal.TryParse(txtQty.Text, out decimal sellQty) && sellQty > 0 && sellQty <= maxQuantity)
-                    {
-                        await ExecuteSellAsync(symbol, sellQty);
-                        form.DialogResult = DialogResult.OK;
-                    }
-                    else
-                    {
-                        MessageBox.Show($"Geçerli miktar girin (max: {maxQuantity})", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                };
-                
-                form.Controls.AddRange(new Control[] { lblSymbol, lblMax, lblQty, txtQty, btnConfirm, btnCancel });
-                form.ShowDialog();
-            }
+                Dock = DockStyle.Fill,
+                Appearance = { BackColor = Color.FromArgb(35, 35, 35) },
+                BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder,
+                Padding = new Padding(15)
+            };
+            
+            int y = 15;
+            
+            // Başlık
+            var lblTitle = new LabelControl
+            {
+                Text = "📉 SATIŞ EMRİ",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI Semibold", 14F), ForeColor = Color.FromArgb(239, 68, 68) }
+            };
+            pnlSellTicket.Controls.Add(lblTitle);
+            y += 40;
+            
+            // Seçili Sembol
+            var lblSymbolTitle = new LabelControl
+            {
+                Text = "Sembol:",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI", 9F), ForeColor = Color.Gray }
+            };
+            pnlSellTicket.Controls.Add(lblSymbolTitle);
+            y += 20;
+            
+            lblSelectedSymbol = new LabelControl
+            {
+                Text = "- Pozisyon seçin -",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI Semibold", 12F), ForeColor = Color.White }
+            };
+            pnlSellTicket.Controls.Add(lblSelectedSymbol);
+            y += 35;
+            
+            // Kullanılabilir Adet
+            var lblAvailTitle = new LabelControl
+            {
+                Text = "Kullanılabilir Adet:",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI", 9F), ForeColor = Color.Gray }
+            };
+            pnlSellTicket.Controls.Add(lblAvailTitle);
+            y += 20;
+            
+            lblAvailableQty = new LabelControl
+            {
+                Text = "0",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI Semibold", 11F), ForeColor = Color.FromArgb(0, 200, 83) }
+            };
+            pnlSellTicket.Controls.Add(lblAvailableQty);
+            y += 35;
+            
+            // Güncel Fiyat
+            var lblPriceTitle = new LabelControl
+            {
+                Text = "Güncel Fiyat:",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI", 9F), ForeColor = Color.Gray }
+            };
+            pnlSellTicket.Controls.Add(lblPriceTitle);
+            y += 20;
+            
+            lblCurrentPrice = new LabelControl
+            {
+                Text = "₺0,00",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI Semibold", 11F), ForeColor = Color.FromArgb(33, 150, 243) }
+            };
+            pnlSellTicket.Controls.Add(lblCurrentPrice);
+            y += 40;
+            
+            // Separator
+            var separator = new PanelControl
+            {
+                Location = new Point(15, y),
+                Size = new Size(280, 1),
+                Appearance = { BackColor = Color.FromArgb(60, 60, 60) }
+            };
+            pnlSellTicket.Controls.Add(separator);
+            y += 15;
+            
+            // Miktar
+            var lblQtyTitle = new LabelControl
+            {
+                Text = "Satılacak Miktar:",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI", 9F), ForeColor = Color.White }
+            };
+            pnlSellTicket.Controls.Add(lblQtyTitle);
+            y += 22;
+            
+            spinQuantity = new SpinEdit
+            {
+                Location = new Point(15, y),
+                Size = new Size(280, 28),
+                Properties = { MinValue = 0, MaxValue = 999999, IsFloatValue = true, Increment = 1 }
+            };
+            spinQuantity.Properties.Appearance.BackColor = Color.FromArgb(50, 50, 50);
+            spinQuantity.Properties.Appearance.ForeColor = Color.White;
+            spinQuantity.Properties.AppearanceFocused.BackColor = Color.FromArgb(60, 60, 60);
+            pnlSellTicket.Controls.Add(spinQuantity);
+            y += 40;
+            
+            // Emir Tipi
+            var lblOrderType = new LabelControl
+            {
+                Text = "Emir Tipi:",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI", 9F), ForeColor = Color.White }
+            };
+            pnlSellTicket.Controls.Add(lblOrderType);
+            y += 22;
+            
+            rgOrderType = new RadioGroup
+            {
+                Location = new Point(15, y),
+                Size = new Size(280, 80),
+                Properties = { Columns = 1 }
+            };
+            rgOrderType.Properties.Items.Add(new DevExpress.XtraEditors.Controls.RadioGroupItem(0, "Market (Anında)"));
+            rgOrderType.Properties.Items.Add(new DevExpress.XtraEditors.Controls.RadioGroupItem(1, "Limit (Fiyat Gelince)"));
+            rgOrderType.Properties.Items.Add(new DevExpress.XtraEditors.Controls.RadioGroupItem(2, "Stop-Limit"));
+            rgOrderType.SelectedIndex = 0;
+            rgOrderType.Properties.Appearance.BackColor = Color.FromArgb(35, 35, 35);
+            rgOrderType.Properties.Appearance.ForeColor = Color.White;
+            rgOrderType.SelectedIndexChanged += (s, e) => UpdateOrderTypeFields();
+            pnlSellTicket.Controls.Add(rgOrderType);
+            y += 90;
+            
+            // Limit Fiyat
+            var lblLimitPrice = new LabelControl
+            {
+                Text = "Limit Fiyat (₺):",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI", 9F), ForeColor = Color.White },
+                Tag = "limit_label"
+            };
+            pnlSellTicket.Controls.Add(lblLimitPrice);
+            y += 22;
+            
+            spinLimitPrice = new SpinEdit
+            {
+                Location = new Point(15, y),
+                Size = new Size(280, 28),
+                Properties = { MinValue = 0, MaxValue = 9999999, IsFloatValue = true, Increment = 0.01m },
+                Visible = false,
+                Tag = "limit_input"
+            };
+            spinLimitPrice.Properties.Appearance.BackColor = Color.FromArgb(50, 50, 50);
+            spinLimitPrice.Properties.Appearance.ForeColor = Color.White;
+            pnlSellTicket.Controls.Add(spinLimitPrice);
+            lblLimitPrice.Visible = false;
+            y += 35;
+            
+            // Stop Fiyat
+            var lblStopPrice = new LabelControl
+            {
+                Text = "Stop Fiyat (₺):",
+                Location = new Point(15, y),
+                Appearance = { Font = new Font("Segoe UI", 9F), ForeColor = Color.White },
+                Tag = "stop_label",
+                Visible = false
+            };
+            pnlSellTicket.Controls.Add(lblStopPrice);
+            y += 22;
+            
+            spinStopPrice = new SpinEdit
+            {
+                Location = new Point(15, y),
+                Size = new Size(280, 28),
+                Properties = { MinValue = 0, MaxValue = 9999999, IsFloatValue = true, Increment = 0.01m },
+                Visible = false,
+                Tag = "stop_input"
+            };
+            spinStopPrice.Properties.Appearance.BackColor = Color.FromArgb(50, 50, 50);
+            spinStopPrice.Properties.Appearance.ForeColor = Color.White;
+            pnlSellTicket.Controls.Add(spinStopPrice);
+            y += 45;
+            
+            // Validation Label
+            lblValidation = new LabelControl
+            {
+                Text = "",
+                Location = new Point(15, y),
+                AutoSizeMode = LabelAutoSizeMode.Vertical,
+                Appearance = { Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(255, 82, 82) }
+            };
+            pnlSellTicket.Controls.Add(lblValidation);
+            y += 25;
+            
+            // Submit Button
+            btnSubmitSell = new SimpleButton
+            {
+                Text = "📉 SATIŞ EMRİ GÖNDER",
+                Location = new Point(15, y),
+                Size = new Size(280, 45),
+                Appearance = { BackColor = Color.FromArgb(239, 68, 68), ForeColor = Color.White, Font = new Font("Segoe UI Semibold", 11F) },
+                Enabled = false
+            };
+            btnSubmitSell.Click += async (s, e) => await SubmitSellOrderAsync();
+            pnlSellTicket.Controls.Add(btnSubmitSell);
+            
+            // Initial state
+            UpdateOrderTypeFields();
         }
         
-        private async Task ExecuteSellAsync(string symbol, decimal quantity)
+        private void UpdateSellTicketPanel(string symbol, decimal availableQty, decimal currentPrice)
+        {
+            _selectedSymbol = symbol;
+            _selectedAvailableQty = availableQty;
+            _selectedCurrentPrice = currentPrice;
+            
+            lblSelectedSymbol.Text = symbol;
+            lblAvailableQty.Text = availableQty.ToString("N0");
+            lblCurrentPrice.Text = $"₺{currentPrice:N2}";
+            spinQuantity.Properties.MaxValue = availableQty;
+            spinQuantity.Value = Math.Min(1, availableQty);
+            spinLimitPrice.Value = currentPrice;
+            spinStopPrice.Value = currentPrice * 0.95m; // %5 altında default stop
+            
+            btnSubmitSell.Enabled = availableQty > 0;
+            lblValidation.Text = "";
+            
+            System.Diagnostics.Debug.WriteLine($"[UI] SellTicket updated: symbol={symbol} availQty={availableQty} price={currentPrice}");
+        }
+        
+        private void ClearSellTicketPanel()
+        {
+            _selectedSymbol = "";
+            _selectedAvailableQty = 0;
+            _selectedCurrentPrice = 0;
+            
+            lblSelectedSymbol.Text = "- Pozisyon seçin -";
+            lblAvailableQty.Text = "0";
+            lblCurrentPrice.Text = "₺0,00";
+            spinQuantity.Value = 0;
+            spinLimitPrice.Value = 0;
+            spinStopPrice.Value = 0;
+            btnSubmitSell.Enabled = false;
+            lblValidation.Text = "";
+        }
+        
+        private void UpdateOrderTypeFields()
+        {
+            int orderType = rgOrderType.SelectedIndex;
+            
+            // Limit price visibility
+            bool showLimit = orderType == 1 || orderType == 2;
+            foreach (Control c in pnlSellTicket.Controls)
+            {
+                if (c.Tag?.ToString() == "limit_label" || c.Tag?.ToString() == "limit_input")
+                    c.Visible = showLimit;
+                if (c.Tag?.ToString() == "stop_label" || c.Tag?.ToString() == "stop_input")
+                    c.Visible = orderType == 2;
+            }
+            spinLimitPrice.Visible = showLimit;
+            spinStopPrice.Visible = orderType == 2;
+        }
+        
+        private async Task SubmitSellOrderAsync()
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[TRADE] PortfolioViewPro.ExecuteSell symbol={symbol} qty={quantity}");
-                
-                int customerId = AppEvents.CurrentSession.CustomerId;
-                if (customerId == 0)
+                // Validation
+                if (string.IsNullOrEmpty(_selectedSymbol))
                 {
-                    using var conn = _context.CreateConnection();
-                    customerId = await conn.QueryFirstOrDefaultAsync<int>(
-                        "SELECT \"Id\" FROM \"Customers\" WHERE \"UserId\" = @UserId LIMIT 1",
-                        new { UserId = AppEvents.CurrentSession.UserId });
-                }
-                
-                // Pozisyonu sat
-                var sold = await _portfolioRepository.SellAsync(customerId, symbol, quantity);
-                if (!sold)
-                {
-                    XtraMessageBox.Show("Satış başarısız - yetersiz pozisyon.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    lblValidation.Text = "❌ Pozisyon seçin";
                     return;
                 }
                 
-                // Hesaba para ekle (simulated price)
-                var accounts = await new AccountRepository(_context).GetByCustomerIdAsync(customerId);
-                var primaryAccount = accounts?.FirstOrDefault();
-                if (primaryAccount != null)
+                decimal quantity = (decimal)spinQuantity.Value;
+                if (quantity <= 0)
                 {
-                    // Get position avg cost for calculation
-                    var position = await _portfolioRepository.GetBySymbolAsync(customerId, symbol);
-                    decimal price = position?.AverageCost ?? 100m;
-                    decimal totalAmount = quantity * price;
-                    
-                    await _transactionService.DepositAsync(
-                        primaryAccount.Id,
-                        totalAmount,
-                        $"Portföyden SAT: {quantity} adet {symbol}");
-                    
-                    System.Diagnostics.Debug.WriteLine($"[TRADE] Sell SUCCESS symbol={symbol} qty={quantity} amount={totalAmount}");
+                    lblValidation.Text = "❌ Geçerli miktar girin";
+                    return;
                 }
                 
-                XtraMessageBox.Show($"✅ {symbol} satıldı!\n\nMiktar: {quantity}", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                if (quantity > _selectedAvailableQty)
+                {
+                    lblValidation.Text = $"❌ Yetersiz adet (max: {_selectedAvailableQty:N0})";
+                    return;
+                }
                 
-                // Refresh
-                await LoadDataAsync();
-                PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "Sell");
+                int orderType = rgOrderType.SelectedIndex;
+                decimal limitPrice = (decimal)spinLimitPrice.Value;
+                decimal stopPrice = (decimal)spinStopPrice.Value;
+                
+                if (orderType == 1 && limitPrice <= 0)
+                {
+                    lblValidation.Text = "❌ Limit fiyat girin";
+                    return;
+                }
+                
+                if (orderType == 2 && (limitPrice <= 0 || stopPrice <= 0))
+                {
+                    lblValidation.Text = "❌ Stop ve limit fiyat girin";
+                    return;
+                }
+                
+                string orderTypeName = orderType == 0 ? "Market" : (orderType == 1 ? "Limit" : "Stop-Limit");
+                
+                System.Diagnostics.Debug.WriteLine($"[CALL] SellTicket Submit: type={orderTypeName} symbol={_selectedSymbol} qty={quantity} limit={limitPrice} stop={stopPrice}");
+                
+                if (orderType == 0)
+                {
+                    // Market Sell - Anında işlem
+                    await ExecuteMarketSellAsync(_selectedSymbol, quantity, _selectedCurrentPrice);
+                }
+                else
+                {
+                    // Limit veya Stop-Limit - Bekleyen emir oluştur
+                    await CreatePendingSellOrderAsync(_selectedSymbol, quantity, limitPrice, stopPrice, orderTypeName);
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ERR] ExecuteSell error: {ex.Message}");
-                XtraMessageBox.Show($"Hata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                System.Diagnostics.Debug.WriteLine($"[ERR] SubmitSellOrder error: {ex.Message}");
+                lblValidation.Text = $"❌ Hata: {ex.Message}";
             }
+        }
+        
+        private async Task ExecuteMarketSellAsync(string symbol, decimal quantity, decimal price)
+        {
+            int customerId = await GetCustomerIdAsync();
+            
+            // Cash before
+            var accounts = await _accountRepository.GetByCustomerIdAsync(customerId);
+            var primaryAccount = accounts?.FirstOrDefault();
+            decimal cashBefore = primaryAccount?.Balance ?? 0;
+            
+            // Position qty before
+            var positionBefore = await _portfolioRepository.GetBySymbolAsync(customerId, symbol);
+            decimal qtyBefore = positionBefore?.Quantity ?? 0;
+            
+            System.Diagnostics.Debug.WriteLine($"[CRITICAL] MarketSell BEFORE: cash={cashBefore:N2} posQty={qtyBefore}");
+            
+            // Pozisyonu sat
+            var sold = await _portfolioRepository.SellAsync(customerId, symbol, quantity);
+            if (!sold)
+            {
+                lblValidation.Text = "❌ Satış başarısız - yetersiz pozisyon";
+                System.Diagnostics.Debug.WriteLine($"[WARN] MarketSell FAILED: insufficient position");
+                return;
+            }
+            
+            // Hesaba para ekle
+            decimal totalAmount = quantity * price;
+            if (primaryAccount != null)
+            {
+                await _transactionService.DepositAsync(
+                    primaryAccount.Id,
+                    totalAmount,
+                    $"Market SAT: {quantity:N0} adet {symbol} @ ₺{price:N2}");
+            }
+            
+            // After values
+            var positionAfter = await _portfolioRepository.GetBySymbolAsync(customerId, symbol);
+            decimal qtyAfter = positionAfter?.Quantity ?? 0;
+            var accountAfter = await _accountRepository.GetByIdAsync(primaryAccount?.Id ?? 0);
+            decimal cashAfter = accountAfter?.Balance ?? 0;
+            
+            System.Diagnostics.Debug.WriteLine($"[CRITICAL] MarketSell AFTER: cash={cashAfter:N2} posQty={qtyAfter}");
+            System.Diagnostics.Debug.WriteLine($"[CRITICAL] MarketSell DELTA: cash+={totalAmount:N2} qty-={quantity}");
+            
+            XtraMessageBox.Show(
+                $"✅ Market Satış Gerçekleşti!\n\n" +
+                $"Sembol: {symbol}\n" +
+                $"Miktar: {quantity:N0} adet\n" +
+                $"Fiyat: ₺{price:N2}\n" +
+                $"Toplam: ₺{totalAmount:N2}\n\n" +
+                $"💵 Nakit: ₺{cashBefore:N2} → ₺{cashAfter:N2}",
+                "Satış Başarılı",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            
+            // Refresh + Events
+            await LoadDataAsync();
+            System.Diagnostics.Debug.WriteLine($"[TREE] RefreshPipeline: LoadDataAsync → PortfolioEvents → NotifyTradeCompleted");
+            PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "MarketSell");
+            AppEvents.NotifyTradeCompleted(primaryAccount?.Id ?? 0, customerId, symbol, totalAmount, false);
+        }
+        
+        private async Task CreatePendingSellOrderAsync(string symbol, decimal quantity, decimal limitPrice, decimal stopPrice, string orderType)
+        {
+            int customerId = await GetCustomerIdAsync();
+            var accounts = await _accountRepository.GetByCustomerIdAsync(customerId);
+            var primaryAccount = accounts?.FirstOrDefault();
+            
+            // Bekleyen emir oluştur (adet rezervasyonu mantığı: pending sell emirleri kullanılabilir adetten düşülecek)
+            var order = new PendingOrder
+            {
+                CustomerId = customerId,
+                AccountId = primaryAccount?.Id ?? 0,
+                Symbol = symbol,
+                OrderType = orderType,
+                Side = "Sell",
+                Quantity = quantity,
+                LimitPrice = limitPrice,
+                StopPrice = orderType == "Stop-Limit" ? stopPrice : (decimal?)null,
+                Status = "Pending",
+                CreatedAt = DateTime.UtcNow
+            };
+            
+            var orderId = await _pendingOrderRepository.CreateAsync(order);
+            
+            System.Diagnostics.Debug.WriteLine($"[CRITICAL] PendingSellOrder CREATED: orderId={orderId} symbol={symbol} qty={quantity} type={orderType}");
+            System.Diagnostics.Debug.WriteLine($"[CRITICAL] Adet Rezervasyonu: {symbol} için {quantity} adet bekleyen emirde");
+            
+            XtraMessageBox.Show(
+                $"✅ {orderType} Satış Emri Oluşturuldu!\n\n" +
+                $"Emir No: #{orderId}\n" +
+                $"Sembol: {symbol}\n" +
+                $"Miktar: {quantity:N0} adet\n" +
+                $"Limit Fiyat: ₺{limitPrice:N2}\n" +
+                (orderType == "Stop-Limit" ? $"Stop Fiyat: ₺{stopPrice:N2}\n" : "") +
+                $"\n📌 Not: Fiyat hedefe ulaşınca otomatik satılacak.\n" +
+                $"Adet kullanılabilir miktardan rezerve edildi.",
+                "Emir Oluşturuldu",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            
+            // Refresh
+            await LoadDataAsync();
+            PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "PendingSellOrder");
+        }
+        
+        private async Task<int> GetCustomerIdAsync()
+        {
+            int customerId = AppEvents.CurrentSession.CustomerId;
+            if (customerId == 0)
+            {
+                using var conn = _context.CreateConnection();
+                customerId = await conn.QueryFirstOrDefaultAsync<int>(
+                    "SELECT \"Id\" FROM \"Customers\" WHERE \"UserId\" = @UserId LIMIT 1",
+                    new { UserId = AppEvents.CurrentSession.UserId });
+            }
+            return customerId;
         }
         
         private void CreatePendingOrdersGrid()
@@ -494,99 +885,80 @@ namespace BankApp.UI.Controls
             }
         }
         
-        private void CreateAllocationChart()
-        {
-            chartAllocation = new ChartControl
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(25, 25, 25)
-            };
-            chartAllocation.Legend.Visibility = DevExpress.Utils.DefaultBoolean.True;
-            chartAllocation.Legend.BackColor = Color.FromArgb(25, 25, 25);
-            chartAllocation.Legend.TextColor = Color.White;
-            
-            var title = new ChartTitle { Text = "Varlık Dağılımı", TextColor = Color.White };
-            chartAllocation.Titles.Add(title);
-        }
-        
         public async Task LoadDataAsync()
         {
             try
             {
                 System.Diagnostics.Debug.WriteLine($"[DATA] PortfolioViewPro.LoadDataAsync START");
                 
-                int customerId = AppEvents.CurrentSession.CustomerId;
-                if (customerId == 0)
-                {
-                    // Get from DB
-                    using var conn = _context.CreateConnection();
-                    customerId = await conn.QueryFirstOrDefaultAsync<int>(
-                        "SELECT \"Id\" FROM \"Customers\" WHERE \"UserId\" = @UserId LIMIT 1",
-                        new { UserId = AppEvents.CurrentSession.UserId });
-                }
+                int customerId = await GetCustomerIdAsync();
                 
                 // Load Positions
                 var positions = await _portfolioRepository.GetByCustomerIdAsync(customerId);
-                var positionList = positions.Select(p => new
+                var pendingOrders = await _pendingOrderRepository.GetPendingByCustomerIdAsync(customerId);
+                var pendingList = pendingOrders.ToList();
+                
+                // Kullanılabilir adet hesapla (toplam - bekleyen sell emirleri)
+                var positionList = positions.Select(p => 
                 {
-                    p.StockSymbol,
-                    Symbol = p.StockSymbol,
-                    p.Quantity,
-                    AvgCost = $"₺{p.AverageCost:N2}",
-                    CurrentPrice = $"₺{p.AverageCost * 1.05m:N2}", // Simulated current price
-                    MarketValue = $"₺{p.Quantity * p.AverageCost * 1.05m:N2}",
-                    PnL = p.Quantity * p.AverageCost * 0.05m,
-                    PnLPercent = "5.0%"
+                    decimal currentPrice = p.AverageCost * 1.05m; // Simulated %5 artış
+                    decimal marketValue = p.Quantity * currentPrice;
+                    decimal pnl = p.Quantity * p.AverageCost * 0.05m;
+                    decimal pnlPercent = 0.05m;
+                    
+                    // Bekleyen sell emirlerindeki miktar
+                    decimal reservedQty = pendingList
+                        .Where(o => o.Symbol == p.StockSymbol && o.Side == "Sell" && o.Status == "Pending")
+                        .Sum(o => o.Quantity);
+                    decimal availableQty = p.Quantity - reservedQty;
+                    
+                    return new
+                    {
+                        Symbol = p.StockSymbol,
+                        p.Quantity,
+                        AvailableQty = availableQty,
+                        AvgCostRaw = p.AverageCost,
+                        CurrentPriceRaw = currentPrice,
+                        MarketValueRaw = marketValue,
+                        PnL = pnl,
+                        PnLPercentRaw = pnlPercent
+                    };
                 }).ToList();
                 
                 gridPositions.DataSource = positionList;
+                gridPendingOrders.DataSource = pendingList;
                 
-                // Load Pending Orders
-                var pendingOrders = await _pendingOrderRepository.GetPendingByCustomerIdAsync(customerId);
-                gridPendingOrders.DataSource = pendingOrders.ToList();
+                // Load Cash balance
+                var accounts = await _accountRepository.GetByCustomerIdAsync(customerId);
+                var primaryAccount = accounts?.FirstOrDefault();
+                decimal cash = primaryAccount?.Balance ?? 0;
                 
-                // Update Summary
-                decimal totalValue = positionList.Sum(p => p.Quantity * decimal.Parse(p.AvgCost.Replace("₺", "").Replace(",", "")));
+                // Calculate totals
+                decimal investedValue = positionList.Sum(p => p.MarketValueRaw);
+                decimal totalPortfolio = cash + investedValue;
                 decimal totalPnL = positionList.Sum(p => p.PnL);
-                int pendingCount = pendingOrders.Count();
+                decimal dailyPnL = totalPnL * 0.1m; // Simulated daily (günlük %10'u)
+                int pendingCount = pendingList.Count;
                 
-                lblTotalValue.Text = $"₺{totalValue:N2}";
+                // Update 6 Summary Cards
+                lblTotalPortfolio.Text = $"₺{totalPortfolio:N2}";
+                lblCash.Text = $"₺{cash:N2}";
+                lblInvestedValue.Text = $"₺{investedValue:N2}";
+                
+                lblDailyPnL.Text = $"{(dailyPnL >= 0 ? "+" : "")}₺{dailyPnL:N2}";
+                lblDailyPnL.Appearance.ForeColor = dailyPnL >= 0 ? Color.FromArgb(76, 175, 80) : Color.FromArgb(239, 68, 68);
+                
                 lblTotalPnL.Text = $"{(totalPnL >= 0 ? "+" : "")}₺{totalPnL:N2}";
                 lblTotalPnL.Appearance.ForeColor = totalPnL >= 0 ? Color.FromArgb(76, 175, 80) : Color.FromArgb(239, 68, 68);
+                
                 lblPendingCount.Text = pendingCount.ToString();
                 
-                // Update Chart
-                UpdateAllocationChart(positionList);
-                
-                System.Diagnostics.Debug.WriteLine($"[DATA] PortfolioViewPro.LoadDataAsync END positions={positionList.Count} pending={pendingCount}");
+                System.Diagnostics.Debug.WriteLine($"[DATA] PortfolioViewPro.LoadDataAsync END | positions={positionList.Count} pending={pendingCount} cash={cash:N2} invested={investedValue:N2} total={totalPortfolio:N2}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ERR] PortfolioViewPro.LoadDataAsync error: {ex.Message}");
             }
-        }
-        
-        private void UpdateAllocationChart(dynamic positions)
-        {
-            chartAllocation.Series.Clear();
-            
-            var series = new Series("Varlıklar", ViewType.Doughnut);
-            
-            foreach (var pos in positions)
-            {
-                decimal qty = pos.Quantity;
-                decimal price = decimal.Parse(pos.AvgCost.Replace("₺", "").Replace(",", ""));
-                series.Points.Add(new SeriesPoint(pos.Symbol, (double)(qty * price)));
-            }
-            
-            if (series.Points.Count == 0)
-            {
-                series.Points.Add(new SeriesPoint("Varlık Yok", 1));
-            }
-            
-            series.Label.TextPattern = "{A}: {VP:P0}";
-            chartAllocation.Series.Add(series);
-            chartAllocation.PaletteName = "Pastel";
         }
     }
 }
