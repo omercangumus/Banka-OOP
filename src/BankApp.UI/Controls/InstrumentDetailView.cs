@@ -385,13 +385,13 @@ namespace BankApp.UI.Controls
             pnlRight.Appearance.BackColor = Color.FromArgb(18, 18, 18);
             CreateOrderPanel();
             
-            // BOTTOM - Open Orders / History
-            pnlBottom = new PanelControl();
-            pnlBottom.Dock = DockStyle.Bottom;
-            pnlBottom.Height = 180;
-            pnlBottom.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            pnlBottom.Appearance.BackColor = Color.FromArgb(18, 18, 18);
-            CreateBottomTabs();
+            // BOTTOM - Kaldırıldı, grafik tam ekran kaplasın
+            // pnlBottom = new PanelControl();
+            // pnlBottom.Dock = DockStyle.Bottom;
+            // pnlBottom.Height = 180;
+            // pnlBottom.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+            // pnlBottom.Appearance.BackColor = Color.FromArgb(18, 18, 18);
+            // CreateBottomTabs();
             
             // CHART
             pnlChart = new PanelControl();
@@ -416,7 +416,7 @@ namespace BankApp.UI.Controls
             pnlChart.Controls.Add(lblChartLoading);
             
             this.Controls.Add(pnlChart);
-            this.Controls.Add(pnlBottom);
+            // this.Controls.Add(pnlBottom); // Kaldırıldı
             this.Controls.Add(pnlRight);
             this.Controls.Add(pnlHeader);
             System.Diagnostics.Debug.WriteLine("[DEBUG] All panels added to form");
