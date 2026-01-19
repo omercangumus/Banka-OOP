@@ -395,10 +395,6 @@ namespace BankApp.UI.Forms
             
             btnPDF.Click += async (s, e) => await ExportPdfAsync();
             
-            btnVoice.Click += (s, e) => {
-                AppendMessage("AI", "🎤 Sesli komut özelliği yakında eklenecek!");
-            };
-            
             // Close button handler
             btnClose.Click += (s, e) => {
                 if (_isSending)
@@ -431,7 +427,6 @@ namespace BankApp.UI.Forms
             
             _isSending = true;
             _isTyping = true;
-            pnlTyping.Visible = true;
             btnSend.Enabled = false;
             btnSend.Text = "⏳ Bekle...";
             
@@ -460,9 +455,8 @@ namespace BankApp.UI.Forms
             {
                 _isSending = false;
                 _isTyping = false;
-                pnlTyping.Visible = false;
                 btnSend.Enabled = true;
-                btnSend.Text = "🚀 Gönder";
+                btnSend.Text = "Gönder";
             }
         }
         
