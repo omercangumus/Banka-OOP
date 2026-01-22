@@ -5,14 +5,10 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using System.Threading.Tasks;
-using System.IO;
-using System.Collections.Generic;
 using BankApp.Infrastructure.Services;
 using BankApp.Infrastructure.Services.AI;
 using BankApp.Infrastructure.Services.Dashboard;
 using BankApp.Infrastructure.Data;
-using BankApp.UI.Reports;
-using BankApp.UI.Services.Pdf;
 
 namespace BankApp.UI.Forms
 {
@@ -37,7 +33,6 @@ namespace BankApp.UI.Forms
         private MemoEdit txtInput;
         private SimpleButton btnSend;
         private SimpleButton btnClear;
-        private SimpleButton btnPDF;
         private SimpleButton btnClose;
         
         // Quick Action Buttons
@@ -46,8 +41,6 @@ namespace BankApp.UI.Forms
         private SimpleButton btnRisk;
         private SimpleButton btnMarket;
         
-        // Message tracking for bubble positioning
-        private int _messageY = 10;
         
         public AIAssistantForm(string? stockContext = null)
         {
@@ -234,22 +227,13 @@ namespace BankApp.UI.Forms
             btnClear = new SimpleButton()
             {
                 Text = "🗑️ Temizle",
-                Size = new Size(115, 35),
+                Size = new Size(230, 35),
                 Location = new Point(15, 420),
                 Appearance = { BackColor = Color.FromArgb(60, 60, 65), ForeColor = Color.White, Font = new Font("Segoe UI", 9F) },
                 ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.Flat
             };
             
-            btnPDF = new SimpleButton()
-            {
-                Text = "📄 PDF",
-                Size = new Size(115, 35),
-                Location = new Point(140, 420),
-                Appearance = { BackColor = Color.FromArgb(60, 60, 65), ForeColor = Color.White, Font = new Font("Segoe UI", 9F) },
-                ButtonStyle = DevExpress.XtraEditors.Controls.BorderStyles.Flat
-            };
-            
-            pnlSidebar.Controls.AddRange(new Control[] { cardPanel, lblInfo, btnClear, btnPDF });
+            pnlSidebar.Controls.AddRange(new Control[] { cardPanel, lblInfo, btnClear });
         }
         
         private SimpleButton CreateQuickButton(string text, Color color, int x, int y)
@@ -321,7 +305,6 @@ namespace BankApp.UI.Forms
                 AddAssistantMessage("💬 Sohbet temizlendi. Yeni başlayalım!");
             };
             
-            btnPDF.Click += async (s, e) => await ExportPdfAsync();
             
             // Close button handler
             btnClose.Click += (s, e) => {
@@ -359,20 +342,13 @@ namespace BankApp.UI.Forms
             
             try
             {
-                if (IsPdfIntent(msg))
-                {
-                    await ExportPdfAsync();
-                }
-                else
-                {
-                    var ctx = await _contextBuilder.BuildContextAsync(
-                        AppEvents.CurrentSession.UserId,
-                        AppEvents.CurrentSession.Username);
-                    
-                    var req = new AiRequest { UserMessage = msg, Context = ctx };
-                    var resp = await _aiProvider.AskAsync(req);
-                    AddAssistantMessage(resp);
-                }
+                var ctx = await _contextBuilder.BuildContextAsync(
+                    AppEvents.CurrentSession.UserId,
+                    AppEvents.CurrentSession.Username);
+                
+                var req = new AiRequest { UserMessage = msg, Context = ctx };
+                var resp = await _aiProvider.AskAsync(req);
+                AddAssistantMessage(resp);
             }
             catch (Exception ex)
             {
@@ -468,55 +444,6 @@ namespace BankApp.UI.Forms
             return container;
         }
         
-        private bool IsPdfIntent(string msg)
-        {
-            var l = msg.ToLower();
-            return l.Contains("pdf") || (l.Contains("indir") && (l.Contains("portföy") || l.Contains("rapor")));
-        }
-        
-        private async Task ExportPdfAsync()
-        {
-            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] ExportPdfAsync called");
-            AddAssistantMessage("📄 PDF Raporu Hazırlanıyor...");
-            
-            try
-            {
-                var data = new InvestmentAnalysisData
-                {
-                    Symbol = "PORTFOLIO",
-                    Name = AppEvents.CurrentSession.Username ?? "User",
-                    Timeframe = "Summary",
-                    GeneratedAt = DateTime.Now
-                };
-                
-                try
-                {
-                    var d = await _dashboardService.GetFullDashboardDataAsync(AppEvents.CurrentSession.UserId);
-                    data.LastPrice = (double)d.TotalBalance;
-                    data.AIAnalysis = $"Net Varlık: ₺{d.NetWorth:N0}";
-                    data.AIRecommendation = "HOLD";
-                }
-                catch { }
-                
-                using var dlg = new SaveFileDialog();
-                dlg.Filter = "PDF|*.pdf";
-                dlg.FileName = $"NovaBank_AI_Rapor_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
-                
-                if (dlg.ShowDialog() == DialogResult.OK)
-                {
-                    PdfReportExporter.GenerateInvestmentReport(data, dlg.FileName);
-                    AddAssistantMessage($"✅ PDF Başarıyla Kaydedildi!\n\n📁 Dosya: {Path.GetFileName(dlg.FileName)}");
-                }
-                else
-                {
-                    AddAssistantMessage("❌ PDF kaydetme iptal edildi.");
-                }
-            }
-            catch (Exception ex)
-            {
-                AddAssistantMessage($"❌ PDF Hatası: {ex.Message}");
-            }
-        }
         
         protected override void OnPaint(PaintEventArgs e)
         {
