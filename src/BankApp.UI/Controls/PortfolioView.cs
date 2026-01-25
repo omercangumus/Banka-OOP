@@ -38,11 +38,39 @@ namespace BankApp.UI.Controls
 
         public PortfolioView()
         {
+            // [OPENED] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Handle=PENDING | Hash={GetHashCode()} | Parent={Parent?.Name ?? "null"} | Visible={Visible}");
+            
             var context = new DapperContext();
             _dashboardService = new DashboardService(context);
             
             InitializeComponents();
             LoadPortfolioData();
+            
+            // B4: Trade sonrası portföy refresh
+            AppEvents.TradeCompleted += OnTradeCompleted;
+        }
+        
+        private void OnTradeCompleted(object sender, TradeCompletedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DATA] PortfolioView.OnTradeCompleted received - refreshing positions");
+            
+            // UI thread'de çalıştır
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new Action(() => RefreshPortfolio()));
+            }
+            else
+            {
+                RefreshPortfolio();
+            }
+        }
+        
+        public void RefreshPortfolio()
+        {
+            System.Diagnostics.Debug.WriteLine($"[DATA] Portfolio refresh START accountId={AppEvents.CurrentSession.ActiveAccountId}");
+            LoadPortfolioData();
+            System.Diagnostics.Debug.WriteLine($"[DATA] Portfolio refresh END");
         }
 
         private void InitializeComponents()
@@ -405,20 +433,25 @@ namespace BankApp.UI.Controls
                     });
                 }
                 
-                // 2. Stocks (if exists)
+                // 2. CustomerPortfolios - Gerçek pozisyonlar (S2 FIX)
                 try
                 {
-                    var stocks = await conn.QueryAsync<dynamic>(@"
+                    var portfolioPositions = await conn.QueryAsync<dynamic>(@"
                         SELECT 
                             'Hisse' as Category,
-                            Symbol as AssetName,
-                            Quantity,
-                            CurrentPrice as UnitPrice,
-                            (Quantity * CurrentPrice) as TotalValue,
-                            (Quantity * PurchasePrice) as TotalCost,
-                            (Quantity * (CurrentPrice - PurchasePrice)) as ProfitLoss
-                        FROM ""UserStocks""
-                        WHERE ""UserId"" = @UserId AND ""Quantity"" > 0");
+                            ""StockSymbol"" as AssetName,
+                            ""Quantity"",
+                            ""AverageCost"" as UnitPrice,
+                            (""Quantity"" * ""AverageCost"") as TotalValue,
+                            (""Quantity"" * ""AverageCost"") as TotalCost,
+                            0 as ProfitLoss
+                        FROM ""CustomerPortfolios""
+                        WHERE ""CustomerId"" = @CustomerId AND ""Quantity"" > 0",
+                        new { CustomerId = customerId.Value });
+                    
+                    System.Diagnostics.Debug.WriteLine($"[DATA] PortfolioView.CustomerPortfolios count={portfolioPositions.Count()} customerId={customerId.Value}");
+                    
+                    var stocks = portfolioPositions;
                     
                     foreach (var stock in stocks)
                     {

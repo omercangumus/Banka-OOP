@@ -19,6 +19,9 @@ namespace BankApp.UI.Controls
 
         public HeroNetWorthCard()
         {
+            // [OPENED] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Handle=PENDING | Hash={GetHashCode()} | Parent={Parent?.Name ?? "null"} | Visible={Visible}");
+            
             this.DoubleBuffered = true;
             this.Size = new Size(480, 200);
             this.MinimumSize = new Size(400, 180);
@@ -34,19 +37,124 @@ namespace BankApp.UI.Controls
         
         private void HeroNetWorthCard_MouseClick(object sender, MouseEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[IBAN] MouseClick at ({e.X},{e.Y}), ibanRect={ibanRect}, userIban={userIban}");
-            // Check if click is on IBAN area
-            if (!string.IsNullOrEmpty(userIban) && ibanRect.Contains(e.Location))
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] HeroNetWorthCard.MouseClick | senderHash={sender?.GetHashCode()} | controlHash={this.GetHashCode()} | click=({e.X},{e.Y}) | ibanRect={ibanRect} | iban={userIban}");
+            
+            // Check if click is on IBAN area (with 15px tolerance)
+            var toleranceRect = new Rectangle(
+                ibanRect.X - 15, 
+                ibanRect.Y - 15, 
+                ibanRect.Width + 30, 
+                ibanRect.Height + 30);
+            
+            bool inTolerance = toleranceRect.Contains(e.Location);
+            
+            if (!string.IsNullOrEmpty(userIban) && inTolerance)
             {
-                try
+                // UI thread'de çalıştır - STA thread fix
+                if (this.InvokeRequired)
                 {
-                    Clipboard.SetText(userIban);
-                    copyTooltip.Show("✓ IBAN kopyalandı!", this, e.X, e.Y - 25, 1500);
-                    System.Diagnostics.Debug.WriteLine($"[IBAN] IBAN COPIED TO CLIPBOARD: {userIban}");
+                    this.Invoke(new Action(() => CopyIbanToClipboard(userIban, e.X, e.Y)));
                 }
-                catch (Exception ex) 
-                { 
-                    System.Diagnostics.Debug.WriteLine($"[IBAN] Copy failed: {ex.Message}");
+                else
+                {
+                    CopyIbanToClipboard(userIban, e.X, e.Y);
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] Click outside IBAN area or no IBAN set");
+                // Sessizce geç - popup gösterme
+            }
+        }
+        
+        private void CopyIbanToClipboard(string iban, int mouseX, int mouseY)
+        {
+            System.Diagnostics.Debug.WriteLine($"[IBAN] CopyIbanToClipboard called, iban={iban}");
+            
+            // STA thread'de clipboard işlemi - ayrı thread oluştur
+            bool success = false;
+            Exception lastException = null;
+            
+            try
+            {
+                // STA thread oluştur ve clipboard işlemini onda yap
+                var thread = new System.Threading.Thread(() =>
+                {
+                    try
+                    {
+                        for (int i = 0; i < 3 && !success; i++)
+                        {
+                            try
+                            {
+                                Clipboard.SetText(iban);
+                                success = true;
+                                System.Diagnostics.Debug.WriteLine($"[IBAN] STA thread copy success on attempt {i+1}");
+                            }
+                            catch (Exception ex)
+                            {
+                                lastException = ex;
+                                System.Diagnostics.Debug.WriteLine($"[IBAN] STA thread attempt {i+1} failed: {ex.Message}");
+                                System.Threading.Thread.Sleep(50);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        lastException = ex;
+                    }
+                });
+                
+                thread.SetApartmentState(System.Threading.ApartmentState.STA);
+                thread.Start();
+                thread.Join(1000); // 1 saniye bekle
+                
+                if (success)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] IbanCopy attempt=OK success=true iban={iban}");
+                    copyTooltip.Show("✓ IBAN kopyalandı!", this, mouseX, mouseY - 25, 1500);
+                }
+                else
+                {
+                    throw lastException ?? new Exception("STA thread clipboard başarısız");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] IbanCopy attempt=FAIL error={ex.Message}");
+                
+                // Fallback: Kullanıcıya seçilebilir text göster
+                using (var form = new Form())
+                {
+                    form.Text = "IBAN Kopyala";
+                    form.Size = new Size(450, 150);
+                    form.StartPosition = FormStartPosition.CenterParent;
+                    form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                    form.MaximizeBox = false;
+                    form.MinimizeBox = false;
+                    
+                    var txt = new TextBox();
+                    txt.Text = iban;
+                    txt.ReadOnly = true;
+                    txt.Location = new Point(20, 30);
+                    txt.Size = new Size(400, 25);
+                    txt.SelectAll();
+                    form.Controls.Add(txt);
+                    
+                    var lbl = new Label();
+                    lbl.Text = "IBAN'\u0131 seçip Ctrl+C ile kopyalay\u0131n:";
+                    lbl.Location = new Point(20, 10);
+                    lbl.AutoSize = true;
+                    form.Controls.Add(lbl);
+                    
+                    var btn = new Button();
+                    btn.Text = "Tamam";
+                    btn.Location = new Point(180, 70);
+                    btn.DialogResult = DialogResult.OK;
+                    form.Controls.Add(btn);
+                    form.AcceptButton = btn;
+                    
+                    form.ShowDialog(this);
                 }
             }
         }
@@ -192,8 +300,9 @@ namespace BankApp.UI.Controls
                     int ibanX = this.Width - padding - (int)ibanSize.Width;
                     int ibanY = this.Height - 24;
                     
-                    // Store rect for click detection
-                    ibanRect = new Rectangle(ibanX - 4, ibanY - 2, (int)ibanSize.Width + 8, (int)ibanSize.Height + 4);
+                    // Store rect for click detection - GENIŞ ALAN (S1 FIX)
+                    // Tüm IBAN satırını kapsasın
+                    ibanRect = new Rectangle(ibanX - 20, ibanY - 10, (int)ibanSize.Width + 40, (int)ibanSize.Height + 20);
                     
                     // Hover highlight
                     if (ibanHovered)

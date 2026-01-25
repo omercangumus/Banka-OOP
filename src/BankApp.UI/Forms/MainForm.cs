@@ -34,6 +34,7 @@ namespace BankApp.UI.Forms
         private AssetAllocationChart assetChart;
         private AdminDashboardPanel adminPanel;
         private PortfolioView portfolioView;
+        private PortfolioViewPro portfolioViewPro; // PROFESYONEL PORTFÖY
         
         // Portfolio Dashboard (for Tab2)
         private PanelControl pnlPortfolioDashboard;
@@ -49,9 +50,15 @@ namespace BankApp.UI.Forms
         // Guards to prevent multiple setup
         private bool _dashboardInitialized = false;
         private bool _portfolioDashboardInitialized = false;
+        
+        // B5: Hesap seçimi
+        private DevExpress.XtraEditors.LookUpEdit cmbAccountSelector;
 
         public MainForm()
         {
+            // [OPENED] log - ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Handle=PENDING | Hash={GetHashCode()} | Parent={Parent?.Name ?? "null"} | Visible={Visible}");
+            
             try
             {
                 InitializeComponent();
@@ -59,14 +66,23 @@ namespace BankApp.UI.Forms
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"InitializeComponent Error: {ex.Message}");
-                // Continue execution to attempt showing the form
             }
             
-            // BUILD MARKER - NO EXCUSES VALIDATION
-            string buildTime = DateTime.Now.ToString("HH:mm:ss");
-            this.Text = $"NovaBank DEBUG MARKER {buildTime}";
-            System.Diagnostics.Debug.WriteLine($"=== MAINFORM LOADED v2 @ {buildTime} ===");
-            System.Diagnostics.Debug.WriteLine($"=== EXE PATH: {System.Reflection.Assembly.GetExecutingAssembly().Location} ===");
+            // BUILD STAMP - TARTIŞMA BİTSİN
+            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            var version = asm.GetName().Version?.ToString() ?? "0.0.0.0";
+            var utcTime = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var exePath = asm.Location;
+            var commitHash = GetCommitHash();
+            
+            this.Text = $"NovaBank | v{version} | {utcTime} | exe={System.IO.Path.GetFileName(exePath)} | commit={commitHash}";
+            
+            System.Diagnostics.Debug.WriteLine($"=== BUILD STAMP ===");
+            System.Diagnostics.Debug.WriteLine($"Version: {version}");
+            System.Diagnostics.Debug.WriteLine($"UTC: {utcTime}");
+            System.Diagnostics.Debug.WriteLine($"EXE: {exePath}");
+            System.Diagnostics.Debug.WriteLine($"Commit: {commitHash}");
+            System.Diagnostics.Debug.WriteLine($"===================");
             // Use real AI service with environment variable
             string apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? "your-api-key-here";
             _aiService = new OpenRouterAIService(apiKey);
@@ -96,6 +112,18 @@ namespace BankApp.UI.Forms
                     _ = DashboardRefreshOrchestrator.Instance.RequestRefreshAsync(e.UserId, RefreshReason.Investment);
                 }
             };
+            
+            // B3: Trade sonrası tek RefreshPipeline
+            AppEvents.TradeCompleted += async (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[DASHBOARD] TradeCompleted received - refreshing all widgets");
+                await RefreshAllWidgetsAsync();
+            };
+            
+            // B5: Hesap değişimi - tüm dashboard güncelle
+            AppEvents.ActiveAccountChanged += async (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[DASHBOARD] ActiveAccountChanged received old={e.OldAccountId} new={e.NewAccountId}");
+                await RefreshAllWidgetsAsync();
+            };
             PortfolioEvents.TransactionChanged += (s, e) => {
                 System.Diagnostics.Debug.WriteLine($"[DASHBOARD] TransactionChanged received: UserId={e.UserId}, Amount={e.Amount}");
                 if (e.UserId == AppEvents.CurrentSession.UserId)
@@ -116,6 +144,18 @@ namespace BankApp.UI.Forms
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] MainForm_Load fired, this={GetType().FullName}");
+            
+            // BUILD STAMP VERIFICATION
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            var buildTime = DateTime.Now.ToString("HH:mm:ss");
+            var commitHash = GetCommitHash();
+            this.Text = $"NovaBank | v{version} | {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ} | commit={commitHash}";
+            System.Diagnostics.Debug.WriteLine($"[BUILD-STAMP] NovaBank v{version} | {buildTime} | Commit {commitHash}");
+            
+            // B5: Hesapları yükle ve session'a set et
+            _ = LoadUserAccountsAsync();
+            
             // Role-Based Dashboard
             if (AppEvents.CurrentSession.IsAdmin)
             {
@@ -127,6 +167,48 @@ namespace BankApp.UI.Forms
             }
             
             UpdateMenuForRole();
+            
+            // Ribbon ayarları - kullanıcı açıp kapatamaz, yatırım dışında açık
+            ribbonControl1.AllowMinimizeRibbon = false;
+            ribbonControl1.Minimized = false; // Başlangıçta açık (Genel Bakış)
+        }
+        
+        /// <summary>
+        /// B5: Kullanıcının hesaplarını yükle ve session'a set et
+        /// </summary>
+        private async Task LoadUserAccountsAsync()
+        {
+            try
+            {
+                using var conn = new DapperContext().CreateConnection();
+                
+                // Kullanıcının customer ve hesaplarını bul
+                var customer = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    @"SELECT ""Id"", ""FirstName"", ""LastName"" FROM ""Customers"" WHERE ""UserId"" = @UserId",
+                    new { UserId = AppEvents.CurrentSession.UserId });
+                
+                if (customer != null)
+                {
+                    int customerId = (int)customer.Id;
+                    
+                    var accounts = await conn.QueryAsync<dynamic>(
+                        @"SELECT ""Id"", ""AccountNumber"", ""AccountType"", ""Balance"" FROM ""Accounts"" WHERE ""CustomerId"" = @CustomerId",
+                        new { CustomerId = customerId });
+                    
+                    var accountList = accounts.ToList();
+                    if (accountList.Any())
+                    {
+                        int defaultAccountId = (int)accountList.First().Id;
+                        AppEvents.CurrentSession.SetCustomer(customerId, defaultAccountId);
+                        
+                        System.Diagnostics.Debug.WriteLine($"[DATA] UserAccounts loaded count={accountList.Count} customerId={customerId} defaultAccountId={defaultAccountId}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERR] LoadUserAccountsAsync error: {ex.Message}");
+            }
         }
 
         private void ShowAdminDashboard()
@@ -218,8 +300,8 @@ namespace BankApp.UI.Forms
                 // Wire up quick actions
                 quickActions.SendMoneyClicked += (s, e) => btnMoneyTransfer_ItemClick(s, null);
                 quickActions.SupportClicked += (s, e) => {
-                    // Open AI Assistant Form V2
-                    var aiForm = new AIAssistantFormV2();
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: quickActions.Support clicked, opening AIAssistantForm");
+                    var aiForm = new AIAssistantForm();
                     aiForm.Show();
                 };
                 
@@ -327,7 +409,8 @@ namespace BankApp.UI.Forms
                 // Wire up portfolio quick actions
                 portfolioQuickActions.SendMoneyClicked += (s, e) => btnMoneyTransfer_ItemClick(s, null);
                 portfolioQuickActions.SupportClicked += (s, e) => {
-                    var aiForm = new AIAssistantFormV2();
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: portfolioQuickActions.Support clicked, opening AIAssistantForm");
+                    var aiForm = new AIAssistantForm();
                     aiForm.Show();
                 };
                 
@@ -425,24 +508,24 @@ namespace BankApp.UI.Forms
             }
         }
         
-        private void UpdateAssetChart()
+        private async void UpdateAssetChart()
         {
             try {
                 if (assetChart == null) return;
                 System.Diagnostics.Debug.WriteLine($"[CHART] UpdateAssetChart called, instance={assetChart.GetHashCode()}");
-                assetChart.RefreshData();
+                await assetChart.RefreshDataAsync();
             }
             catch (Exception ex) {
                 System.Diagnostics.Debug.WriteLine($"UpdateAssetChart Error: {ex.Message}");
             }
         }
         
-        private void UpdatePortfolioAssetChart()
+        private async void UpdatePortfolioAssetChart()
         {
             try {
                 if (portfolioAssetChart == null) return;
                 System.Diagnostics.Debug.WriteLine($"[CHART] UpdatePortfolioAssetChart called, instance={portfolioAssetChart.GetHashCode()}");
-                portfolioAssetChart.RefreshData();
+                await portfolioAssetChart.RefreshDataAsync();
             }
             catch (Exception ex) {
                 System.Diagnostics.Debug.WriteLine($"UpdatePortfolioAssetChart Error: {ex.Message}");
@@ -465,6 +548,8 @@ namespace BankApp.UI.Forms
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] LoadDashboardData START - UserId={AppEvents.CurrentSession.UserId}, Username={AppEvents.CurrentSession.Username}");
+                
                 var context = new BankApp.Infrastructure.Data.DapperContext();
                 using (var conn = context.CreateConnection())
                 {
@@ -480,6 +565,24 @@ namespace BankApp.UI.Forms
                     var portfolioValue = await portfolioService.GetNetWorthAsync();
                     
                     var totalWealth = totalBankAssets + portfolioValue;
+                    
+                    // Get asset allocation breakdown
+                    var allocationData = await _dashboardSummaryService.GetAssetAllocationAsync(AppEvents.CurrentSession.UserId);
+                    decimal cash = 0, stock = 0, crypto = 0, debt = 0;
+                    int slices = 0;
+                    if (allocationData != null)
+                    {
+                        slices = allocationData.Count;
+                        foreach (var item in allocationData)
+                        {
+                            if (item.Category.Contains("Nakit")) cash = item.Amount;
+                            else if (item.Category.Contains("Hisse")) stock = item.Amount;
+                            else if (item.Category.Contains("Kripto")) crypto = item.Amount;
+                            else if (item.Category.Contains("Borç")) debt = item.Amount;
+                        }
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"[DASHBOARD] AssetAllocation computed slices={slices} cash=₺{cash:N0} stock=₺{stock:N0} crypto=₺{crypto:N0} debt=₺{debt:N0} total=₺{totalWealth:N0}");
                     
                     lblTotalAssetsValue.Text = totalWealth.ToString("N2");
                     
@@ -500,6 +603,8 @@ namespace BankApp.UI.Forms
                     var random = new Random();
                     var change = (random.NextDouble() * 2 - 1).ToString("F3");
                     lblExchangeRateValue.Text = $"{change}%";
+                    
+                    System.Diagnostics.Debug.WriteLine($"[DASHBOARD] Refresh END");
                 }
             }
             catch (Exception ex)
@@ -566,26 +671,48 @@ namespace BankApp.UI.Forms
             bool isTab2Portfolio = (ribbonControl1.SelectedPage == pagePortfolio);
             bool isTab3Investment = (ribbonControl1.SelectedPage == pageInvestments);
             bool isTab4Customers = (ribbonControl1.SelectedPage == pageCustomers);
+            
+            // [TREE] DUMP - Sekme değişince control ağacını logla
+            string tabName = isTab1Dashboard ? "GenelBakis" : isTab2Portfolio ? "Portfoy" : isTab3Investment ? "Yatirim" : "Diger";
+            System.Diagnostics.Debug.WriteLine($"[CALL] RibbonControl1.SelectedPageChanged -> tab={tabName} | senderType={sender?.GetType().Name} | formHash={this.GetHashCode()}");
+            
+            if (isTab3Investment && investmentView != null)
+            {
+                DumpControlTree("Yatirim", investmentView);
+            }
+            else if ((isTab1Dashboard || isTab2Portfolio) && pnlDashboard != null)
+            {
+                DumpControlTree(tabName, pnlDashboard);
+            }
 
-            // Tab1: Dashboard & Tab2: Portfolio (AYNI DASHBOARD)
+            // Tab1: Dashboard (Genel Bakış)
             if (pnlDashboard != null)
             {
-                // Hem Genel Bakış hem Portföy sekmesinde aynı dashboard göster
-                pnlDashboard.Visible = isTab1Dashboard || isTab2Portfolio;
-                if (isTab1Dashboard || isTab2Portfolio) pnlDashboard.BringToFront();
+                pnlDashboard.Visible = isTab1Dashboard;
+                if (isTab1Dashboard) pnlDashboard.BringToFront();
             }
             
-            // Hide old portfolio view - artık kullanılmıyor
-            if (portfolioView != null)
+            // Tab2: PROFESYONEL PORTFÖY (Yeni tasarım)
+            if (isTab2Portfolio)
             {
-                portfolioView.Visible = false;
+                if (portfolioViewPro == null)
+                {
+                    portfolioViewPro = new PortfolioViewPro();
+                    portfolioViewPro.Dock = DockStyle.Fill;
+                    this.Controls.Add(portfolioViewPro);
+                }
+                portfolioViewPro.Visible = true;
+                portfolioViewPro.BringToFront();
+                _ = portfolioViewPro.LoadDataAsync();
+            }
+            else if (portfolioViewPro != null)
+            {
+                portfolioViewPro.Visible = false;
             }
             
-            // Hide portfolio dashboard panel - artık kullanılmıyor
-            if (pnlPortfolioDashboard != null)
-            {
-                pnlPortfolioDashboard.Visible = false;
-            }
+            // Hide old portfolio views
+            if (portfolioView != null) portfolioView.Visible = false;
+            if (pnlPortfolioDashboard != null) pnlPortfolioDashboard.Visible = false;
             
             // Hide legacy investmentDashboard - no longer used in tab switching
             if (investmentDashboard != null)
@@ -599,6 +726,28 @@ namespace BankApp.UI.Forms
                 investmentView.Visible = isTab3Investment;
                 if (isTab3Investment) investmentView.BringToFront();
             }
+            
+            // Yatırım ekranında ribbon küçük, diğerlerinde normal
+            ribbonControl1.Visible = true;
+            
+            // ÖNCE minimize ayarı, SONRA AllowMinimize kapatılır
+            if (isTab3Investment)
+            {
+                // Yatırım: Ribbon küçük
+                ribbonControl1.AllowMinimizeRibbon = true; // Geçici izin
+                ribbonControl1.Minimized = true;
+                ribbonControl1.Height = 30;
+                ribbonControl1.AllowMinimizeRibbon = false; // Sonra kilitle
+            }
+            else
+            {
+                // Diğer sekmeler: Normal ribbon
+                ribbonControl1.AllowMinimizeRibbon = true; // Geçici izin
+                ribbonControl1.Minimized = false;
+                ribbonControl1.Height = 130;
+                ribbonControl1.AllowMinimizeRibbon = false; // Sonra kilitle
+            }
+            System.Diagnostics.Debug.WriteLine($"[RIBBON] tab={tabName} Minimized={ribbonControl1.Minimized} Height={ribbonControl1.Height}");
             
             // Hide legacy "Yatırım Araçları" ribbon group when Investment tab is active
             // We now have buttons in MarketHome/Detail views instead
@@ -1018,8 +1167,9 @@ namespace BankApp.UI.Forms
 
         private void btnAiAssist_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
         {
-            var frm = new AIAssistantFormV2();
-            frm.ShowDialog();
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnAiAssist clicked, opening AIAssistantForm");
+            var frm = new AIAssistantForm();
+            frm.Show();
         }
 
         private void btnMoneyTransfer_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -1255,10 +1405,42 @@ namespace BankApp.UI.Forms
         }
 
         // Dashboard'u yenile
-        private void RefreshDashboard()
+        private async void RefreshDashboard()
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] RefreshDashboard called, this={GetType().FullName}");
+            
+            // VERIFICATION TOAST (one-time proof)
+            if (assetChart != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VERIFY] assetChart: Hash={assetChart.GetHashCode()}, Parent={assetChart.Parent?.Name ?? "null"}, Visible={assetChart.Visible}");
+            }
+            if (portfolioAssetChart != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VERIFY] portfolioAssetChart: Hash={portfolioAssetChart.GetHashCode()}, Parent={portfolioAssetChart.Parent?.Name ?? "null"}, Visible={portfolioAssetChart.Visible}");
+            }
+            
             LoadDashboardData();
             LoadDashboardCharts();
+            
+            // Refresh AssetAllocationChart controls
+            if (assetChart != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[RUNTIME-TRACE] Refreshing assetChart (Tab1)");
+                await assetChart.RefreshDataAsync();
+                assetChart.Invalidate();
+                assetChart.Refresh();
+            }
+            if (portfolioAssetChart != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[RUNTIME-TRACE] Refreshing portfolioAssetChart (Tab2)");
+                await portfolioAssetChart.RefreshDataAsync();
+                portfolioAssetChart.Invalidate();
+                portfolioAssetChart.Refresh();
+            }
+            
+            // Force MainForm repaint
+            this.Invalidate();
+            this.Refresh();
         }
 
         // Rol bazlı menü güncelleme
@@ -1297,6 +1479,7 @@ namespace BankApp.UI.Forms
         {
             AppEvents.DataChanged += (sender, args) =>
             {
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] EVENT RECEIVED: AppEvents.DataChanged, Source={args.Source}, Action={args.Action}");
                 // UI thread'e geç
                 if (this.InvokeRequired)
                 {
@@ -1377,14 +1560,8 @@ namespace BankApp.UI.Forms
         /// <summary>
         /// Dashboard refresh event handler - tüm widget'ları günceller
         /// </summary>
-        private void OnDashboardRefreshRequested(object sender, DashboardRefreshEventArgs e)
+        private async void OnDashboardRefreshRequested(object sender, DashboardRefreshEventArgs e)
         {
-            if (this.InvokeRequired)
-            {
-                this.BeginInvoke(new Action(() => OnDashboardRefreshRequested(sender, e)));
-                return;
-            }
-            
             try
             {
                 System.Diagnostics.Debug.WriteLine($"Dashboard Refresh: {e.Reason} at {e.Timestamp}");
@@ -1392,18 +1569,111 @@ namespace BankApp.UI.Forms
                 // Tab1 Dashboard Widgets
                 UpdateHeroCard();
                 heroCard?.Invalidate();
-                assetChart?.RefreshData();
-                recentTransactions?.RefreshData();
+                if (assetChart != null) await assetChart.RefreshDataAsync();
                 
                 // Tab2 Portfolio Dashboard Widgets
                 UpdatePortfolioHeroCard();
                 portfolioHeroCard?.Invalidate();
-                portfolioAssetChart?.RefreshData();
-                portfolioRecentTransactions?.RefreshData();
+                if (portfolioAssetChart != null) await portfolioAssetChart.RefreshDataAsync();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"OnDashboardRefreshRequested Error: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Git commit hash - BUILD STAMP için
+        /// </summary>
+        private static string GetCommitHash()
+        {
+            try
+            {
+                var gitDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", ".git", "HEAD");
+                if (System.IO.File.Exists(gitDir))
+                {
+                    var headContent = System.IO.File.ReadAllText(gitDir).Trim();
+                    if (headContent.StartsWith("ref: "))
+                    {
+                        var refPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", ".git", headContent.Substring(5).Replace("/", System.IO.Path.DirectorySeparatorChar.ToString()));
+                        if (System.IO.File.Exists(refPath))
+                            return System.IO.File.ReadAllText(refPath).Trim().Substring(0, 7);
+                    }
+                    return headContent.Length > 7 ? headContent.Substring(0, 7) : headContent;
+                }
+            }
+            catch { }
+            return "unknown";
+        }
+        
+        /// <summary>
+        /// [TREE] Control dump - Sekme değişince çağrılır
+        /// </summary>
+        private void DumpControlTree(string tabName, Control root)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TREE] === TAB={tabName} ROOT={root?.Name ?? "null"} TYPE={root?.GetType().Name} ===");
+            if (root == null) return;
+            
+            DumpControlRecursive(tabName, root, 0);
+        }
+        
+        private void DumpControlRecursive(string tabName, Control ctrl, int depth)
+        {
+            string indent = new string(' ', depth * 2);
+            string parentChain = GetParentChain(ctrl);
+            
+            System.Diagnostics.Debug.WriteLine($"[TREE] {indent}{ctrl.Name ?? "(no name)"} | Type={ctrl.GetType().Name} | Handle={ctrl.IsHandleCreated} | Hash={ctrl.GetHashCode()} | Visible={ctrl.Visible} | Parent={parentChain}");
+            
+            foreach (Control child in ctrl.Controls)
+            {
+                DumpControlRecursive(tabName, child, depth + 1);
+            }
+        }
+        
+        private string GetParentChain(Control ctrl)
+        {
+            var chain = new System.Text.StringBuilder();
+            var p = ctrl.Parent;
+            int count = 0;
+            while (p != null && count < 5)
+            {
+                chain.Append(p.Name ?? p.GetType().Name);
+                chain.Append(" -> ");
+                p = p.Parent;
+                count++;
+            }
+            return chain.Length > 0 ? chain.ToString().TrimEnd(' ', '-', '>') : "ROOT";
+        }
+        
+        /// <summary>
+        /// B3: Tüm widget'ları refresh et - TEK PIPELINE
+        /// </summary>
+        private async Task RefreshAllWidgetsAsync()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] RefreshAllWidgets START");
+                
+                // 1. HeroCard (Net Worth)
+                UpdateHeroCard();
+                heroCard?.Invalidate();
+                
+                // 2. AssetAllocationChart (Pasta)
+                if (assetChart != null) await assetChart.RefreshDataAsync();
+                
+                // 3. RecentTransactions
+                recentTransactions?.RefreshData();
+                
+                // 4. Portfolio (Tab2)
+                UpdatePortfolioHeroCard();
+                portfolioHeroCard?.Invalidate();
+                if (portfolioAssetChart != null) await portfolioAssetChart.RefreshDataAsync();
+                
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] RefreshAllWidgets END");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERR] RefreshAllWidgets error: {ex.Message}");
             }
         }
     }

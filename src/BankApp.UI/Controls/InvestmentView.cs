@@ -167,6 +167,8 @@ namespace BankApp.UI.Controls
 
         public InvestmentView()
         {
+            // [OPENED] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Handle=PENDING | Hash={GetHashCode()} | Parent={Parent?.Name ?? "null"} | Visible={Visible}");
             System.Diagnostics.Debug.WriteLine("=== INVESTMENTVIEW LOADED v2 ===");
             
             _finnhubService = new FinnhubService();
@@ -205,6 +207,8 @@ namespace BankApp.UI.Controls
 
         private async void InvestmentView_Load(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] InvestmentView_Load fired, this={GetType().FullName}");
+            
             // Load watchlist and market tiles, but NOT chart (user must select symbol)
             await LoadWatchlistDataAsync();
             await LoadMarketTilesDataAsync();
@@ -244,7 +248,7 @@ namespace BankApp.UI.Controls
             
             // Create dock panels
             CreateRightDockPanel();
-            CreateBottomDockPanel();
+            // CreateBottomDockPanel(); // Kaldırıldı - grafik tam ekran kaplasın
         }
 
         private void InitializeBarManager()
@@ -730,6 +734,7 @@ namespace BankApp.UI.Controls
             cmbOrderType.SelectedIndex = 0;
             cmbOrderType.Properties.Appearance.BackColor = Color.FromArgb(40, 40, 40);
             cmbOrderType.Properties.Appearance.ForeColor = Color.White;
+            cmbOrderType.SelectedIndexChanged += CmbOrderType_SelectedIndexChanged;
             
             var lblQuantity = new LabelControl();
             lblQuantity.Text = "Miktar";
@@ -807,7 +812,7 @@ namespace BankApp.UI.Controls
         private void OpenAIAssistant()
         {
             string context = $"{_currentSymbol} @ {lblSymbolPrice?.Text ?? "N/A"}";
-            var aiForm = new Forms.AIAssistantFormV4(context);
+            var aiForm = new Forms.AIAssistantForm(context);
             aiForm.ShowDialog();
         }
         #endregion
@@ -1096,11 +1101,15 @@ namespace BankApp.UI.Controls
 
         private async void BtnBuy_Click(object sender, EventArgs e)
         {
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] btnBuy.Click -> BtnBuy_Click | senderType={sender?.GetType().Name} | senderHash={sender?.GetHashCode()} | formHash={this.GetHashCode()} | viewType={GetType().FullName}");
             await ExecuteTradeAsync(isBuy: true);
         }
 
         private async void BtnSell_Click(object sender, EventArgs e)
         {
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] btnSell.Click -> BtnSell_Click | senderType={sender?.GetType().Name} | senderHash={sender?.GetHashCode()} | formHash={this.GetHashCode()} | viewType={GetType().FullName}");
             await ExecuteTradeAsync(isBuy: false);
         }
         
@@ -1109,6 +1118,16 @@ namespace BankApp.UI.Controls
         /// </summary>
         private async Task ExecuteTradeAsync(bool isBuy)
         {
+            // [CRITICAL] TradeStart - ZORUNLU
+            System.Diagnostics.Debug.WriteLine($"[CRITICAL] TradeStart viewType={GetType().FullName} viewHash={GetHashCode()} isBuy={isBuy} symbol={_currentSymbol} userId={AppEvents.CurrentSession.UserId}");
+            
+            // C) Yanlış view tespit - Bu view gerçek trade yapıyor mu?
+            bool isRealTradeView = this.GetType().FullName.Contains("InvestmentView");
+            if (!isRealTradeView)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WARN] Yanlış view aktif: {GetType().FullName}. Trade DB'ye yazmayabilir.");
+                ShowToast("Uyarı", "Yanlış view aktif! Lütfen Yatırım sekmesinden işlem yapın.", isError: true);
+            }
             System.Diagnostics.Debug.WriteLine($"[TRADE] ExecuteTradeAsync START - isBuy={isBuy}, symbol={_currentSymbol}, qtyText={txtOrderQuantity.Text}");
             
             // Double-click prevention
@@ -1145,51 +1164,63 @@ namespace BankApp.UI.Controls
                     price = 100m; // Fallback price
                 }
                 
-                decimal totalAmount = quantity * price;
+                // S3 KUR FIX: USD fiyatı TRY'ye çevir
+                string symbolCurrency = CurrencyConversionService.GetCurrencyForSymbol(_currentSymbol);
+                decimal totalAmountTry = CurrencyConversionService.GetTryValue(_currentSymbol, price, quantity);
+                
+                System.Diagnostics.Debug.WriteLine($"[DATA] MoneyConvert symbol={_currentSymbol} qty={quantity} priceUsd={price:N2} currency={symbolCurrency} totalTry={totalAmountTry:N2}");
                 
                 // Get user's primary account (UserId is used as CustomerId)
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] Trade START - UserId={AppEvents.CurrentSession.UserId}");
                 var accounts = await _accountRepository.GetByCustomerIdAsync(AppEvents.CurrentSession.UserId);
                 var primaryAccount = accounts?.FirstOrDefault();
                 
                 if (primaryAccount == null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] ERROR: No account found for UserId={AppEvents.CurrentSession.UserId}");
                     ShowToast("Hata", "Hesap bulunamadı.", isError: true);
                     return;
                 }
+                
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] Trade - AccountId={primaryAccount.Id}, CustomerId={primaryAccount.CustomerId}, UserId={AppEvents.CurrentSession.UserId}");
                 
                 string result;
                 string actionType;
                 
                 if (isBuy)
                 {
-                    // AL: Bakiyeden düş (Withdraw)
+                    // AL: Bakiyeden düş (Withdraw) - TRY cinsinden
                     result = await _transactionService.WithdrawAsync(
                         primaryAccount.Id, 
-                        totalAmount, 
-                        $"Yatırım AL: {quantity} adet {_currentSymbol} @ ${price:N2}");
+                        totalAmountTry, 
+                        $"Yatırım AL: {quantity} adet {_currentSymbol} @ ${price:N2} (Kur: {CurrencyConversionService.UsdTryRate:N2})");
                     actionType = "StockBuy";
                     
-                    // Update portfolio position
+                    // Update portfolio position - TRY maliyet olarak kaydet
                     if (result == null)
                     {
-                        await _portfolioRepository.BuyAsync(primaryAccount.CustomerId, _currentSymbol, quantity, price);
+                        decimal priceTry = CurrencyConversionService.ConvertToTry(price, symbolCurrency);
+                        System.Diagnostics.Debug.WriteLine($"[CRITICAL] BuyAsync - CustomerId={primaryAccount.CustomerId}, Symbol={_currentSymbol}, Qty={quantity}, PriceTRY={priceTry:N2}");
+                        await _portfolioRepository.BuyAsync(primaryAccount.CustomerId, _currentSymbol, quantity, priceTry);
                     }
                 }
                 else
                 {
                     // SAT: Önce pozisyon kontrolü
+                    System.Diagnostics.Debug.WriteLine($"[CRITICAL] SellAsync - CustomerId={primaryAccount.CustomerId}, Symbol={_currentSymbol}, Qty={quantity}");
                     var canSell = await _portfolioRepository.SellAsync(primaryAccount.CustomerId, _currentSymbol, quantity);
                     if (!canSell)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[CRITICAL] SELL FAILED: Insufficient position for {_currentSymbol}");
                         ShowToast("Hata", $"Yetersiz {_currentSymbol} pozisyonu.", isError: true);
                         return;
                     }
                     
-                    // SAT: Bakiyeye ekle (Deposit)
+                    // SAT: Bakiyeye ekle (Deposit) - TRY cinsinden
                     result = await _transactionService.DepositAsync(
                         primaryAccount.Id, 
-                        totalAmount, 
-                        $"Yatırım SAT: {quantity} adet {_currentSymbol} @ ${price:N2}");
+                        totalAmountTry, 
+                        $"Yatırım SAT: {quantity} adet {_currentSymbol} @ ${price:N2} (Kur: {CurrencyConversionService.UsdTryRate:N2})");
                     actionType = "StockSell";
                 }
                 
@@ -1197,17 +1228,56 @@ namespace BankApp.UI.Controls
                 {
                     System.Diagnostics.Debug.WriteLine($"[TRADE] SUCCESS - {actionType} completed");
                     
-                    // DB Count Check
+                    decimal currentBalance = 0;
+                    
+                    // DB Verification - READ-ONLY CHECK
                     try
                     {
                         using var conn = new DapperContext().CreateConnection();
-                        var txCount = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM \"Transactions\" WHERE \"AccountId\" = @AccId", new { AccId = primaryAccount.Id });
-                        var portfolioCount = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId", new { CustId = primaryAccount.CustomerId });
-                        System.Diagnostics.Debug.WriteLine($"[TRADE] DB CHECK: TxCount={txCount}, PortfolioCount={portfolioCount}");
+                        
+                        // Balance verification
+                        currentBalance = await conn.ExecuteScalarAsync<decimal>(
+                            "SELECT \"Balance\" FROM \"Accounts\" WHERE \"Id\" = @AccId", 
+                            new { AccId = primaryAccount.Id });
+                        
+                        // Last transaction details
+                        var lastTx = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                            "SELECT \"Description\", \"Amount\", \"TransactionDate\" FROM \"Transactions\" WHERE \"AccountId\" = @AccId ORDER BY \"TransactionDate\" DESC LIMIT 1",
+                            new { AccId = primaryAccount.Id });
+                        
+                        // Portfolio position for this symbol
+                        var portfolioPosition = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                            "SELECT \"Quantity\", \"AverageCost\" FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId AND \"StockSymbol\" = @Symbol",
+                            new { CustId = primaryAccount.CustomerId, Symbol = _currentSymbol });
+                        
+                        // Total portfolio positions
+                        var portfolioCount = await conn.ExecuteScalarAsync<int>(
+                            "SELECT COUNT(*) FROM \"CustomerPortfolios\" WHERE \"CustomerId\" = @CustId", 
+                            new { CustId = primaryAccount.CustomerId });
+                        
+                        System.Diagnostics.Debug.WriteLine($"[DB] ===== POST-TRADE VERIFICATION =====");
+                        System.Diagnostics.Debug.WriteLine($"[DB] Action: {actionType}");
+                        System.Diagnostics.Debug.WriteLine($"[DB] BalanceAfter=₺{currentBalance:N2}");
+                        if (lastTx != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[DB] LastTx: {lastTx.Description} | Amount=₺{lastTx.Amount:N2} | Date={lastTx.TransactionDate:yyyy-MM-dd HH:mm:ss}");
+                        }
+                        if (portfolioPosition != null)
+                        {
+                            decimal qty = portfolioPosition.Quantity;
+                            decimal avgCost = portfolioPosition.AverageCost;
+                            System.Diagnostics.Debug.WriteLine($"[DB] PortfolioAfter: {_currentSymbol} qty={qty:N2} avgCost=₺{avgCost:N2} totalValue=₺{(qty * avgCost):N2}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[DB] PortfolioAfter: {_currentSymbol} - NO POSITION (sold all or never bought)");
+                        }
+                        System.Diagnostics.Debug.WriteLine($"[DB] Total Portfolio Positions: {portfolioCount}");
+                        System.Diagnostics.Debug.WriteLine($"[DB] ===============================");
                     }
                     catch (Exception dbEx)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[TRADE] DB CHECK ERROR: {dbEx.Message}");
+                        System.Diagnostics.Debug.WriteLine($"[DB-VERIFY] ERROR: {dbEx.Message}");
                     }
                     
                     // Update orders grid with new entry
@@ -1216,16 +1286,22 @@ namespace BankApp.UI.Controls
                     // Refresh positions grid
                     await LoadPositionsDataAsync();
                     
-                    // Notify dashboard to refresh (triggers pie chart + balance update)
-                    System.Diagnostics.Debug.WriteLine($"[TRADE] Firing events: AppEvents.NotifyDataChanged + PortfolioEvents.OnPortfolioChanged");
-                    AppEvents.NotifyDataChanged("InvestmentView", actionType);
+                    // B3: TEK RefreshPipeline - NotifyTradeCompleted
+                    AppEvents.NotifyTradeCompleted(
+                        AppEvents.CurrentSession.ActiveAccountId,
+                        AppEvents.CurrentSession.CustomerId,
+                        _currentSymbol,
+                        totalAmountTry,
+                        isBuy);
+                    
+                    // Legacy events (opsiyonel - yedek olarak)
                     PortfolioEvents.OnPortfolioChanged(AppEvents.CurrentSession.UserId, "Trade");
                     
-                    // Show success toast
+                    // Show success toast - TRY cinsinden göster
                     string tradeType = isBuy ? "AL" : "SAT";
                     ShowToast(
                         $"✓ {tradeType} Emri Gerçekleşti",
-                        $"{_currentSymbol} • {quantity} adet • ${totalAmount:N2}",
+                        $"{_currentSymbol} • {quantity} adet • ₺{totalAmountTry:N2}",
                         isError: false);
                     
                     // Clear quantity field
@@ -1335,6 +1411,87 @@ namespace BankApp.UI.Controls
                 }
             }
             catch { /* Grid update failed, not critical */ }
+        }
+        #endregion
+
+        #region S5 - Emir Tipi Mantığı
+        /// <summary>
+        /// S5: Emir tipi değişince fiyat alanlarını aktif/pasif yap
+        /// </summary>
+        private void CmbOrderType_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var orderType = cmbOrderType.SelectedItem?.ToString() ?? "Piyasa";
+            System.Diagnostics.Debug.WriteLine($"[CALL] OrderType changed to: {orderType}");
+            
+            switch (orderType)
+            {
+                case "Piyasa":
+                    // Market: Fiyat alanı pasif, anlık fiyatla işlem
+                    txtOrderPrice.Enabled = false;
+                    txtOrderPrice.Text = "";
+                    txtOrderPrice.Properties.NullText = "Piyasa Fiyatı";
+                    break;
+                    
+                case "Limit":
+                    // Limit: Limit fiyat alanı aktif
+                    txtOrderPrice.Enabled = true;
+                    txtOrderPrice.Text = "";
+                    txtOrderPrice.Properties.NullText = "Limit Fiyat (TRY)";
+                    break;
+                    
+                case "Stop":
+                    // Stop: Stop fiyat alanı aktif
+                    txtOrderPrice.Enabled = true;
+                    txtOrderPrice.Text = "";
+                    txtOrderPrice.Properties.NullText = "Stop Fiyat (TRY)";
+                    break;
+                    
+                case "Stop-Limit":
+                    // Stop-Limit: Her iki fiyat alanı da aktif (basitleştirilmiş - tek alan)
+                    txtOrderPrice.Enabled = true;
+                    txtOrderPrice.Text = "";
+                    txtOrderPrice.Properties.NullText = "Stop-Limit Fiyat (TRY)";
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// S5: Emir tipine göre validasyon
+        /// </summary>
+        private bool ValidateOrderByType(out string errorMessage)
+        {
+            errorMessage = null;
+            var orderType = cmbOrderType.SelectedItem?.ToString() ?? "Piyasa";
+            
+            // Miktar kontrolü
+            if (!decimal.TryParse(txtOrderQuantity.Text, out decimal qty) || qty <= 0)
+            {
+                errorMessage = "Geçerli bir miktar giriniz.";
+                return false;
+            }
+            
+            // Emir tipine göre fiyat kontrolü
+            if (orderType != "Piyasa")
+            {
+                if (string.IsNullOrWhiteSpace(txtOrderPrice.Text) || 
+                    !decimal.TryParse(txtOrderPrice.Text, out decimal limitPrice) || 
+                    limitPrice <= 0)
+                {
+                    errorMessage = $"{orderType} emri için geçerli bir fiyat giriniz.";
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// S5: Emir tipine göre işlem - Limit/Stop emirleri Açık Emirler'e eklenir
+        /// </summary>
+        private bool IsMarketOrder()
+        {
+            var orderType = cmbOrderType.SelectedItem?.ToString() ?? "Piyasa";
+            return orderType == "Piyasa";
         }
         #endregion
 

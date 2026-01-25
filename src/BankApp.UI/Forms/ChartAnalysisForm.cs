@@ -57,6 +57,8 @@ namespace BankApp.UI.Forms
         
         public ChartAnalysisForm(IMarketDataProvider dataProvider, string symbol, string timeframe)
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] OPENED: {GetType().FullName}, Symbol={symbol}, Timeframe={timeframe}");
+            
             _dataProvider = dataProvider;
             _symbol = symbol;
             _timeframe = timeframe;
@@ -140,7 +142,10 @@ namespace BankApp.UI.Forms
             btnResetZoom.Appearance.BackColor = Color.FromArgb(40, 40, 40);
             btnResetZoom.Appearance.ForeColor = Color.White;
             btnResetZoom.Appearance.Options.UseBackColor = true;
-            btnResetZoom.Click += (s, e) => ResetZoom();
+            btnResetZoom.Click += (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] HANDLER: btnResetZoom clicked, this={GetType().FullName}");
+                ResetZoom();
+            };
             pnlTopBar.Controls.Add(btnResetZoom);
             
             // Close button
@@ -1111,11 +1116,34 @@ namespace BankApp.UI.Forms
         
         private void ResetZoom()
         {
+            // Clear all drawings
+            _drawings.Clear();
+            _selectedDrawing = null;
+            _activeDrawing = null;
+            _undoStack.Clear();
+            _redoStack.Clear();
+            
+            // Reset zoom on all charts
             if (_diagram != null)
             {
                 _diagram.AxisX.WholeRange.Auto = true;
                 _diagram.AxisY.WholeRange.Auto = true;
             }
+            if (_diagramRSI != null)
+            {
+                _diagramRSI.AxisX.WholeRange.Auto = true;
+                _diagramRSI.AxisY.WholeRange.Auto = true;
+            }
+            if (_diagramMACD != null)
+            {
+                _diagramMACD.AxisX.WholeRange.Auto = true;
+                _diagramMACD.AxisY.WholeRange.Auto = true;
+            }
+            
+            // Force redraw
+            chartMain?.Invalidate();
+            chartRSI?.Invalidate();
+            chartMACD?.Invalidate();
         }
         
         private void SaveUndoState()

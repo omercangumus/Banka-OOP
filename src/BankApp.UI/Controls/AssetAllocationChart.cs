@@ -19,6 +19,8 @@ namespace BankApp.UI.Controls
 
         public AssetAllocationChart()
         {
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Hash={GetHashCode()}");
+            
             var context = new DapperContext();
             _summaryService = new DashboardSummaryService(context);
             
@@ -65,8 +67,9 @@ namespace BankApp.UI.Controls
             this.Controls.Add(lblEmpty);
         }
 
-        public async void RefreshData()
+        public async Task RefreshDataAsync()
         {
+            System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart.RefreshDataAsync called, control={GetType().FullName}, Hash={this.GetHashCode()}");
             await LoadChartDataAsync();
         }
 
@@ -79,11 +82,14 @@ namespace BankApp.UI.Controls
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[CRITICAL] AssetAllocationChart.LoadChartDataAsync - UserId={AppEvents.CurrentSession.UserId}, Hash={this.GetHashCode()}, Visible={this.Visible}, Parent={this.Parent?.Name ?? "null"}");
                 // Use Asset Allocation (Nakit / Yatırım / Borç)
                 var allocationData = await _summaryService.GetAssetAllocationAsync(AppEvents.CurrentSession.UserId);
+                System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart: Got {allocationData?.Count ?? 0} allocation slices");
                 
                 if (allocationData != null && allocationData.Any() && allocationData[0].Category != "Veri yok")
                 {
+                    System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart: Rendering chart with data");
                     lblEmpty.Visible = false;
                     chart.Visible = true;
                     
@@ -91,6 +97,7 @@ namespace BankApp.UI.Controls
                     
                     foreach (var item in allocationData)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[RUNTIME-TRACE] AssetAllocationChart: Adding slice - {item.Category}: ₺{item.Amount:N0} ({item.Color})");
                         var point = new SeriesPoint(item.Category, (double)item.Amount);
                         point.Color = ColorTranslator.FromHtml(item.Color);
                         series.Points.Add(point);
@@ -113,6 +120,14 @@ namespace BankApp.UI.Controls
                     chart.Series.Clear();
                     chart.Series.Add(series);
                     
+                    System.Diagnostics.Debug.WriteLine($"[CHART] Chart rendered - points={series.Points.Count}, totalValue=₺{allocationData.Sum(x => x.Amount):N0}");
+                    
+                    // FORCE REPAINT
+                    chart.Invalidate();
+                    chart.Refresh();
+                    this.Invalidate();
+                    this.Refresh();
+                    
                     // Modern dark theme styling
                     chart.PaletteName = "Mixed";
                     chart.BorderOptions.Visibility = DevExpress.Utils.DefaultBoolean.False;
@@ -126,9 +141,12 @@ namespace BankApp.UI.Controls
                 }
                 else
                 {
+                    System.Diagnostics.Debug.WriteLine("[CHART] No data - showing empty state");
                     // Show empty state
                     chart.Visible = false;
                     lblEmpty.Visible = true;
+                    this.Invalidate();
+                    this.Refresh();
                 }
             }
             catch (Exception ex)

@@ -12,10 +12,11 @@ using DevExpress.XtraGrid.Views.Grid;
 using BankApp.Infrastructure.Services;
 using BankApp.UI.Forms;
 using BankApp.UI.Services.Pdf;
+using Dapper;
 
 namespace BankApp.UI.Controls
 {
-    public class InstrumentDetailView : XtraUserControl
+    public partial class InstrumentDetailView : XtraUserControl
     {
         public event EventHandler BackRequested;
         public event EventHandler<string> TradeTerminalRequested;
@@ -41,9 +42,9 @@ namespace BankApp.UI.Controls
         private SimpleButton btnBuy, btnSell;
         private LabelControl lblCurrentPrice, lblFee, lblAvailBalance;
         
-        // Bottom tabs
+        // Bottom tabs - Sadece Açık Emirler (Son İşlemler Dashboard'da)
         private XtraTabControl tabBottom;
-        private GridControl gridOrders, gridHistory;
+        private GridControl gridOrders;
         
         private ChartControl chartMain;
         private LabelControl lblChartLoading;
@@ -56,6 +57,9 @@ namespace BankApp.UI.Controls
         
         public InstrumentDetailView(IMarketDataProvider dataProvider)
         {
+            // [OPENED] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[OPENED] {GetType().FullName} | Handle=PENDING | Hash={GetHashCode()} | Parent={Parent?.Name ?? "null"} | Visible={Visible}");
+            
             _dataProvider = dataProvider;
             InitializeComponents();
         }
@@ -381,13 +385,13 @@ namespace BankApp.UI.Controls
             pnlRight.Appearance.BackColor = Color.FromArgb(18, 18, 18);
             CreateOrderPanel();
             
-            // BOTTOM - Open Orders / History
-            pnlBottom = new PanelControl();
-            pnlBottom.Dock = DockStyle.Bottom;
-            pnlBottom.Height = 180;
-            pnlBottom.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
-            pnlBottom.Appearance.BackColor = Color.FromArgb(18, 18, 18);
-            CreateBottomTabs();
+            // BOTTOM - Kaldırıldı, grafik tam ekran kaplasın
+            // pnlBottom = new PanelControl();
+            // pnlBottom.Dock = DockStyle.Bottom;
+            // pnlBottom.Height = 180;
+            // pnlBottom.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+            // pnlBottom.Appearance.BackColor = Color.FromArgb(18, 18, 18);
+            // CreateBottomTabs();
             
             // CHART
             pnlChart = new PanelControl();
@@ -412,7 +416,7 @@ namespace BankApp.UI.Controls
             pnlChart.Controls.Add(lblChartLoading);
             
             this.Controls.Add(pnlChart);
-            this.Controls.Add(pnlBottom);
+            // this.Controls.Add(pnlBottom); // Kaldırıldı
             this.Controls.Add(pnlRight);
             this.Controls.Add(pnlHeader);
             System.Diagnostics.Debug.WriteLine("[DEBUG] All panels added to form");
@@ -450,7 +454,7 @@ namespace BankApp.UI.Controls
         private void BtnAnalysis_Click(object sender, EventArgs e)
         {
             var form = new ChartAnalysisForm(_dataProvider, _currentSymbol, _currentTimeframe);
-            form.ShowDialog();
+            form.Show(); // Non-modal - arka ekran kilitlenmez
         }
         
         private void CreateOrderPanel()
@@ -473,10 +477,19 @@ namespace BankApp.UI.Controls
             pnlRight.Controls.Add(lblCurrentPrice);
             y += 40;
             
+            // BAŞLIK: SPOT İŞLEM
+            var lblSpotTitle = new LabelControl();
+            lblSpotTitle.Text = "⚡ SPOT İŞLEM PANELİ";
+            lblSpotTitle.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            lblSpotTitle.Appearance.ForeColor = Color.FromArgb(0, 180, 240); // Mavi
+            lblSpotTitle.Location = new Point(15, y);
+            pnlRight.Controls.Add(lblSpotTitle);
+            y += 35;
+            
             var lblType = new LabelControl();
-            lblType.Text = "Emir Tipi";
+            lblType.Text = "Emir Tipi (Hemen Al/Sat veya Limit Fiyat)";
             lblType.Appearance.Font = new Font("Segoe UI", 9F);
-            lblType.Appearance.ForeColor = Color.FromArgb(130, 130, 130);
+            lblType.Appearance.ForeColor = Color.FromArgb(180, 180, 180);
             lblType.Location = new Point(15, y);
             pnlRight.Controls.Add(lblType);
             y += 22;
@@ -488,45 +501,47 @@ namespace BankApp.UI.Controls
             cmbOrderType.Location = new Point(15, y);
             cmbOrderType.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
             cmbOrderType.Properties.Appearance.ForeColor = Color.White;
-            cmbOrderType.EditValueChanged += (s, e) => txtPrice.Enabled = cmbOrderType.EditValue.ToString() != "Market";
+            cmbOrderType.EditValueChanged += CmbOrderType_EditValueChanged;
             pnlRight.Controls.Add(cmbOrderType);
             y += 38;
             
             var lblPriceLbl = new LabelControl();
-            lblPriceLbl.Text = "Fiyat (USDT)";
+            lblPriceLbl.Text = "Fiyat (USDT) - Market seçiliyse otomatik";
             lblPriceLbl.Appearance.Font = new Font("Segoe UI", 9F);
-            lblPriceLbl.Appearance.ForeColor = Color.FromArgb(130, 130, 130);
+            lblPriceLbl.Appearance.ForeColor = Color.FromArgb(180, 180, 180);
             lblPriceLbl.Location = new Point(15, y);
             pnlRight.Controls.Add(lblPriceLbl);
             y += 22;
             
             txtPrice = new TextEdit();
-            txtPrice.Size = new Size(270, 28);
+            txtPrice.Size = new Size(270, 32); // Daha büyük - görünür
             txtPrice.Location = new Point(15, y);
-            txtPrice.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
+            txtPrice.Properties.Appearance.BackColor = Color.FromArgb(50, 50, 50); // Daha açık
             txtPrice.Properties.Appearance.ForeColor = Color.White;
+            txtPrice.Properties.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             txtPrice.Properties.NullText = "Market Fiyatı";
             txtPrice.Enabled = false;
             pnlRight.Controls.Add(txtPrice);
             y += 38;
             
             var lblAmtLbl = new LabelControl();
-            lblAmtLbl.Text = "Miktar";
-            lblAmtLbl.Appearance.Font = new Font("Segoe UI", 9F);
-            lblAmtLbl.Appearance.ForeColor = Color.FromArgb(130, 130, 130);
+            lblAmtLbl.Text = "Miktar (Kaç adet alacaksınız?)";
+            lblAmtLbl.Appearance.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblAmtLbl.Appearance.ForeColor = Color.FromArgb(220, 220, 220); // Daha açık
             lblAmtLbl.Location = new Point(15, y);
             pnlRight.Controls.Add(lblAmtLbl);
-            y += 22;
+            y += 25;
             
             txtAmount = new TextEdit();
-            txtAmount.Size = new Size(270, 28);
+            txtAmount.Size = new Size(270, 32); // Biraz daha büyük
             txtAmount.Location = new Point(15, y);
-            txtAmount.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
+            txtAmount.Properties.Appearance.BackColor = Color.FromArgb(40, 40, 40); // Daha açık arka plan
             txtAmount.Properties.Appearance.ForeColor = Color.White;
+            txtAmount.Properties.Appearance.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             txtAmount.EditValue = "1";
             txtAmount.EditValueChanged += (s, e) => UpdateTotal();
             pnlRight.Controls.Add(txtAmount);
-            y += 38;
+            y += 40;
             
             // Quick % buttons
             int bx = 15;
@@ -545,37 +560,38 @@ namespace BankApp.UI.Controls
             y += 38;
             
             var lblTotalLbl = new LabelControl();
-            lblTotalLbl.Text = "Toplam (USDT)";
-            lblTotalLbl.Appearance.Font = new Font("Segoe UI", 9F);
-            lblTotalLbl.Appearance.ForeColor = Color.FromArgb(130, 130, 130);
+            lblTotalLbl.Text = "💰 Toplam Tutar (Komisyon dahil)";
+            lblTotalLbl.Appearance.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblTotalLbl.Appearance.ForeColor = Color.FromArgb(255, 200, 0); // Altın sarısı
             lblTotalLbl.Location = new Point(15, y);
             pnlRight.Controls.Add(lblTotalLbl);
-            y += 22;
+            y += 25;
             
             txtTotal = new TextEdit();
-            txtTotal.Size = new Size(270, 28);
+            txtTotal.Size = new Size(270, 35);
             txtTotal.Location = new Point(15, y);
-            txtTotal.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
-            txtTotal.Properties.Appearance.ForeColor = Color.White;
+            txtTotal.Properties.Appearance.BackColor = Color.FromArgb(50, 50, 50);
+            txtTotal.Properties.Appearance.ForeColor = Color.FromArgb(255, 200, 0); // Altın
+            txtTotal.Properties.Appearance.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
             txtTotal.Properties.ReadOnly = true;
             pnlRight.Controls.Add(txtTotal);
-            y += 38;
+            y += 45;
             
             lblAvailBalance = new LabelControl();
-            lblAvailBalance.Text = "Bakiye: ,000.00";
+            lblAvailBalance.Text = "💵 Kullanılabilir Bakiye: $10,000.00";
             lblAvailBalance.Appearance.Font = new Font("Segoe UI", 9F);
-            lblAvailBalance.Appearance.ForeColor = Color.FromArgb(100, 100, 100);
+            lblAvailBalance.Appearance.ForeColor = Color.FromArgb(0, 200, 100); // Yeşil
             lblAvailBalance.Location = new Point(15, y);
             pnlRight.Controls.Add(lblAvailBalance);
             y += 22;
             
             lblFee = new LabelControl();
-            lblFee.Text = "Tahmini Komisyon: ~.10";
+            lblFee.Text = "⚡ Komisyon (0.1%): $10.00";
             lblFee.Appearance.Font = new Font("Segoe UI", 9F);
-            lblFee.Appearance.ForeColor = Color.FromArgb(100, 100, 100);
+            lblFee.Appearance.ForeColor = Color.FromArgb(150, 150, 150);
             lblFee.Location = new Point(15, y);
             pnlRight.Controls.Add(lblFee);
-            y += 32;
+            y += 35;
             
             btnBuy = new SimpleButton();
             btnBuy.Text = "AL (BUY)";
@@ -649,13 +665,15 @@ namespace BankApp.UI.Controls
         
         private void CreateBottomTabs()
         {
+            // B1: Son İşlemler Dashboard'da tek kaynak - burada sadece Açık Emirler
             tabBottom = new XtraTabControl();
             tabBottom.Dock = DockStyle.Fill;
             tabBottom.LookAndFeel.SkinName = "Office 2019 Black";
             tabBottom.LookAndFeel.UseDefaultLookAndFeel = false;
             
+            // Açık Emirler Tab
             var tabOrders = new XtraTabPage();
-            tabOrders.Text = "Açık Emirler";
+            tabOrders.Text = "📋 Açık Emirler";
             gridOrders = new GridControl();
             gridOrders.Dock = DockStyle.Fill;
             gridOrders.LookAndFeel.SkinName = "Office 2019 Black";
@@ -663,40 +681,108 @@ namespace BankApp.UI.Controls
             gridOrders.MainView = viewOrders;
             viewOrders.OptionsView.ShowGroupPanel = false;
             viewOrders.OptionsView.ShowIndicator = false;
+            viewOrders.OptionsBehavior.Editable = false;
             tabOrders.Controls.Add(gridOrders);
             tabBottom.TabPages.Add(tabOrders);
             
-            var tabHistory = new XtraTabPage();
-            tabHistory.Text = "İşlem Geçmişi";
-            gridHistory = new GridControl();
-            gridHistory.Dock = DockStyle.Fill;
-            gridHistory.LookAndFeel.SkinName = "Office 2019 Black";
-            var viewHistory = new GridView(gridHistory);
-            gridHistory.MainView = viewHistory;
-            viewHistory.OptionsView.ShowGroupPanel = false;
-            viewHistory.OptionsView.ShowIndicator = false;
-            tabHistory.Controls.Add(gridHistory);
-            tabBottom.TabPages.Add(tabHistory);
+            // Info label - Son İşlemler Dashboard'da
+            var lblInfo = new DevExpress.XtraEditors.LabelControl();
+            lblInfo.Text = "💡 İşlem geçmişi için Dashboard → Son İşlemler bölümüne bakın";
+            lblInfo.Appearance.ForeColor = System.Drawing.Color.FromArgb(150, 150, 150);
+            lblInfo.Appearance.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
+            lblInfo.Dock = DockStyle.Bottom;
+            lblInfo.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.None;
+            lblInfo.Height = 25;
+            lblInfo.Padding = new System.Windows.Forms.Padding(10, 5, 0, 0);
             
             pnlBottom.Controls.Add(tabBottom);
+            pnlBottom.Controls.Add(lblInfo);
+            lblInfo.BringToFront();
+            
+            // Açık emirleri yükle
+            LoadOpenOrders();
         }
         
-        private void BtnBuy_Click(object sender, EventArgs e)
+        private void LoadOpenOrders()
         {
-            if (!ValidateOrder()) return;
-            var orderType = cmbOrderType.EditValue?.ToString() ?? "Market";
-            var amount = txtAmount.Text;
-            var price = orderType == "Market" ? "Piyasa Fiyatı" : txtPrice.Text;
-            MessageBox.Show($"✅ BUY Emri Oluşturuldu\n\nSembol: {_currentSymbol}\nTip: {orderType}\nFiyat: {price}\nMiktar: {amount}\nToplam: {txtTotal.Text}", "Emir Onayı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[DATA] OpenOrders loading for userId={AppEvents.CurrentSession.UserId}");
+                
+                // Açık emirler için placeholder - gerçek Orders tablosu yoksa boş göster
+                var dt = new System.Data.DataTable();
+                dt.Columns.Add("Sembol", typeof(string));
+                dt.Columns.Add("Tip", typeof(string));
+                dt.Columns.Add("Miktar", typeof(decimal));
+                dt.Columns.Add("Fiyat", typeof(decimal));
+                dt.Columns.Add("Durum", typeof(string));
+                dt.Columns.Add("Tarih", typeof(DateTime));
+                
+                // TODO: Gerçek Orders tablosu eklenince buradan çekilecek
+                // Şimdilik "Market" emirler anlık işleniyor, açık emir yok
+                
+                gridOrders.DataSource = dt;
+                
+                if (gridOrders.MainView is GridView view)
+                {
+                    view.BestFitColumns();
+                    
+                    // Boş grid mesajı
+                    if (dt.Rows.Count == 0)
+                    {
+                        view.ViewCaption = "📥 Açık emir bulunmuyor. Market emirler anlık işlenir.";
+                        view.OptionsView.ShowViewCaption = true;
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[DATA] OpenOrders loaded count=0 (no pending orders table yet)");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERR] LoadOpenOrders error: {ex.Message}");
+            }
         }
         
-        private void BtnSell_Click(object sender, EventArgs e)
+        private async void BtnBuy_Click(object sender, EventArgs e)
         {
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] btnBuy.Click -> BtnBuy_Click | senderType={sender?.GetType().Name} | senderHash={sender?.GetHashCode()} | formHash={this.GetHashCode()} | viewType={GetType().FullName}");
             if (!ValidateOrder()) return;
+            await ExecuteRealTradeAsync(isBuy: true);
+        }
+        
+        private async void BtnSell_Click(object sender, EventArgs e)
+        {
+            // [CALL] ZORUNLU FORMAT
+            System.Diagnostics.Debug.WriteLine($"[CALL] btnSell.Click -> BtnSell_Click | senderType={sender?.GetType().Name} | senderHash={sender?.GetHashCode()} | formHash={this.GetHashCode()} | viewType={GetType().FullName}");
+            if (!ValidateOrder()) return;
+            await ExecuteRealTradeAsync(isBuy: false);
+        }
+        
+        /// <summary>
+        /// Emir tipi değişince fiyat alanını aktif/pasif yap
+        /// </summary>
+        private void CmbOrderType_EditValueChanged(object sender, EventArgs e)
+        {
             var orderType = cmbOrderType.EditValue?.ToString() ?? "Market";
-            var amount = txtAmount.Text;
-            var price = orderType == "Market" ? "Piyasa Fiyatı" : txtPrice.Text;
-            MessageBox.Show($"✅ SELL Emri Oluşturuldu\n\nSembol: {_currentSymbol}\nTip: {orderType}\nFiyat: {price}\nMiktar: {amount}\nToplam: {txtTotal.Text}", "Emir Onayı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            System.Diagnostics.Debug.WriteLine($"[CALL] InstrumentDetailView OrderType changed to: {orderType}");
+            
+            if (orderType == "Market")
+            {
+                txtPrice.Enabled = false;
+                txtPrice.Text = "";
+                txtPrice.Properties.NullText = "Piyasa Fiyatı (Otomatik)";
+                txtPrice.Properties.Appearance.BackColor = Color.FromArgb(30, 30, 30);
+            }
+            else
+            {
+                txtPrice.Enabled = true;
+                txtPrice.Properties.NullText = orderType == "Limit" ? "Limit Fiyat Girin (USDT)" : "Stop Fiyat Girin (USDT)";
+                txtPrice.Properties.Appearance.BackColor = Color.FromArgb(60, 60, 60); // Daha açık - aktif
+                txtPrice.Focus();
+            }
+            
+            UpdateTotal();
         }
         
         private bool ValidateOrder()

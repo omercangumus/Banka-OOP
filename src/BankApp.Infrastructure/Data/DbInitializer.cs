@@ -154,9 +154,29 @@ namespace BankApp.Infrastructure.Data
                         );";
                     cmd.ExecuteNonQuery();
 
-                    // 6. QuickContacts Table - DISABLED (causing SQL errors)
-                    // cmd.CommandText = @"CREATE TABLE IF NOT EXISTS ""QuickContacts"" (...";
-                    // cmd.ExecuteNonQuery();
+                    // 6. QuickContacts Table
+                    cmd.CommandText = @"
+                        CREATE TABLE IF NOT EXISTS ""QuickContacts"" (
+                            ""Id"" SERIAL PRIMARY KEY,
+                            ""UserId"" INT NOT NULL,
+                            ""Name"" VARCHAR(100) NOT NULL,
+                            ""IBAN"" VARCHAR(50) NOT NULL,
+                            ""ColorHex"" VARCHAR(20),
+                            ""CreatedAt"" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        );";
+                    cmd.ExecuteNonQuery();
+                    
+                    // QuickContacts IBAN sütunu düzeltme (eski tablolar için)
+                    cmd.CommandText = @"
+                        DO $$
+                        BEGIN
+                            IF EXISTS (SELECT 1 FROM information_schema.columns 
+                                       WHERE table_name = 'QuickContacts' AND column_name = 'IBAN' 
+                                       AND character_maximum_length < 50) THEN
+                                ALTER TABLE ""QuickContacts"" ALTER COLUMN ""IBAN"" TYPE VARCHAR(50);
+                            END IF;
+                        END $$;";
+                    cmd.ExecuteNonQuery();
 
                     // 7. Loans Table (Krediler)
                     cmd.CommandText = @"

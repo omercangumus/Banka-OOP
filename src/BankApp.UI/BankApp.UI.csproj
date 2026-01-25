@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -18,12 +18,21 @@
   <ItemGroup>
     <!-- DevExpress References -->
     <!-- <PackageReference Include="DevExpress.Win.Design" Version="*" /> -->
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="DevExpress.Charts" Version="25.2.3" />
     <PackageReference Include="DevExpress.Win" Version="*" />
     <PackageReference Include="DevExpress.Win.Navigation" Version="*" />
     <PackageReference Include="DevExpress.Win.Grid" Version="*" />
     <PackageReference Include="DevExpress.Win.Charts" Version="*" />
     <PackageReference Include="DevExpress.Win.Printing" Version="*" />
     <PackageReference Include="DevExpress.Win.Reporting" Version="25.2.3" />
+    <PackageReference Include="FluentAssertions" Version="8.8.0" />
+    <PackageReference Include="MailKit" Version="4.14.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.6" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.1" /> 
   </ItemGroup>
@@ -37,6 +46,12 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

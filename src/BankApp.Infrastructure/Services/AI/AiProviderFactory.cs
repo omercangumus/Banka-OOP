@@ -16,13 +16,13 @@ namespace BankApp.Infrastructure.Services.AI
         /// </summary>
         public static IAIProvider CreateProvider()
         {
-            var groqKey = GetApiKey();
-            if (!string.IsNullOrEmpty(groqKey))
+            var openRouterKey = GetOpenRouterApiKey();
+            if (!string.IsNullOrEmpty(openRouterKey))
             {
-                var groqProvider = new GroqAiProvider(groqKey);
-                if (groqProvider.IsAvailable)
+                var openRouterProvider = new OpenRouterAiProvider(openRouterKey);
+                if (openRouterProvider.IsAvailable)
                 {
-                    return groqProvider;
+                    return openRouterProvider;
                 }
             }
             
@@ -31,15 +31,15 @@ namespace BankApp.Infrastructure.Services.AI
         }
         
         /// <summary>
-        /// Get API key from config file or environment variable
+        /// Get OpenRouter API key from config file or environment variable
         /// </summary>
-        private static string? GetApiKey()
+        private static string? GetOpenRouterApiKey()
         {
             if (_cachedApiKey != null)
                 return _cachedApiKey;
             
             // 1. Try environment variable first
-            var envKey = Environment.GetEnvironmentVariable("GROQ_API_KEY");
+            var envKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
             if (!string.IsNullOrEmpty(envKey) && envKey != "your-api-key-here")
             {
                 _cachedApiKey = envKey;
@@ -65,7 +65,7 @@ namespace BankApp.Infrastructure.Services.AI
                     var json = File.ReadAllText(configPath);
                     using var doc = JsonDocument.Parse(json);
                     if (doc.RootElement.TryGetProperty("AI", out var aiSection) &&
-                        aiSection.TryGetProperty("GroqApiKey", out var keyElement))
+                        aiSection.TryGetProperty("OpenRouterApiKey", out var keyElement))
                     {
                         var key = keyElement.GetString();
                         if (!string.IsNullOrEmpty(key) && key != "your-api-key-here")
@@ -78,18 +78,27 @@ namespace BankApp.Infrastructure.Services.AI
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Config read error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[AI-FACTORY] Error loading OpenRouter API key: {ex.Message}");
             }
             
             return null;
         }
         
         /// <summary>
-        /// Check if online AI is available
+        /// Check if any API key is configured
+        /// </summary>
+        public static bool HasApiKey()
+        {
+            return !string.IsNullOrEmpty(GetOpenRouterApiKey());
+        }
+        
+        /// <summary>
+        /// Check if online AI is available (for backward compatibility)
         /// </summary>
         public static bool IsOnlineAvailable()
         {
-            return !string.IsNullOrEmpty(GetApiKey());
+            var provider = CreateProvider();
+            return provider.IsAvailable && !(provider is OfflineAiProvider);
         }
         
         /// <summary>
@@ -98,7 +107,7 @@ namespace BankApp.Infrastructure.Services.AI
         public static (bool IsOnline, string ProviderName, string StatusText) GetStatus()
         {
             var provider = CreateProvider();
-            bool isOnline = provider is GroqAiProvider && provider.IsAvailable;
+            bool isOnline = provider is OpenRouterAiProvider && provider.IsAvailable;
             
             return (
                 isOnline,
