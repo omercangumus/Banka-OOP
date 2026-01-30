@@ -1,159 +1,108 @@
-# BankaBenim - Banka Uygulaması
+# NovaBank - Modern Banking Application
 
-Bu proje, Windows Forms ve DevExpress kullanılarak geliştirilmiş bir banka yönetim sistemidir.
+A comprehensive banking management system built with modern .NET technologies, featuring AI-powered financial assistance and real-time portfolio management.
 
-## 🛠️ Teknolojiler
+## 🚀 Features
 
-- **.NET 8.0**
-- **C# WinForms**
-- **DevExpress UI Framework**
-- **PostgreSQL** (Veritabanı)
-- **Entity Framework Core**
-- **Dapper** (ORM)
-- **Npgsql** (PostgreSQL Driver)
+### Core Banking
+- ✅ User registration and authentication
+- ✅ Email verification system
+- ✅ Account management
+- ✅ Money transfers
+- ✅ Transaction history
+- ✅ Audit logging
+- ✅ Role-based authorization (Admin, Staff, Customer)
 
-## 📋 Özellikler
+### AI Integration
+- ✅ AI-powered financial assistant
+- ✅ Real-time portfolio analysis
+- ✅ Investment recommendations
+- ✅ PDF export functionality
+- ✅ Chart analysis tools
 
-- ✅ Kullanıcı kayıt ve giriş sistemi
-- ✅ Email doğrulama sistemi
-- ✅ Şifre sıfırlama
-- ✅ Müşteri yönetimi
-- ✅ Hesap yönetimi
-- ✅ Para transferi
-- ✅ İşlem geçmişi
-- ✅ Denetim kayıtları (Audit Logs)
-- ✅ Rol tabanlı yetkilendirme (Admin, Staff, Customer)
+### Dashboard & Analytics
+- ✅ Real-time portfolio tracking
+- ✅ Asset allocation charts
+- ✅ Net worth visualization
+- ✅ Transaction analytics
+- ✅ Performance metrics
 
-## 🚀 Kurulum
+## 🛠️ Tech Stack
 
-### Gereksinimler
+- **.NET 8.0** - Latest framework
+- **C# WinForms** - Desktop UI
+- **DevExpress UI Framework** - Rich UI components
+- **PostgreSQL** - Primary database
+- **Entity Framework Core** - ORM
+- **Dapper** - High-performance data access
+- **AI Integration** - Multiple AI providers
 
-1. **PostgreSQL** (14 veya üzeri) yüklü ve çalışır durumda olmalı
-2. **.NET 8.0 SDK** yüklü olmalı
-3. **Visual Studio 2022** veya **VS Code** (önerilir)
+## 📋 Requirements
 
-### Adımlar
+- **PostgreSQL** 14+
+- **.NET 8.0 SDK**
+- **Visual Studio 2022** or **VS Code**
 
-1. **Veritabanı Ayarları:**
-   - PostgreSQL'in `postgres` kullanıcısının şifresi `1` olmalı (veya `appsettings.json` dosyasını düzenleyin)
-   - Varsayılan bağlantı ayarları:
-     - Host: `127.0.0.1`
-     - Port: `5432`
-     - Database: `NovaBankDb`
-     - User: `postgres`
-     - Password: `1`
+## 🚀 Quick Start
 
-2. **Connection String Ayarları:**
-   `src/BankApp.UI/appsettings.json` dosyasını düzenleyerek veritabanı bağlantı bilgilerinizi güncelleyin:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/omercangumus/Banka-NTP.git
+   cd Banka-NTP
+   ```
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=127.0.0.1;Port=5432;User Id=postgres;Password=1;Database=NovaBankDb;"
-  }
-}
-```
+2. **Configure Database**
+   - Ensure PostgreSQL is running
+   - Update connection string in `src/BankApp.UI/appsettings.json`:
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "Server=127.0.0.1;Port=5432;User Id=postgres;Password=1;Database=NovaBankDb;"
+     }
+   }
+   ```
 
-3. **Projeyi Derleme:**
-```bash
-dotnet build BankaBenim.sln
-```
+3. **Build and Run**
+   ```bash
+   dotnet build BankaBenim.sln
+   cd src/BankApp.UI
+   dotnet run
+   ```
 
-4. **Uygulamayı Çalıştırma:**
-```bash
-cd src/BankApp.UI
-dotnet run
-```
+## 👤 Default Users
 
-Veya Visual Studio'dan `BankApp.UI` projesini başlatın.
+| Username | Password | Role | Status |
+|----------|----------|------|--------|
+| `admin` | `admin123` | Admin | Verified |
+| `test` | `test123` | Customer | Verified |
+| `demo` | `demo123` | Customer | Verified |
+| `staff` | `123456` | Staff | Verified |
 
-## 👤 Varsayılan Kullanıcılar
-
-Uygulama ilk açıldığında aşağıdaki test kullanıcıları otomatik olarak oluşturulur:
-
-| Kullanıcı Adı | Şifre | Rol | Durum |
-|--------------|-------|-----|-------|
-| `admin` | `admin123` | Admin | Doğrulanmış |
-| `test` | `test123` | Customer | Doğrulanmış |
-| `demo` | `demo123` | Customer | Doğrulanmış |
-| `staff` | `123456` | Staff | Doğrulanmış |
-
-**ÖNEMLİ:** İlk girişte bu şifreleri kullanabilirsiniz. Üretim ortamında bu kullanıcıları mutlaka değiştirin!
-
-## 🔧 Yapılan Düzeltmeler
-
-### Veritabanı ve Login Sorunları Düzeltildi ✅
-
-Aşağıdaki sorunlar tespit edilip düzeltilmiştir:
-
-#### 1. **Connection String Format Tutarsızlığı** ✅
-   - **Sorun:** Bazı dosyalarda `Server=` bazılarında `Host=` formatı kullanılıyordu
-   - **Düzeltme:** Tüm connection string'ler `Server=127.0.0.1;Port=5432;User Id=postgres;Password=1;Database=NovaBankDb;` formatına standartlaştırıldı
-   - **Etkilenen Dosyalar:**
-     - `DbInitializer.cs` (master ve app connection string'leri düzeltildi)
-
-#### 2. **DbInitializer'da Tekrarlanan İşlemler** ✅
-   - **Sorun:** `Initialize()` metodunda veritabanı oluşturma, tablo oluşturma ve veri ekleme işlemleri iki kez çağrılıyordu
-   - **Düzeltme:** Gereksiz tekrarlar kaldırıldı, sadece bir kez çalışacak şekilde düzenlendi
-   - **Etkilenen Dosya:** `DbInitializer.cs`
-
-#### 3. **Login'de IsVerified Kontrolü Eksikti** ✅
-   - **Sorun:** Kullanıcı giriş yaparken hesabın doğrulanıp doğrulanmadığı kontrol edilmiyordu
-   - **Düzeltme:** `AuthService.LoginAsync()` metoduna `IsVerified` ve `IsActive` kontrolleri eklendi
-   - **Etkilenen Dosya:** `AuthService.cs`
-   - **Eklenen Özellikler:**
-     - Hesap doğrulanmamışsa uyarı mesajı gösteriliyor
-     - Hesap aktif değilse uyarı mesajı gösteriliyor
-     - Her durum için audit log kaydı yapılıyor
-
-#### 4. **Connection String Yönetimi İyileştirildi** ✅
-   - **Sorun:** Connection string'ler hardcoded olarak yazılmıştı, `appsettings.json` kullanılmıyordu
-   - **Düzeltme:** `DapperContext` sınıfına `appsettings.json`'dan connection string okuma özelliği eklendi
-   - **Etkilenen Dosya:** `DapperContext.cs`
-   - **Avantajlar:**
-     - Merkezi yapılandırma yönetimi
-     - Kolay bağlantı string değişikliği
-     - Fallback mekanizması (appsettings.json okunamazsa hardcoded değer kullanılır)
-
-#### 5. **Demo Kullanıcı Şifre Hash'i Düzeltildi** ✅
-   - **Sorun:** Demo kullanıcının şifre hash'i yanlıştı
-   - **Düzeltme:** `demo123` şifresinin doğru SHA256 hash'i ile güncellendi
-   - **Etkilenen Dosya:** `DbInitializer.cs`
-
-## 📁 Proje Yapısı
+## 🏗️ Architecture
 
 ```
-BankaBenim/
+NovaBank/
 ├── src/
-│   ├── BankApp.Core/              # Domain katmanı (Entities, Interfaces)
-│   ├── BankApp.Infrastructure/    # Data Access katmanı (Repositories, Services)
-│   ├── BankApp.Business/          # Business Logic katmanı (Services)
-│   ├── BankApp.UI/                # UI katmanı (WinForms)
-│   └── BankApp.Tests/             # Test projesi
-├── appsettings.json               # Uygulama yapılandırma dosyası
-└── BankaBenim.sln                # Solution dosyası
+│   ├── BankApp.Core/              # Domain layer (Entities, Interfaces)
+│   ├── BankApp.Infrastructure/    # Data Access layer (Repositories, Services)
+│   ├── BankApp.Business/          # Business Logic layer
+│   ├── BankApp.UI/                # UI layer (WinForms)
+│   └── BankApp.Tests/             # Test project
+├── docs/                          # Documentation
+└── BankaBenim.sln                 # Solution file
 ```
 
-## 🗄️ Veritabanı Şeması
+## 🔒 Security
 
-### Tablolar
+- SHA256 password hashing
+- Email verification system
+- Comprehensive audit logging
+- Role-based access control
+- Secure API integration
 
-- **Users** - Kullanıcı bilgileri
-- **Customers** - Müşteri bilgileri
-- **Accounts** - Hesap bilgileri
-- **Transactions** - İşlem kayıtları
-- **AuditLogs** - Denetim kayıtları
+## 📧 Email Configuration
 
-## 🔒 Güvenlik
-
-- Şifreler SHA256 ile hash'lenir
-- Email doğrulama sistemi mevcuttur
-- Tüm işlemler audit log'a kaydedilir
-- Rol tabanlı yetkilendirme
-
-## 📧 Email Ayarları
-
-Email gönderimi için `appsettings.json` dosyasında SMTP ayarlarını yapılandırın:
+Configure SMTP settings in `appsettings.json`:
 
 ```json
 {
@@ -167,52 +116,58 @@ Email gönderimi için `appsettings.json` dosyasında SMTP ayarlarını yapılan
 }
 ```
 
-**Not:** Gmail kullanıyorsanız, "Uygulama Şifresi" kullanmanız gerekebilir.
+## 🤖 AI Features
 
-## 🐛 Sorun Giderme
+NovaBank includes advanced AI capabilities:
 
-### Login Yapamıyorum
+- **Financial Analysis**: AI-powered portfolio analysis
+- **Investment Advice**: Personalized recommendations
+- **Risk Assessment**: Real-time risk evaluation
+- **Market Insights**: Latest market trends
 
-1. **PostgreSQL servisinin çalıştığını kontrol edin:**
-   ```bash
-   # Windows
-   Get-Service postgresql*
-   ```
+## 📊 Dashboard Features
 
-2. **Connection string'in doğru olduğunu kontrol edin:**
-   - `appsettings.json` dosyasındaki bağlantı bilgilerini kontrol edin
-   - PostgreSQL şifresinin doğru olduğundan emin olun
+- **Real-time Updates**: Live portfolio tracking
+- **Interactive Charts**: Advanced visualization
+- **Export Options**: PDF and Excel exports
+- **Custom Reports**: Tailored financial reports
 
-3. **Veritabanının oluşturulduğunu kontrol edin:**
-   - Uygulama ilk açıldığında otomatik olarak `NovaBankDb` veritabanını oluşturur
-   - Manuel kontrol için: `SELECT 1 FROM pg_database WHERE datname = 'NovaBankDb';`
+## 🔧 Troubleshooting
 
-4. **Kullanıcının doğrulanmış olduğundan emin olun:**
-   - Varsayılan test kullanıcıları zaten doğrulanmıştır
-   - Yeni kayıt olan kullanıcılar email doğrulama kodu ile hesabını doğrulamalıdır
+### Database Connection Issues
+1. Verify PostgreSQL service is running
+2. Check connection string in `appsettings.json`
+3. Ensure database exists: `NovaBankDb`
 
-### Veritabanı Bağlantı Hatası
+### Login Problems
+1. Check user is verified
+2. Verify credentials from default users table
+3. Review audit logs for failed attempts
 
-- PostgreSQL'in çalıştığından emin olun
-- Port 5432'nin açık olduğunu kontrol edin
-- Firewall ayarlarını kontrol edin
-- Connection string'deki bilgilerin doğru olduğundan emin olun
+## 📝 Development Notes
 
-## 📝 Notlar
+- Auto-database initialization on first run
+- Centralized configuration management
+- Comprehensive error handling
+- Extensive logging and monitoring
 
-- Uygulama ilk çalıştırıldığında otomatik olarak veritabanı oluşturulur ve test verileri eklenir
-- Tüm connection string'ler artık `appsettings.json` dosyasından okunur
-- Login işlemi sırasında hesap doğrulama kontrolü yapılır
+## 🤝 Contributing
 
-## 👨‍💻 Geliştirici
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-Bu proje bir banka yönetim sistemi örneğidir.
+## 📄 License
 
-## 📄 Lisans
+This project is for educational purposes.
 
-Bu proje eğitim amaçlıdır.
+## 👨‍💻 Developer
+
+Modern banking application with AI integration.
 
 ---
 
-**Son Güncelleme:** Tüm veritabanı ve login sorunları düzeltildi ✅
+**Last Updated**: Complete AI integration and modern UI implementation ✅
 
